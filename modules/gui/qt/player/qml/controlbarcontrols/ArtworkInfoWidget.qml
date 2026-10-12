@@ -46,6 +46,13 @@ T.AbstractButton {
 
     property bool _keyPressed: false
 
+    readonly property ColorContext metadataColorContext: ColorContext {
+        id: metadataTheme
+        palette: theme.palette
+        colorSet: ColorContext.View
+        enabled: theme.enabled
+    }
+
     readonly property ColorContext colorContext: ColorContext {
         id: theme
 
@@ -260,7 +267,7 @@ T.AbstractButton {
                         Player.artist
                 }
 
-                color: theme.fg.secondary
+                color: metadataTheme.fg.secondary
             }
 
             Widgets.MenuCaption {
@@ -281,7 +288,7 @@ T.AbstractButton {
                                 length.formatHMS()
                     }
                 }
-                color: theme.fg.secondary
+                color: metadataTheme.fg.secondary
 
                 // TODO: Do not use `Binding` when minimum Qt is 6.12:
                 Binding {

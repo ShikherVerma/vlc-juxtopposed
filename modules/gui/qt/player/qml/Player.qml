@@ -124,10 +124,7 @@ FocusScope {
     ColorContext {
         id: windowTheme
 
-        // NOTE: We force the night theme when playing a video.
-        palette: (MainCtx.hasEmbededVideo && MainCtx.pinVideoControls === false)
-                 ? VLCStyle.darkPalette
-                 : VLCStyle.palette
+        palette: VLCStyle.palette
 
         colorSet: ColorContext.Window
     }
@@ -323,7 +320,7 @@ FocusScope {
                     visible: rootPlayer.displayFadeRectangles && !topBarAcrylicBg.visible
 
                     gradient: Gradient {
-                        GradientStop { position: 0; color: Qt.rgba(0, 0, 0, .8) }
+                        GradientStop { position: 0; color: Qt.alpha(windowTheme.bg.primary, .8) }
                         GradientStop { position: 1; color: "transparent" }
                     }
                 }
@@ -337,8 +334,8 @@ FocusScope {
 
                     gradient: Gradient {
                         GradientStop { position: 0; color: "transparent" }
-                        GradientStop { position: .64; color: Qt.rgba(0, 0, 0, .8) }
-                        GradientStop { position: 1; color: "black" }
+                        GradientStop { position: .64; color: Qt.alpha(windowTheme.bg.primary, .8) }
+                        GradientStop { position: 1; color: windowTheme.bg.primary }
                     }
 
                     visible: rootPlayer.displayFadeRectangles && !(controlBar.background && controlBar.background.visible)
@@ -394,7 +391,7 @@ FocusScope {
                     source: textureProviderIndirection
 
                     postprocess: true
-                    tint: bgtheme.palette.isDark ? "black" : "white"
+                    tint: bgtheme.bg.primary
                     tintStrength: 0.5
                     backgroundColor: bgtheme.bg.primary
 

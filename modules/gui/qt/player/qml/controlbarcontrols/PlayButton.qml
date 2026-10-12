@@ -37,7 +37,7 @@ T.Control {
     readonly property ColorContext colorContext: ColorContext {
         id: theme
 
-        colorSet: ColorContext.ToolButton
+        colorSet: ColorContext.ButtonAccent
 
         enabled: root.enabled || root.paintOnly
         focused: root.activeFocus
@@ -217,8 +217,7 @@ T.Control {
                 return VLCIcons.play_filled
         }
 
-        color: cursorInside ? theme.accent
-                            : "black"  //foreground is always black
+        color: theme.fg.primary
 
         font.pixelSize: Math.round(parent.height / 1.7)
 
@@ -261,8 +260,8 @@ T.Control {
             radius: width / 2
 
             gradient: Gradient {
-                GradientStop { position: 0.0; color: "#e25b01" }
-                GradientStop { position: 1.0; color: "#f89a06" }
+                GradientStop { position: 0.0; color: VLCStyle.palette.accentDim }
+                GradientStop { position: 1.0; color: VLCStyle.palette.accentBright }
             }
 
             Widgets.RoundedRectangleShadow {
@@ -280,7 +279,7 @@ T.Control {
             Rectangle {
                 id: innerRectangle
 
-                color: "white"
+                color: theme.bg.primary
 
                 anchors.fill: parent
                 anchors.margins: _diminished ? (parent.width / 2)

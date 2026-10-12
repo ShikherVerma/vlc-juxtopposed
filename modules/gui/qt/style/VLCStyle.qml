@@ -20,6 +20,7 @@ import QtQuick
 
 import VLC.MainInterface
 import VLC.Style
+import VLC.Util
 
 QtObject {
     id: vlc_style
@@ -317,7 +318,7 @@ QtObject {
     readonly property url noArtVideoCover: "qrc:///placeholder/noart_videoCover.svg";
 
     // New indicator
-    readonly property url newIndicator: "qrc:///misc/new_indicator.svg";
+    readonly property url newIndicator: SVGColorImage.colorize("qrc:///misc/new_indicator.svg").any({"#FF610A": palette.accentLogo}).uri();
 
     // ControlBar
 

@@ -151,7 +151,7 @@ T.ToolBar {
 
                     sourceSize.width: VLCStyle.bannerButton_height
                     sourceSize.height: VLCStyle.bannerButton_height
-                    color: theme.accent
+                    color: VLCStyle.palette.accentLogo
                 }
             }
         }

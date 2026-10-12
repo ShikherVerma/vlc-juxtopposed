@@ -301,7 +301,7 @@ FocusScope{
                 anchors.left: backBtn.right
                 anchors.leftMargin: VLCStyle.margin_xxsmall
 
-                color: theme.accent
+                color: VLCStyle.palette.accentLogo
             }
         }
 

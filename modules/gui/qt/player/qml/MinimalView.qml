@@ -35,9 +35,7 @@ FocusScope {
     readonly property ColorContext colorContext: ColorContext {
         id: theme
 
-        palette: (MainCtx.hasEmbededVideo && MainCtx.pinVideoControls === false)
-                 ? VLCStyle.darkPalette
-                 : VLCStyle.palette
+        palette: VLCStyle.palette
 
         colorSet: ColorContext.Window
     }
@@ -97,7 +95,7 @@ FocusScope {
 
             source: MainCtx.useXmasCone()
                     ? "qrc:///logo/vlc48-xmas.png"
-                    : "qrc:///misc/cone.svg"
+                    : SVGColorImage.colorize("qrc:///misc/cone.svg").accent(VLCStyle.palette.accentLogo).uri()
 
             anchors.centerIn: parent
             width: Math.min(parent.width / 2, sourceSize.width)

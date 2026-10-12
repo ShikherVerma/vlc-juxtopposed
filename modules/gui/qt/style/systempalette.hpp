@@ -111,11 +111,18 @@ public:
     Q_PROPERTY(CSDMetrics* csdMetrics READ getCSDMetrics NOTIFY CSDMetricsChanged FINAL)
 
     //standard color definitions used by light/dark themes
-    COLOR_DEFINITION(orange500, "#FF8800");
-    COLOR_DEFINITION(orange800, "#FF610A");
+    COLOR_DEFINITION(accentMain, "#e8851a");
+    COLOR_DEFINITION(accentBright, "#ffa13b");
+    COLOR_DEFINITION(accentDim, "#965916");
+    COLOR_DEFINITION(accentLogo, "#c2711a");
+    COLOR_DEFINITION(bgAccentDark, "#c6ab89");
+    COLOR_DEFINITION(bgAccentBright, "#d8ba9a");
 
-    COLOR_DEFINITION(orange400, "#f89a06"); //FIXME name have been chosen randomly by me
-    COLOR_DEFINITION(orange200, "#e29a06"); //FIXME name have been chosen randomly by me
+    // Compatibility aliases for existing QML consumers.
+    COLOR_DEFINITION(orange500, "#e8851a");
+    COLOR_DEFINITION(orange800, "#965916");
+    COLOR_DEFINITION(orange400, "#ffa13b");
+    COLOR_DEFINITION(orange200, "#965916");
 
     COLOR_DEFINITION(darkGrey200, "#1E1E1E");
     COLOR_DEFINITION(darkGrey300, "#212121");
@@ -167,6 +174,7 @@ signals:
 
 private:
     void updatePalette();
+    void updateAccent(bool dark);
 
     void makeLightPalette();
     void makeDarkPalette();
