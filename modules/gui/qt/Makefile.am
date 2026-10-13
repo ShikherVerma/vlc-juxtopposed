@@ -145,6 +145,10 @@ libqt_plugin_la_SOURCES = \
 	dialogs/preferences/expert_model.hpp \
 	dialogs/preferences/expert_view.cpp \
 	dialogs/preferences/expert_view.hpp \
+	dialogs/settings/settings_dialog.cpp \
+	dialogs/settings/settings_dialog.hpp \
+	dialogs/settings/settings_metadata.cpp \
+	dialogs/settings/settings_metadata.hpp \
 	dialogs/preferences/preferences.cpp \
 	dialogs/preferences/preferences.hpp \
 	dialogs/preferences/preferences_widgets.cpp \
@@ -432,6 +436,7 @@ nodist_libqt_plugin_la_SOURCES = \
 	dialogs/preferences/complete_preferences.moc.cpp \
 	dialogs/preferences/expert_model.moc.cpp \
 	dialogs/preferences/expert_view.moc.cpp \
+	dialogs/settings/settings_dialog.moc.cpp \
 	dialogs/preferences/preferences.moc.cpp \
 	dialogs/preferences/preferences_widgets.moc.cpp \
 	dialogs/preferences/simple_preferences.moc.cpp \

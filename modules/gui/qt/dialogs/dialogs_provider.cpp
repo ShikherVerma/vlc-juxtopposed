@@ -42,6 +42,7 @@
 /* The dialogs */
 #include "dialogs/bookmarks/bookmarks.hpp"
 #include "dialogs/preferences/preferences.hpp"
+#include "dialogs/settings/settings_dialog.hpp"
 #include "dialogs/mediainfo/mediainfo.hpp"
 #include "dialogs/messages/messages.hpp"
 #include "dialogs/extended/extended.hpp"
@@ -291,7 +292,16 @@ void DialogsProvider::prefsDialog()
 {
     if (Q_LIKELY(!m_prefsDialog))
     {
-        m_prefsDialog = new PrefsDialog( nullptr, p_intf );
+        auto *shell = new SettingsDialog( nullptr, p_intf );
+        m_prefsDialog = shell;
+        connect(shell, &SettingsDialog::allSettingsRequested, this, [this, shell] {
+            shell->reject();
+            auto *legacy = new PrefsDialog( nullptr, p_intf );
+            m_prefsDialog = legacy;
+            legacy->installEventFilter(this);
+            QMetaObject::invokeMethod(legacy, "setAdvanced", Qt::DirectConnection);
+            legacy->open();
+        });
         m_prefsDialog->setAttribute(Qt::WA_DeleteOnClose);
         m_prefsDialog->installEventFilter(this);
         m_prefsDialog->open();

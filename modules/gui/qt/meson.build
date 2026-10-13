@@ -63,6 +63,7 @@ moc_headers = files(
     'dialogs/preferences/preferences.hpp',
     'dialogs/preferences/preferences_widgets.hpp',
     'dialogs/preferences/simple_preferences.hpp',
+    'dialogs/settings/settings_dialog.hpp',
     'dialogs/sout/convert.hpp',
     'dialogs/sout/profile_selector.hpp',
     'dialogs/sout/sout.hpp',
@@ -269,6 +270,10 @@ qt_plugin_sources = files(
     'dialogs/preferences/preferences_widgets.hpp',
     'dialogs/preferences/simple_preferences.cpp',
     'dialogs/preferences/simple_preferences.hpp',
+    'dialogs/settings/settings_dialog.cpp',
+    'dialogs/settings/settings_dialog.hpp',
+    'dialogs/settings/settings_metadata.cpp',
+    'dialogs/settings/settings_metadata.hpp',
     'dialogs/sout/convert.cpp',
     'dialogs/sout/convert.hpp',
     'dialogs/sout/profile_selector.cpp',
@@ -1308,6 +1313,18 @@ if qt6_dep.found()
 
     qtest_qt6_dep = dependency('qt6', version: '=' + qt6_dep.version(), modules: ['Test'], required: false)
     if qtest_qt6_dep.found()
+        vlc_tests += {
+            'name': 'test_qt_settings_metadata',
+            'sources': files('tests/test_settings_metadata.cpp',
+                'dialogs/settings/settings_metadata.cpp'),
+            'moc_sources': files('tests/test_settings_metadata.cpp'),
+            'suite': ['qt'],
+            'include_directories': qt_include_dir,
+            'link_with': [libvlccore, libvlc],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep],
+            'module_depends': ['qt'],
+        }
         vlc_tests += {
             'name': 'test_qt_ml_model',
             'sources': files(
