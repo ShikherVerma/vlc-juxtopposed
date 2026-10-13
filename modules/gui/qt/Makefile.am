@@ -1366,6 +1366,7 @@ libqml_module_medialibrary_a_QML = \
 	medialibrary/qml/MusicAlbumSectionDelegate.qml \
 	medialibrary/qml/MLGlobalShortcuts.qml \
 	medialibrary/qml/Bookmarks.qml \
+	medialibrary/qml/SidebarBookmarkModel.qml \
 	medialibrary/qml/MLContextMenu.qml \
 	medialibrary/qml/MLDragItem.qml \
 	medialibrary/qml/MLTableColumns.qml \
@@ -1423,6 +1424,7 @@ libqml_module_player_a_QML = \
 	player/qml/MiniPlayer.qml \
 	player/qml/PIPPlayer.qml \
 	player/qml/Player.qml \
+	player/qml/PlayerSidebar.qml \
 	player/qml/PlayerControlLayout.qml \
 	player/qml/PlayerPlaylistVisibilityFSM.qml \
 	player/qml/PlayerToolbarVisibilityFSM.qml \

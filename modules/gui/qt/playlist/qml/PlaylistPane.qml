@@ -37,6 +37,10 @@ T.Pane {
     readonly property ListSelectionModel selectionModel: listView?.selectionModel ?? null
 
     property bool useAcrylic: true
+    // Only the player sidebar uses compact rows; library/detached queues keep their layout.
+    property bool sidebarMode: false
+    property Item sidebarTab
+    readonly property string summaryText: queueSummary.text
 
     readonly property real minimumWidth: contentItem.Layout.minimumWidth +
                                          leftPadding +
@@ -59,7 +63,7 @@ T.Pane {
     implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset,
                              implicitContentHeight + topPadding + bottomPadding)
 
-    verticalPadding: VLCStyle.margin_normal
+    verticalPadding: sidebarMode ? 0 : VLCStyle.margin_normal
 
     Accessible.role: Accessible.Pane
     Accessible.name: qsTr("Play Queue")
@@ -113,7 +117,7 @@ T.Pane {
     }
 
     contentItem: ColumnLayout {
-        spacing: VLCStyle.margin_xxsmall
+        spacing: root.sidebarMode ? 0 : VLCStyle.margin_xxsmall
 
         Layout.minimumWidth: Math.min(Math.max(noContentInfoColumn.implicitWidth,
                                                titleRowLayout.implicitWidth ),
@@ -127,8 +131,9 @@ T.Pane {
 
             Layout.fillHeight: false
             Layout.fillWidth: true
-            Layout.leftMargin: VLCStyle.margin_normal
-            Layout.rightMargin: VLCStyle.margin_normal
+            Layout.leftMargin: root.sidebarMode ? VLCStyle.dp(28) : VLCStyle.margin_normal
+            Layout.rightMargin: root.sidebarMode ? VLCStyle.dp(20) : VLCStyle.margin_normal
+            Layout.preferredHeight: root.sidebarMode ? VLCStyle.dp(68) : implicitHeight
 
             spacing: VLCStyle.margin_xxxsmall
 
@@ -138,23 +143,57 @@ T.Pane {
                 anchors.left: parent.left
                 anchors.right: parent.right
 
-                spacing: VLCStyle.margin_normal
+                height: root.sidebarMode ? VLCStyle.dp(68) : implicitHeight
+                spacing: root.sidebarMode ? VLCStyle.dp(12) : VLCStyle.margin_normal
 
                 Widgets.SubtitleLabel {
                     id: titleLabel
 
                     Layout.fillWidth: true
 
-                    text: qsTr("Play Queue")
-                    color: theme.fg.primary
+                    text: root.sidebarMode ? root.summaryText : qsTr("Play Queue")
+                    color: root.sidebarMode ? theme.fg.secondary : theme.fg.primary
                     font.weight: Font.Normal
-                    font.pixelSize: VLCStyle.fontSize_pageTitle
+                    font.pixelSize: root.sidebarMode ? VLCStyle.dp(14) : VLCStyle.fontSize_pageTitle
+                }
+
+                Widgets.IconToolButton {
+                    visible: root.sidebarMode
+                    text: VLCIcons.shuffle
+                    description: qsTr("Shuffle")
+                    checked: MainPlaylistController.random
+                    onClicked: MainPlaylistController.toggleRandom()
+                    Layout.preferredWidth: VLCStyle.dp(24)
+                    Navigation.parentItem: root
+                    Navigation.downItem: listView
+                }
+
+                Widgets.IconToolButton {
+                    visible: root.sidebarMode
+                    text: VLCIcons.remove
+                    description: qsTr("Remove selected items")
+                    enabled: root.selectionModel && root.selectionModel.selectedIndexesFlat.length > 0
+                    onClicked: root.model.removeItems(listView.mappedSelectedIndexes())
+                    Layout.preferredWidth: VLCStyle.dp(24)
+                    Navigation.parentItem: root
+                    Navigation.downItem: listView
+                }
+
+                Widgets.IconToolButton {
+                    visible: root.sidebarMode
+                    text: VLCIcons.add
+                    description: qsTr("Add files")
+                    onClicked: DialogsProvider.simpleOpenDialog(false)
+                    Layout.preferredWidth: VLCStyle.dp(24)
+                    Navigation.parentItem: root
+                    Navigation.downItem: listView
                 }
 
                 Widgets.SortControl {
                     id: sort
+                    Layout.preferredWidth: root.sidebarMode ? VLCStyle.dp(30) : implicitWidth
 
-                    font.pixelSize: VLCStyle.icon_banner
+                    font.pixelSize: root.sidebarMode ? VLCStyle.dp(24) : VLCStyle.icon_banner
 
                     description : qsTr("Sort")
 
@@ -202,7 +241,8 @@ T.Pane {
 
                     enabled: MainPlaylistController.count > 1
 
-                    toggleButton.font.pixelSize: VLCStyle.icon_banner
+                    Layout.preferredWidth: root.sidebarMode ? VLCStyle.dp(30) : implicitWidth
+                    toggleButton.font.pixelSize: root.sidebarMode ? VLCStyle.dp(24) : VLCStyle.icon_banner
 
                     popBelow: true
 
@@ -227,16 +267,18 @@ T.Pane {
             }
 
             Widgets.CaptionLabel {
+                id: queueSummary
                 color: theme.fg.secondary
-                visible: listView.count !== 0
+                visible: !root.sidebarMode && listView.count !== 0
                 text: {
                     if (listView.count <= 0)
-                        return "" // Not visible otherwise
+                        return qsTr("0 items")
 
                     let duration
+                    const sourceDuration = root.model.duration // Also refresh filtered totals after preparse.
                     const model = listView.model
                     if (model instanceof PlaylistListModel) {
-                        duration = model.duration
+                        duration = sourceDuration
                     } else {
                         // Proxy model, we need to use `QAbstractItemModel` api:
 
@@ -249,7 +291,7 @@ T.Pane {
                         duration = duration[0].sum(duration)
                     }
 
-                    return qsTr("%1 elements, %2").arg(listView.count).arg(duration.formatLong())
+                    return qsTr("%1 items - %2").arg(listView.count).arg(duration.formatLong())
                 }
             }
         }
@@ -257,11 +299,11 @@ T.Pane {
         Item {
             // Spacer
 
-            implicitHeight: VLCStyle.margin_xsmall
+            implicitHeight: root.sidebarMode ? VLCStyle.dp(1) : VLCStyle.margin_xsmall
         }
 
         RowLayout {
-            visible: listView.count !== 0
+            visible: !root.sidebarMode && listView.count !== 0
 
             Layout.fillHeight: false
             Layout.leftMargin: VLCStyle.margin_normal
@@ -329,6 +371,9 @@ T.Pane {
 
             Layout.fillWidth: true
             Layout.fillHeight: true
+            Layout.leftMargin: root.sidebarMode ? VLCStyle.dp(20) : 0
+            Layout.rightMargin: root.sidebarMode ? VLCStyle.dp(20) : 0
+            spacing: root.sidebarMode ? VLCStyle.dp(12) : 0
 
             selectionModel: ListSelectionModel {
                 model: listView.model
@@ -501,7 +546,8 @@ T.Pane {
                 id: delegate
 
                 width: listView.contentWidth
-                rightPadding: Math.max(listView.T.ScrollBar.vertical.width, VLCStyle.margin_normal)
+                sidebarMode: root.sidebarMode
+                rightPadding: root.sidebarMode ? VLCStyle.dp(4) : Math.max(listView.T.ScrollBar.vertical.width, VLCStyle.margin_normal)
 
                 contextMenu: root.contextMenu
 
@@ -539,13 +585,14 @@ T.Pane {
             }
 
             Navigation.parentItem: root
-            Navigation.upItem: sort
+            Navigation.upItem: root.sidebarMode ? root.sidebarTab : sort
 
             onActionAtIndex: (index) => {
                 if (index < 0)
                     return
 
-                MainPlaylistController.goTo(index, true)
+                const mapped = listView.proxyModel ? listView.proxyModel.mapToSource(listView.proxyModel.index(index, 0)).row : index
+                MainPlaylistController.goTo(mapped, true)
             }
 
             Column {
@@ -593,7 +640,7 @@ T.Pane {
 
                     color: label.color
 
-                    font.pixelSize: VLCStyle.fontSize_xxlarge
+                    font.pixelSize: root.sidebarMode ? VLCStyle.dp(16) : VLCStyle.fontSize_xxlarge
                 }
 
                 T.Label {
@@ -602,6 +649,8 @@ T.Pane {
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
 
+                    width: root.sidebarMode ? listView.width : implicitWidth
+                    wrapMode: Text.Wrap
                     text: qsTr("Drag & Drop some content here!")
                     visible: (listView.proxyModel && listView.model === listView.proxyModel) ? (listView.count === root.model.count)
                                                                                              : true

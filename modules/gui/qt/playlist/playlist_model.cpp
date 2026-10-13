@@ -120,7 +120,12 @@ on_playlist_items_updated(vlc_playlist_t *playlist, size_t index,
         int count = updated.size();
         for (int i = 0; i < count; ++i)
             that->m_items[index + i] = updated[i]; /* sync metadata */
+        // Preparse changes durations without changing the queue count.
+        that->m_duration = VLCDuration();
+        for (const auto& item : that->m_items)
+            that->m_duration += item.getDuration();
         that->notifyItemsChanged(index, count);
+        emit that->q_func()->durationChanged();
     });
 }
 
@@ -269,12 +274,14 @@ PlaylistListModel::PlaylistListModel(QObject *parent)
     : QAbstractListModel(parent)
     , d_ptr(new PlaylistListModelPrivate(this))
 {
+    connect(this, &PlaylistListModel::countChanged, this, &PlaylistListModel::durationChanged);
 }
 
 PlaylistListModel::PlaylistListModel(vlc_playlist_t *raw_playlist, QObject *parent)
     : QAbstractListModel(parent)
     , d_ptr(new PlaylistListModelPrivate(this))
 {
+    connect(this, &PlaylistListModel::countChanged, this, &PlaylistListModel::durationChanged);
     setPlaylist(Playlist(raw_playlist));
 }
 

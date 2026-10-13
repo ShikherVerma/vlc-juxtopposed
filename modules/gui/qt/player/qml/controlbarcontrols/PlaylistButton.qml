@@ -30,9 +30,7 @@ Widgets.IconToolButton {
     text: VLCIcons.playlist
     onClicked: {
         MainCtx.playqueuePanel.visible = !MainCtx.playqueuePanel.visible
-        if (MainCtx.playqueuePanel.visible && MainCtx.playqueuePanel.docked) {
-            playlistWidget.gainFocus(playlistBtn)
-        }
+        // The pane owns focus restoration when its effective visibility changes.
     }
     checked: MainCtx.playqueuePanel.visible
 

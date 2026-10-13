@@ -70,7 +70,8 @@ FocusScope {
 
     // Events
 
-    Component.onCompleted: MainCtx.preferHotkeys = true
+    // Sidebar lists/editors must receive keys even after mouse focus.
+    Component.onCompleted: MainCtx.preferHotkeys = Qt.binding(() => !playlistVisibility.isPlaylistVisible)
     Component.onDestruction: MainCtx.preferHotkeys = false
 
     Keys.priority: Keys.AfterItem
@@ -1016,17 +1017,17 @@ FocusScope {
         id: playlistpopup
 
         anchors {
-            // NOTE: When the controls are pinned we display the playqueue under the topBar.
-            top: (rootPlayer._controlsUnderVideo) ? topBar.bottom
-                                                  : parent.top
-
+            top: parent.top
+            topMargin: VLCStyle.dp(80)
             right: parent.right
+            rightMargin: VLCStyle.dp(20)
             bottom: parent.bottom
 
             bottomMargin: parent.height - rootPlayer.positionSliderY
         }
 
         focus: false
+        clip: true
 
         active: MainCtx.playqueuePanel.docked
 
@@ -1076,36 +1077,13 @@ FocusScope {
             }
         }
 
-        sourceComponent: PlaylistPane {
+        sourceComponent: PlayerSidebar {
             id: playlistView
 
-            property real maximumWidth: (rootPlayer.width + playlistView.rightPadding) / 2
-
-            implicitWidth: Helpers.clamp(MainCtx.playqueuePanel.width
-                                 , playlistView.minimumWidth
-                                 , playlistView.maximumWidth)
+            implicitWidth: Math.min(VLCStyle.dp(400), rootPlayer.width - VLCStyle.dp(40))
             height: playlistpopup.height
 
-            useAcrylic: false
             focus: true
-
-            wheelEnabled: true
-
-            rightPadding: VLCStyle.applicationHorizontalMargin
-            topPadding:  {
-                if (rootPlayer._controlsUnderVideo)
-                    return VLCStyle.margin_normal
-                else
-                    // NOTE: We increase the padding accordingly to avoid overlapping the TopBar.
-                    return topBar.reservedHeight
-            }
-            bottomPadding: 0
-
-            background: Rectangle {
-                color: windowTheme.bg.primary.alpha(0.8)
-            }
-
-            view.fadingEdge.pixelAlignedForDPR: !controlBar.visible
 
             Navigation.parentItem: rootPlayer
             Navigation.upItem: topBar
@@ -1121,50 +1099,6 @@ FocusScope {
                     controlBar.forceActiveFocus()
             }
 
-
-            Widgets.HorizontalResizeHandle {
-                id: resizeHandle
-
-                property bool _inhibitMainCtxUpdate: false
-
-                parent: playlistView
-
-                anchors {
-                    top: parent.top
-                    bottom: parent.bottom
-                    left: parent.left
-                }
-
-                atRight: false
-                currentWidth: playlistpopup.width
-
-                maximumWidth: playlistView.maximumWidth
-                minimumWidth: playlistView.minimumWidth
-
-                onRequestedWidthChanged: {
-                    if (!_inhibitMainCtxUpdate)
-                        MainCtx.playqueuePanel.width = requestedWidth
-                }
-
-                Component.onCompleted:  _updateFromMainCtx()
-
-                function _updateFromMainCtx() {
-                    if (requestedWidth === MainCtx.playqueuePanel.width)
-                        return
-
-                    _inhibitMainCtxUpdate = true
-                    requestedWidth = MainCtx.playqueuePanel.width
-                    _inhibitMainCtxUpdate = false
-                }
-
-                Connections {
-                    target: MainCtx.playqueuePanel
-
-                    function onWidthChanged() {
-                        resizeHandle._updateFromMainCtx()
-                    }
-                }
-            }
         }
     }
 

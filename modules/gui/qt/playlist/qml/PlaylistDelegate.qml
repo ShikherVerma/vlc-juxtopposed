@@ -36,6 +36,7 @@ T.Control {
     // Properties
 
     property Flickable view: ListView.view
+    property bool sidebarMode: false
 
     readonly property bool selected : view.selectionModel.selectedIndexesFlat.includes(index)
 
@@ -78,9 +79,9 @@ T.Control {
 
     hoverEnabled: true
 
-    verticalPadding: VLCStyle.margin_xxxsmall
+    verticalPadding: sidebarMode ? 0 : VLCStyle.margin_xxxsmall
 
-    leftPadding: VLCStyle.margin_normal
+    leftPadding: sidebarMode ? 0 : VLCStyle.margin_normal
 
     rightPadding: VLCStyle.margin_normal
 
@@ -89,7 +90,7 @@ T.Control {
     implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset,
                              implicitContentHeight + topPadding + bottomPadding)
 
-    height: Math.round(implicitHeight)
+    height: sidebarMode ? VLCStyle.dp(32) : Math.round(implicitHeight)
 
     ListView.delayRemove: dragHandler.active
 
@@ -140,6 +141,7 @@ T.Control {
         border.color: delegate.visualFocus ? theme.visualFocus : Qt.alpha(theme.visualFocus, 0.0)
 
         Widgets.CurrentIndicator {
+            visible: !delegate.sidebarMode
             anchors {
                 left: parent.left
                 leftMargin: VLCStyle.margin_xxsmall
@@ -166,8 +168,20 @@ T.Control {
 
         property alias artworkTextureProvider: artwork.effectiveTextureProviderItem
 
+        Widgets.IconLabel {
+            visible: delegate.sidebarMode
+            Layout.preferredWidth: VLCStyle.dp(32)
+            Layout.preferredHeight: VLCStyle.dp(32)
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            font.pixelSize: VLCStyle.dp(24)
+            text: delegate.isCurrent ? VLCIcons.play_filled : VLCIcons.move
+            color: delegate.isCurrent ? theme.accent : theme.fg.secondary
+        }
+
         Item {
             id: artworkItem
+            visible: !delegate.sidebarMode
 
             Layout.preferredHeight: VLCStyle.icon_playlistArt
             Layout.preferredWidth: VLCStyle.icon_playlistArt
@@ -197,7 +211,7 @@ T.Control {
                 radius: VLCStyle.listAlbumCover_radius
                 backgroundColor: theme.bg.primary
 
-                sourceSize: Qt.size(width * eDPR, height * eDPR)
+                sourceSize: Qt.size(VLCStyle.icon_playlistArt * eDPR, VLCStyle.icon_playlistArt * eDPR)
 
                 // We do not want to update the DPR when it is updated, as that means reading
                 // the image from disk again. Wayland provides ceiled value initially, we keep
@@ -213,7 +227,7 @@ T.Control {
                 }
 
                 readonly property url targetSource: (delegate?.artwork.toString()) ? VLCAccessImage.uri(delegate.artwork) : VLCStyle.noArtAlbumCover
-                readonly property url defaultSource: delegate.preparsed ? targetSource : ""
+                readonly property url defaultSource: !delegate.sidebarMode && delegate.preparsed ? targetSource : ""
 
                 onStatusChanged: {
                     if (source !== VLCStyle.noArtAlbumCover && status === Image.Error)
@@ -242,7 +256,8 @@ T.Control {
                     interval: VLCStyle.duration_long
                     onTriggered: {
                         // Remove the preparse guard, enough time has passed:
-                        artwork.source = Qt.binding(() => { return artwork.targetSource; })
+                        if (!delegate.sidebarMode)
+                            artwork.source = Qt.binding(() => { return artwork.targetSource; })
                     }
                 }
 
@@ -274,21 +289,23 @@ T.Control {
 
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.leftMargin: VLCStyle.margin_large
-            spacing: VLCStyle.margin_xxxsmall
+            Layout.leftMargin: delegate.sidebarMode ? VLCStyle.dp(10) : VLCStyle.margin_large
+            spacing: delegate.sidebarMode ? 0 : VLCStyle.margin_xxxsmall
 
             Widgets.ListLabel {
                 id: textInfo
 
                 Layout.fillWidth: true
 
-                font.weight: delegate.isCurrent ? Font.Bold : Font.DemiBold
+                font.weight: delegate.sidebarMode ? Font.Normal : (delegate.isCurrent ? Font.Bold : Font.DemiBold)
+                font.pixelSize: delegate.sidebarMode ? VLCStyle.dp(14) : VLCStyle.fontSize_normal
                 text: delegate.title || qsTr("Unknown Title")
                 color: theme.fg.primary
             }
 
             Widgets.ListSubtitleLabel {
                 id: textArtist
+                visible: !delegate.sidebarMode
 
                 Layout.fillWidth: true
 
@@ -300,11 +317,14 @@ T.Control {
         Widgets.ListLabel {
             id: textDuration
 
-            text: delegate.duration.formatHMS()
+            Layout.leftMargin: delegate.sidebarMode ? VLCStyle.dp(10) : 0
+            font.pixelSize: delegate.sidebarMode ? VLCStyle.dp(14) : VLCStyle.fontSize_normal
+            font.weight: delegate.sidebarMode ? Font.Normal : Font.DemiBold
+            text: delegate.duration.valid() ? delegate.duration.formatHMS() : "—"
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            color: theme.fg.primary
-            opacity: 0.5
+            color: delegate.sidebarMode ? theme.fg.secondary : theme.fg.primary
+            opacity: delegate.sidebarMode ? 1 : 0.5
         }
     }
 

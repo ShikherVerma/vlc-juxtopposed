@@ -44,7 +44,10 @@ Repeater {
         // NOTE: We update the 'navigation chain' after removing the item.
         item.removeNavigation()
 
-        item.recoverFocus(index)
+        // Input changes can rebuild controls while a sidebar/list owns focus.
+        // Recover only within the focused layout, never steal focus from it.
+        if (repeater.Navigation.parentItem?.activeFocus)
+            item.recoverFocus(index)
     }
 
     delegate: Loader {
