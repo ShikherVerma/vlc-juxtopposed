@@ -1,28 +1,12 @@
-/******************************************************************************
+/****************************************************************************
  * Copyright (C) 2024 VLC authors and VideoLAN
- *
- * Author: Ash <ashutoshv191@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * ( at your option ) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
- ******************************************************************************/
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ ****************************************************************************/
 import QtQuick
-import QtQuick.Window
+import QtQuick.Layouts
 import QtQuick.Templates as T
 
 import VLC.MediaLibrary
-
 import VLC.MainInterface
 import VLC.Widgets as Widgets
 import VLC.Util
@@ -31,470 +15,373 @@ import VLC.Style
 Widgets.PageExt {
     id: root
 
-    property var pagePrefix: [] // behave like a Page
-
-    property var sortModel: [
-        { text: qsTr("Alphabetic"), criteria: "title" },
-        { text: qsTr("Duration"), criteria: "duration" }
-    ]
-
     title: qsTr("Home")
-
-    hasGridListMode: true
-
+    hasGridListMode: false
     isSearchable: true
+    sortModel: [] // Home has a fixed history/frequency order, not an alphabetic sort.
 
-    property real listCoverHeight: VLCStyle.listAlbumCover_height
-    property real listCoverWidth: VLCStyle.listAlbumCover_width
-    property real listCoverRadius: VLCStyle.listAlbumCover_radius
+    signal seeAllButtonClicked(string name, int reason)
 
+    readonly property real unit: VLCStyle.scale
     readonly property ColorContext colorContext: ColorContext {
         id: theme
         colorSet: ColorContext.View
     }
+    readonly property ColorContext glyphTheme: ColorContext { colorSet: ColorContext.ToolButton }
+    readonly property ColorContext searchPlaceholderTheme: ColorContext {
+        colorSet: ColorContext.TextField
+        enabled: false
+    }
+    property int activeSection: 0
+    readonly property var sections: [continueRow, audioRow, folderRow, playlistRow, artistRow, streamRow]
 
-    signal seeAllButtonClicked(string name, int reason)
-
-    function positionContentAtBeginning() {
-        contentYBehavior.enabled = true
-        flickable.contentY = -flickable.originY
-        contentYBehavior.enabled = false
+    function positionContentAtBeginning() { flickable.contentY = 0 }
+    function setCurrentItemFocus(reason) { sections[activeSection].setCurrentItemFocus(reason) }
+    function focusSection(index, reason) {
+        if (index < 0) {
+            root.header.forceActiveFocus(reason)
+            return
+        }
+        if (index >= sections.length)
+            return
+        activeSection = index
+        sections[index].setCurrentItemFocus(reason)
+    }
+    function reveal(item) { Helpers.positionFlickableToContainItem(flickable, item) }
+    function activate(section, data) {
+        // Collections open the genuine existing leaf views. Media and streams
+        // play through the same MediaLib API as the shared card delegates.
+        console.debug("Home activation:", section, data.id.toString(), data.title ?? data.url)
+        if (section === 2) {
+            History.push(["home", "folder"], { parentId: data.id, title: data.title }, Qt.OtherFocusReason)
+        } else if (section === 3) {
+            History.push(["home", "playlist"], { parentId: data.id, title: data.title }, Qt.OtherFocusReason)
+        } else if (section === 4) {
+            History.push(["home", "artist"], { artistId: data.id }, Qt.OtherFocusReason)
+        } else {
+            MediaLib.addAndPlay(data.id)
+            MainCtx.playerView = true
+        }
     }
 
-    function setCurrentItemFocus(reason) {
-        // `focus` is checked, because that indicates the item that has the focus within the focus scope
-        if (continueWatchingRow.focus)
-            continueWatchingRow.setCurrentItemFocus(reason)
-        else if (favoritesRow.focus)
-            favoritesRow.setCurrentItemFocus(reason)
-        else if (newVideoRow.focus)
-            newVideoRow.setCurrentItemFocus(reason)
-        else if (newMusicRow.focus)
-            newMusicRow.setCurrentItemFocus(reason)
-        else
-            coneNButtons.forceActiveFocus(reason)
+    // Native 6261:15118: 20px inset, 34px toolbar at y60, divider y111.
+    header: T.ToolBar {
+        id: toolbar
+        height: 72 * root.unit
+        readonly property ColorContext colorContext: root.colorContext
+        Navigation.parentItem: root
+        Navigation.downAction: () => root.setCurrentItemFocus(Qt.TabFocusReason)
+        background: Rectangle { color: theme.bg.primary }
+        Widgets.NavigableRow {
+            id: headerRow
+            anchors { left: parent.left; right: parent.right; top: parent.top; margins: 20 * root.unit }
+            height: 34 * root.unit
+            spacing: 10 * root.unit
+            focus: true
+            Navigation.parentItem: toolbar
+            Widgets.IconToolButton {
+                width: 24 * root.unit; height: parent.height
+                text: VLCIcons.back
+                description: qsTr("Back")
+                enabled: !History.previousEmpty
+                onClicked: History.previous(Qt.MouseFocusReason)
+            }
+            Widgets.IconToolButton {
+                width: 24 * root.unit; height: parent.height
+                text: VLCIcons.arrow_direction_right
+                description: qsTr("Forward")
+                enabled: false
+                Component.onCompleted: console.info("Home: Forward is disabled; retained History supports Back only.")
+            }
+            Text {
+                width: Math.max(0, headerRow.width - x - searchField.width - 10 * root.unit)
+                height: parent.height
+                verticalAlignment: Text.AlignVCenter
+                text: root.title
+                Navigation.navigable: false
+                color: glyphTheme.fg.primary
+                font.pixelSize: 16 * root.unit
+                font.weight: Font.Normal
+            }
+            Widgets.TextFieldExt {
+                id: searchField
+                width: Math.min(325 * root.unit, headerRow.width * 0.4)
+                height: 34 * root.unit
+                leftPadding: 42 * root.unit
+                rightPadding: 10 * root.unit
+                placeholderText: qsTr("Search")
+                placeholderTextColor: root.searchPlaceholderTheme.fg.primary
+                Accessible.name: qsTr("Search Home")
+                Accessible.searchEdit: true
+                bgColor: VLCStyle.searchInputColor((theme.palette?.isDark ?? VLCStyle.palette.isDark))
+                onActiveFocusChanged: MainCtx.useGlobalShortcuts = !activeFocus
+                Component.onDestruction: if (activeFocus) MainCtx.useGlobalShortcuts = true
+                Navigation.parentItem: headerRow
+                Navigation.downAction: () => root.setCurrentItemFocus(Qt.TabFocusReason)
+                Binding { target: root.search; property: "pattern"; value: searchField.text }
+                Connections { target: root.search; function onAskShow() { searchField.forceActiveFocus(Qt.ShortcutFocusReason) } }
+                Widgets.IconLabel {
+                    x: 10 * root.unit; anchors.verticalCenter: parent.verticalCenter
+                    text: VLCIcons.search; font.pixelSize: 24 * root.unit; color: theme.fg.secondary
+                }
+            }
+        }
+        Rectangle {
+            anchors { left: parent.left; right: parent.right; bottom: parent.bottom; leftMargin: 20 * root.unit; rightMargin: 20 * root.unit }
+            height: root.unit
+            color: (theme.palette?.isDark ?? VLCStyle.palette.isDark) ? "#191919" : "#d5d5d5" // named BG/A4 (light A3)
+        }
     }
 
     contentItem: Flickable {
         id: flickable
-
-        implicitWidth: Math.max(coneNButtons.implicitWidth, mediaRows.implicitWidth)
-        implicitHeight: coneNButtons.implicitHeight + (_hasMedias ? mediaRows.implicitHeight : 0)
-
+        clip: true
         contentWidth: width
-        contentHeight: _hasMedias ? coneNButtons.implicitHeight + mediaRows.implicitHeight
-                                  : height - topMargin - bottomMargin
-
-        flickableDirection: Flickable.AutoFlickIfNeeded
-
+        contentHeight: rows.height + 16 * root.unit
         boundsBehavior: Flickable.StopAtBounds
-
-        // FIXME: make the media rows positioners consider the flickable margins when adjusting flickable `contentY`.
-        bottomMargin: VLCStyle.margin_large
-
-        pixelAligned: (MainCtx.qtVersion() >= MainCtx.qtVersionCheck(6, 2, 5)) // QTBUG-103996
-                      && (Screen.pixelDensity >= VLCStyle.highPixelDensityThreshold) // no need for sub-pixel alignment with high pixel density
-
-        property bool _hasMedias: true
-
-        Binding on _hasMedias {
-            when: !continueWatchingRow.model.loading && !favoritesRow.model.loading
-                  && !newVideoRow.model.loading && !newMusicRow.model.loading
-            value: continueWatchingRow.visible || favoritesRow.visible
-                   || newVideoRow.visible || newMusicRow.visible
-            restoreMode: Binding.RestoreNone
-        }
-
+        flickableDirection: Flickable.VerticalFlick
         T.ScrollBar.vertical: Widgets.ScrollBarExt {}
+        Column {
+            id: rows
+            width: parent.width
+            spacing: 17 * root.unit
+            HomeSection {
+                id: continueRow
+                sectionIndex: 0
+                heading: qsTr("Continue Watching")
+                emptyText: qsTr("No unfinished videos. Play a video from your library to continue here.")
+                video: true
+                rowModel: MLHomeModel { ml: MediaLib; section: MLHomeModel.ContinueWatching; searchPattern: root.search.pattern }
+            }
+            HomeSection {
+                id: audioRow
+                sectionIndex: 1
+                heading: qsTr("Listen Again")
+                emptyText: qsTr("No recently played music. Listen to a library song to find it here.")
+                rowModel: MLHomeModel { ml: MediaLib; section: MLHomeModel.ListenAgain; searchPattern: root.search.pattern }
+            }
+            HomeSection {
+                id: folderRow
+                sectionIndex: 2
+                heading: qsTr("Frequently Visited Folders")
+                emptyText: qsTr("No played library folders yet.")
+                rowModel: MLHomeModel { ml: MediaLib; section: MLHomeModel.Folders; searchPattern: root.search.pattern }
+            }
+            HomeSection {
+                id: playlistRow
+                sectionIndex: 3
+                heading: qsTr("Frequently Visited Playlists")
+                emptyText: qsTr("No saved playlists with played media yet.")
+                rowModel: MLHomeModel { ml: MediaLib; section: MLHomeModel.Playlists; searchPattern: root.search.pattern }
+            }
+            HomeSection {
+                id: artistRow
+                sectionIndex: 4
+                heading: qsTr("Frequently Listened Artists")
+                emptyText: qsTr("No listened library artists yet.")
+                rowModel: MLHomeModel { ml: MediaLib; section: MLHomeModel.Artists; searchPattern: root.search.pattern }
+            }
+            HomeSection {
+                id: streamRow
+                sectionIndex: 5
+                heading: qsTr("Latest Streams")
+                emptyText: qsTr("No recent network streams. Open a network stream to find it here.")
+                rowModel: MLUrlModel {
+                    ml: MediaLib
+                    sortOrder: Qt.DescendingOrder
+                    searchPattern: root.search.pattern
+                }
+            }
+        }
+    }
 
-        // This behavior allows to have similar "smooth" animation
-        // that Qt views have with `highlightFollowsCurrentItem`.
-        Behavior on contentY {
-            id: contentYBehavior
+    component HomeSection: FocusScope {
+        id: section
+        required property int sectionIndex
+        required property string heading
+        required property string emptyText
+        required property var rowModel
+        property bool video: false
+        readonly property real coverWidth: (video ? 316 : 200) * root.unit
+        readonly property real coverHeight: (video ? 177.75 : 200) * root.unit
+        width: rows.width
+        // Native section containers include 20px top inset and 40px trailing
+        // space: video 320.75, music 372, collections 343.
+        height: rowModel.count > 0 ? (video ? 320.75 : sectionIndex === 1 ? 372 : 343) * root.unit : Math.max(128 * root.unit, emptyMessage.y + emptyMessage.implicitHeight + 20 * root.unit)
+        focus: sectionIndex === 0
+        Navigation.parentItem: root
+        Navigation.upAction: () => root.focusSection(sectionIndex - 1, Qt.BacktabFocusReason)
+        Navigation.downAction: () => root.focusSection(sectionIndex + 1, Qt.TabFocusReason)
+        Keys.priority: Keys.AfterItem
+        Keys.onPressed: (event) => section.Navigation.defaultKeyAction(event)
+        Accessible.role: Accessible.Section
+        Accessible.name: heading
+        AccessibleCompat.id: "homeSection" + sectionIndex
 
-            enabled: false
-
-            // NOTE: Usage of `SmoothedAnimation` is intentional here.
-            SmoothedAnimation {
-                duration: VLCStyle.duration_veryLong
-                easing.type: Easing.InOutSine
+        Connections {
+            target: section.rowModel
+            function onLoadingChanged() {
+                if (!section.rowModel.loading) {
+                    if (section.activeFocus && section.rowModel.count > 0)
+                        Qt.callLater(() => { if (section) section.setCurrentItemFocus(Qt.TabFocusReason) })
+                    console.debug("Home section:", section.sectionIndex, "count:", section.rowModel.count)
+                    const indexes = []
+                    for (let i = 0; i < Math.min(section.rowModel.count, 10); ++i) indexes.push(i)
+                    section.rowModel.getDataFlat(indexes, (items) => {
+                        for (let i = 0; i < items.length; ++i) {
+                            const item = items[i]
+                            if (!item?.id) continue
+                            console.debug("Home ML row:", section.sectionIndex, i, item.id.toString(),
+                                          item.title ?? item.url, "progress:", item.progress ?? 0,
+                                          "plays:", item.home_playcount ?? 0, "recent:", item.home_last_played ?? item.last_played_date)
+                        }
+                    })
+                }
             }
         }
 
-        property Component implicitFlickableScrollHandler: DefaultFlickableScrollHandler { }
-
-        // NOTE: This property can be set to null to prevent using a scroll handler:
-        property FlickableScrollHandler scrollHandler: {
-            if (interactive) {
-                // JS ownership:
-                return implicitFlickableScrollHandler.createObject(null, { target: flickable })
+        function setCurrentItemFocus(reason) {
+            if (list.count > 0) {
+                if (list.currentIndex < 0) list.currentIndex = 0
+                list.positionViewAtIndex(list.currentIndex, ListView.Contain)
+                list.currentItem?.forceActiveFocus(reason)
             } else {
-                return null
+                section.forceActiveFocus(reason)
             }
+            root.activeSection = sectionIndex
+            root.reveal(section)
+        }
+        onActiveFocusChanged: if (activeFocus) {
+            root.activeSection = sectionIndex
+            root.reveal(section)
+            if (list.count > 0) section.setCurrentItemFocus(Qt.TabFocusReason)
         }
 
-        Component.onCompleted: {
-            if (!usingTouch) {
-                // Flickable filters child mouse events for flicking (even when
-                // the delegate is grabbed). However, this is not a useful
-                // feature for non-touch cases, so disable it here and enable
-                // it if touch is detected through the hover handler:
-                MainCtx.setFiltersChildMouseEvents(flickable, false)
-            }
+        Text {
+            x: 20 * root.unit; y: 36 * root.unit
+            width: parent.width - 40 * root.unit
+            height: 24 * root.unit
+            text: section.heading
+            color: theme.fg.primary
+            font.pixelSize: 20 * root.unit
+            font.weight: Font.Normal
+            elide: Text.ElideRight
         }
-
-        readonly property bool usingTouch: MainCtx.usingTouch
-
-        onUsingTouchChanged: {
-            if (usingTouch)
-                MainCtx.setFiltersChildMouseEvents(flickable, true)
-            // We do not disable filtering child mouse events
-            // because Qt currently has a bug that the flickable
-            // jumps when it is enabled again later on.
+        Text {
+            id: emptyMessage
+            x: 20 * root.unit; y: 80 * root.unit
+            width: parent.width - 40 * root.unit
+            visible: section.rowModel.count === 0
+            text: section.rowModel.loading ? qsTr("Loading…") : root.search.pattern.length > 0 ? qsTr("No matching items.") : section.emptyText
+            color: theme.fg.secondary
+            font.pixelSize: 16 * root.unit
+            wrapMode: Text.WordWrap
         }
-
-        NoMedialibHome.ConeNButtons {
-            id: coneNButtons
-
-            focus: true
-
-            orientation: flickable._hasMedias ? Qt.Horizontal : Qt.Vertical
-
-            anchors.centerIn: flickable._hasMedias ? undefined : parent
-            anchors.top: flickable._hasMedias ? parent.top : undefined
-            anchors.left: flickable._hasMedias ? parent.left : undefined
-            anchors.leftMargin: flickable._hasMedias ? newVideoRow.contentLeftMargin : 0
-
-            Navigation.parentItem: root
-            Navigation.upItem: root.header
-            Navigation.downItem: mediaRows
-
-            onActiveFocusChanged: {
-                contentYBehavior.enabled = true
-                Helpers.positionFlickableToContainItem(flickable, this)
-                contentYBehavior.enabled = false
-            }
+        Rectangle {
+            visible: section.activeFocus && section.rowModel.count === 0
+            x: 16 * root.unit; y: 32 * root.unit
+            width: parent.width - 32 * root.unit; height: 84 * root.unit
+            color: "transparent"; radius: 6 * root.unit
+            border.color: theme.accent
         }
-
-        Widgets.NavigableCol {
-            id: mediaRows
-
-            anchors.top: coneNButtons.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-
-            spacing: 0 // NOTE: We depend on the top padding of view header currently.
-
-            Navigation.parentItem: root
-            Navigation.upItem: coneNButtons
-
-            Widgets.ViewHeader {
-                visible: continueWatchingRow.visible
-                text: qsTr("Continue Watching")
-                view: continueWatchingRow
-                seeAllButton.visible: continueWatchingRow.model.maximumCount > continueWatchingRow.model.count
-
-                onSeeAllButtonClicked: function (reason) {
-                    root.seeAllButtonClicked("continueWatching", reason)
+        ListView {
+            id: list
+            x: 20 * root.unit; y: 80 * root.unit
+            width: parent.width - 40 * root.unit
+            height: section.coverHeight + (section.sectionIndex === 1 ? 68 : 39) * root.unit + 12 * root.unit
+            orientation: ListView.Horizontal
+            model: section.rowModel
+            spacing: 20 * root.unit
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            highlightMoveDuration: 0
+            T.ScrollBar.horizontal: Widgets.ScrollBarExt {}
+            delegate: Widgets.GridItem {
+                id: card
+                required property int index
+                required property var model
+                view: list
+                width: section.coverWidth
+                pictureWidth: section.coverWidth
+                pictureHeight: section.coverHeight
+                pictureRadius: 12 * root.unit
+                activateOnSingleClick: true
+                titleFont.pixelSize: 16 * root.unit
+                titleFont.weight: Font.Normal
+                subtitleFont.pixelSize: 16 * root.unit
+                subtitleFont.weight: Font.Normal
+                titleTopMargin: 20 * root.unit
+                subtitleTopMargin: 10 * root.unit
+                title: model.title ?? model.url ?? ""
+                subtitle: section.sectionIndex === 1 ? model.subtitle ?? "" : ""
+                image: model.small_cover ?? ""
+                fallbackImage: section.video ? VLCStyle.noArtVideoCover : section.sectionIndex === 4 ? VLCStyle.noArtArtistCover : VLCStyle.noArtAlbumCover
+                fillMode: Image.PreserveAspectCrop
+                selectedShadow.visible: false
+                unselectedShadow.visible: false
+                Navigation.parentItem: section
+                Navigation.leftAction: () => {
+                    if (index > 0) {
+                        list.currentIndex = index - 1
+                        section.setCurrentItemFocus(Qt.BacktabFocusReason)
+                    } else section.Navigation.defaultNavigationLeft()
                 }
-            }
-
-            VideoAll {
-                id: continueWatchingRow
-
-                AccessibleCompat.id: "continueWatching"
-
-                anchors.left: parent.left
-                anchors.right: parent.right
-
-                height: currentItem?.contentHeight ?? implicitHeight
-
-                visible: model.count !== 0
-
-                headerPositioning: ListView.InlineHeader
-                enableBeginningFade: false
-                enableEndFade: false
-                sectionProperty: ""
-
-                interactive: false
-
-                emptyLabel: null
-
-                // FIXME: `ExpandGridView` causes extreme performance degradation when `reuseItems`
-                //        is true and items provided by the model change (#29084).
-                reuseItems: !MainCtx.gridView
-
-                listCoverWidth: root.listCoverWidth
-                listCoverHeight: root.listCoverHeight
-                listCoverRadius: root.listCoverRadius
-
-                Navigation.parentItem: mediaRows
-
-                model: MLRecentVideoModel {
-                    ml: MediaLib
-
-                    sortCriteria: root.sort.criteria
-                    sortOrder: root.sort.order
-                    searchPattern: root.search.pattern
-
-                    // FIXME: Make limit 0 load no items, instead of loading all items.
-                    limit: MainCtx.gridView ? Math.max(continueWatchingRow.currentItem?.nbItemPerRow ?? null, 1) : 5
+                Navigation.rightAction: () => {
+                    if (index + 1 < list.count) {
+                        list.currentIndex = index + 1
+                        section.setCurrentItemFocus(Qt.TabFocusReason)
+                    } else section.Navigation.defaultNavigationRight()
                 }
-
-                contextMenu: MLContextMenu {
-                    model: continueWatchingRow.model
-
-                    showPlayAsAudioAction: true
+                Navigation.upAction: () => root.focusSection(section.sectionIndex - 1, Qt.BacktabFocusReason)
+                Navigation.downAction: () => root.focusSection(section.sectionIndex + 1, Qt.TabFocusReason)
+                Keys.onReturnPressed: root.activate(section.sectionIndex, model)
+                Keys.onEnterPressed: root.activate(section.sectionIndex, model)
+                Keys.onSpacePressed: root.activate(section.sectionIndex, model)
+                Keys.priority: Keys.AfterItem
+                Keys.onPressed: (event) => card.Navigation.defaultKeyAction(event)
+                Component.onCompleted: {
+                    if (index === 0) Qt.callLater(() => {
+                        if (!card || !section) return
+                        const origin = card.mediaCover.mapToItem(null, 0, 0)
+                        console.debug("Home card geometry:", section.sectionIndex, origin.x, origin.y,
+                                      card.mediaCover.width, card.mediaCover.height, card.pictureRadius)
+                    })
                 }
-
-                onActiveFocusChanged: {
-                    if (activeFocus) {
-                        const item = currentItem?.currentItem ?? currentItem?._getItem(currentIndex) // FIXME: `ExpandGridView` does not have `currentItem`.
-                        contentYBehavior.enabled = true
-                        Helpers.positionFlickableToContainItem(flickable, item ?? this)
-                        contentYBehavior.enabled = false
-                    }
+                onActiveFocusChanged: if (activeFocus) {
+                    list.currentIndex = index
+                    root.activeSection = section.sectionIndex
+                    list.positionViewAtIndex(index, ListView.Contain)
+                    root.reveal(section)
+                    console.debug("Home focus:", section.sectionIndex, index, model.id.toString(), model.title ?? model.url)
                 }
-
-                onCurrentIndexChanged: {
-                    if (activeFocus) {
-                        const item = currentItem?.currentItem ?? currentItem?._getItem(currentIndex) // FIXME: `ExpandGridView` does not have `currentItem`.
-                        if (item) {
-                            contentYBehavior.enabled = true
-                            Helpers.positionFlickableToContainItem(flickable, item)
-                            contentYBehavior.enabled = false
-                        }
-                    }
+                onItemClicked: list.currentIndex = index
+                onItemDoubleClicked: root.activate(section.sectionIndex, model)
+                onPlayClicked: root.activate(section.sectionIndex, model)
+                // The native folder tile is a plain A2 square with the authored
+                // folder glyph, not a generated video collage.
+                pictureOverlay: Rectangle {
+                    visible: section.sectionIndex === 2 || ((section.sectionIndex === 3 || section.sectionIndex === 5) && card.image.toString() === "")
+                    color: (theme.palette?.isDark ?? VLCStyle.palette.isDark) ? "#1f1f1f" : "#dddddd" // named BG/A2
+                    radius: 12 * root.unit
+                    Widgets.IconLabel { anchors.centerIn: parent; text: section.sectionIndex === 2 ? VLCIcons.folder : section.sectionIndex === 3 ? VLCIcons.media_playlist : VLCIcons.topbar_network; font.pixelSize: 48 * root.unit; color: glyphTheme.fg.primary }
                 }
-            }
-
-            Widgets.ViewHeader {
-                visible: favoritesRow.visible
-                text: qsTr("Favorites")
-                view: favoritesRow
-                seeAllButton.visible: favoritesRow.model.maximumCount > favoritesRow.model.count
-
-                onSeeAllButtonClicked: function (reason) {
-                    root.seeAllButtonClicked("favorites", reason)
+                Rectangle {
+                    parent: card.mediaCover
+                    anchors.fill: parent
+                    visible: card.visualFocus
+                    color: "transparent"
+                    radius: card.pictureRadius
+                    border.width: root.unit
+                    border.color: theme.accent
+                    z: 2
                 }
-            }
-
-            MediaView {
-                id: favoritesRow
-
-                AccessibleCompat.id: "favourites"
-
-                anchors.left: parent.left
-                anchors.right: parent.right
-
-                height: currentItem?.contentHeight ?? implicitHeight
-
-                visible: model.count !== 0
-
-                listHeaderPositioning: ListView.InlineHeader
-                enableBeginningFade: false
-                enableEndFade: false
-                listSectionProperty: ""
-
-                interactive: false
-
-                emptyLabel: null
-
-                // FIXME: `ExpandGridView` causes extreme performance degradation when `reuseItems`
-                //        is true and items provided by the model change (#29084).
-                reuseItems: !MainCtx.gridView
-
-                listCoverWidth: root.listCoverWidth
-                listCoverHeight: root.listCoverHeight
-                listCoverRadius: root.listCoverRadius
-
-                Navigation.parentItem: mediaRows
-
-                model: MLMediaModel {
-                    favoriteOnly: true
-
-                    ml: MediaLib
-
-                    sortCriteria: root.sort.criteria || "insertion"
-                    sortOrder: root.sort.order
-                    searchPattern: root.search.pattern
-
-                    // FIXME: Make limit 0 load no items, instead of loading all items.
-                    limit: MainCtx.gridView ? Math.max(favoritesRow.currentItem?.nbItemPerRow ?? null, 1) : 5
-                }
-
-                onActiveFocusChanged: {
-                    if (activeFocus) {
-                        const item = currentItem?.currentItem ?? currentItem?._getItem(currentIndex) // FIXME: `ExpandGridView` does not have `currentItem`.
-                        contentYBehavior.enabled = true
-                        Helpers.positionFlickableToContainItem(flickable, item ?? this)
-                        contentYBehavior.enabled = false
-                    }
-                }
-
-                onCurrentIndexChanged: {
-                    if (activeFocus) {
-                        const item = currentItem?.currentItem ?? currentItem?._getItem(currentIndex) // FIXME: `ExpandGridView` does not have `currentItem`.
-                        if (item) {
-                            contentYBehavior.enabled = true
-                            Helpers.positionFlickableToContainItem(flickable, item)
-                            contentYBehavior.enabled = true
-                        }
-                    }
-                }
-            }
-
-            Widgets.ViewHeader {
-                text: qsTr("New Videos")
-                visible: newVideoRow.visible
-                view: newVideoRow
-                seeAllButton.visible: newVideoRow.model.maximumCount > newVideoRow.model.count
-
-                onSeeAllButtonClicked: function (reason) {
-                    root.seeAllButtonClicked("newVideo", reason)
-                }
-            }
-
-            VideoAll {
-                id: newVideoRow
-
-                AccessibleCompat.id: "newVideo"
-
-                anchors.left: parent.left
-                anchors.right: parent.right
-
-                height: currentItem?.contentHeight ?? implicitHeight
-
-                visible: model.count !== 0
-
-                headerPositioning: ListView.InlineHeader
-                enableBeginningFade: false
-                enableEndFade: false
-                sectionProperty: ""
-
-                interactive: false
-
-                emptyLabel: null
-
-                // FIXME: `ExpandGridView` causes extreme performance degradation when `reuseItems`
-                //        is true and items provided by the model change (#29084).
-                reuseItems: !MainCtx.gridView
-
-                listCoverWidth: root.listCoverWidth
-                listCoverHeight: root.listCoverHeight
-                listCoverRadius: root.listCoverRadius
-
-                Navigation.parentItem: mediaRows
-
-                model: MLVideoModel {
-                    ml: MediaLib
-
-                    sortCriteria: root.sort.criteria || "insertion"
-                    sortOrder: root.sort.order
-                    searchPattern: root.search.pattern
-
-                    // FIXME: Make limit 0 load no items, instead of loading all items.
-                    limit: MainCtx.gridView ? Math.max(newVideoRow.currentItem?.nbItemPerRow ?? null, 1) : 5
-                }
-
-                contextMenu: MLContextMenu {
-                    model: newVideoRow.model
-
-                    showPlayAsAudioAction: true
-                }
-
-                onActiveFocusChanged: {
-                    if (activeFocus) {
-                        const item = currentItem?.currentItem ?? currentItem?._getItem(currentIndex) // FIXME: `ExpandGridView` does not have `currentItem`.
-                        contentYBehavior.enabled = true
-                        Helpers.positionFlickableToContainItem(flickable, item ?? this)
-                        contentYBehavior.enabled = false
-                    }
-                }
-
-                onCurrentIndexChanged: {
-                    if (activeFocus) {
-                        const item = currentItem?.currentItem ?? currentItem?._getItem(currentIndex) // FIXME: `ExpandGridView` does not have `currentItem`.
-                        if (item) {
-                            contentYBehavior.enabled = true
-                            Helpers.positionFlickableToContainItem(flickable, item)
-                            contentYBehavior.enabled = false
-                        }
-                    }
-                }
-            }
-
-            Widgets.ViewHeader {
-                text: qsTr("New Music")
-                visible: newMusicRow.visible
-                view: newMusicRow
-                seeAllButton.visible: newMusicRow.model.maximumCount > newMusicRow.model.count
-
-                onSeeAllButtonClicked: function (reason) {
-                    root.seeAllButtonClicked("newMusic", reason)
-                }
-            }
-
-            MediaView {
-                id: newMusicRow
-
-                AccessibleCompat.id: "newMusic"
-
-                anchors.left: parent.left
-                anchors.right: parent.right
-
-                height: currentItem?.contentHeight ?? implicitHeight
-
-                visible: model.count !== 0
-
-                listHeaderPositioning: ListView.InlineHeader
-                enableBeginningFade: false
-                enableEndFade: false
-                listSectionProperty: ""
-
-                interactive: false
-
-                emptyLabel: null
-
-                // FIXME: `ExpandGridView` causes extreme performance degradation when `reuseItems`
-                //        is true and items provided by the model change (#29084).
-                reuseItems: !MainCtx.gridView
-
-                listCoverWidth: root.listCoverWidth
-                listCoverHeight: root.listCoverHeight
-                listCoverRadius: root.listCoverRadius
-
-                Navigation.parentItem: mediaRows
-
-                model: MLAudioModel {
-                    ml: MediaLib
-
-                    sortCriteria: root.sort.criteria || "insertion"
-                    sortOrder: root.sort.order
-                    searchPattern: root.search.pattern
-
-                    // FIXME: Make limit 0 load no items, instead of loading all items.
-                    limit: MainCtx.gridView ? Math.max(newMusicRow.currentItem?.nbItemPerRow ?? null, 1) : 5
-                }
-
-                onActiveFocusChanged: {
-                    if (activeFocus) {
-                        const item = currentItem?.currentItem ?? currentItem?._getItem(currentIndex) // FIXME: `ExpandGridView` does not have `currentItem`.
-                        contentYBehavior.enabled = true
-                        Helpers.positionFlickableToContainItem(flickable, item ?? this)
-                        contentYBehavior.enabled = false
-                    }
-                }
-
-                onCurrentIndexChanged: {
-                    if (activeFocus) {
-                        const item = currentItem?.currentItem ?? currentItem?._getItem(currentIndex) // FIXME: `ExpandGridView` does not have `currentItem`.
-                        if (item) {
-                            contentYBehavior.enabled = true
-                            Helpers.positionFlickableToContainItem(flickable, item)
-                            contentYBehavior.enabled = false
-                        }
-                    }
+                Widgets.VideoProgressBar {
+                    parent: card.mediaCover
+                    anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+                    visible: section.video && (model.progress ?? 0) > 0
+                    radius: card.pictureRadius
+                    trackColor: "transparent"
+                    value: Helpers.clamp(model.progress ?? 0, 0, 1)
                 }
             }
         }

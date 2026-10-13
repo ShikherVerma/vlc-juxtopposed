@@ -48,6 +48,9 @@ T.ItemDelegate {
     // if the item is selected
     property bool selected: false
 
+    // Home cards activate directly; collection grids retain selection semantics.
+    property bool activateOnSingleClick: false
+
     // Aliases
 
     property alias mediaCover: picture
@@ -58,6 +61,8 @@ T.ItemDelegate {
 
     property alias fillMode: picture.fillMode
 
+    property alias titleFont: titleLabel.font
+    property alias subtitleFont: subtitleTxt.font
     property alias title: titleLabel.text
     property alias subtitle: subtitleTxt.text
     property alias subtitleVisible: subtitleTxt.visible
@@ -221,8 +226,11 @@ T.ItemDelegate {
                 //        Right click does not fire itemClicked?
                 if (button === Qt.RightButton)
                     contextMenuButtonClicked(picture, eventPoint.globalPosition);
-                else
+                else {
                     root.itemClicked(point.modifiers, true);
+                    if (root.activateOnSingleClick)
+                        root.playClicked();
+                }
             }
 
             onDoubleTapped: (eventPoint, button) => {

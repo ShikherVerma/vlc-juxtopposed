@@ -244,6 +244,9 @@ libqt_plugin_la_SOURCES = \
 	medialibrary/mlvideofoldersmodel.hpp \
 	medialibrary/mlvideogroupsmodel.cpp \
 	medialibrary/mlvideogroupsmodel.hpp \
+	medialibrary/mlhomeranking.hpp \
+	medialibrary/mlhomemodel.cpp \
+	medialibrary/mlhomemodel.hpp \
 	medialibrary/mlmediamodel.cpp \
 	medialibrary/mlmediamodel.hpp \
 	medialibrary/mlvideomodel.cpp \
@@ -476,6 +479,7 @@ nodist_libqt_plugin_la_SOURCES = \
 	medialibrary/mlrecentvideomodel.moc.cpp \
 	medialibrary/mlurlmodel.moc.cpp \
 	medialibrary/mlvideo.moc.cpp \
+	medialibrary/mlhomemodel.moc.cpp \
 	medialibrary/mlmediamodel.moc.cpp \
 	medialibrary/mlvideomodel.moc.cpp \
 	medialibrary/mlplaylistlistmodel.moc.cpp \
@@ -2123,6 +2127,18 @@ test_vlc_dialog_model_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_vlc_dialog_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_vlc_dialog_model
 TESTS += test_vlc_dialog_model
+
+
+test_qt_home_ranking_SOURCES = tests/test_home_ranking.cpp medialibrary/mlhomeranking.hpp
+nodist_test_qt_home_ranking_SOURCES = tests/test_home_ranking.moc
+BUILT_SOURCES += tests/test_home_ranking.moc
+CLEANFILES += tests/test_home_ranking.moc
+test_qt_home_ranking_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_qt_home_ranking_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_qt_home_ranking_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_qt_home_ranking_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_qt_home_ranking
+TESTS += test_qt_home_ranking
 
 
 test_qt_navigation_model_SOURCES = \

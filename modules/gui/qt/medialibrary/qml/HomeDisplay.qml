@@ -36,6 +36,15 @@ Widgets.PageLoader {
         name: "continueWatching",
         component: continueWatchingComponent
     }, {
+        name: "folder",
+        component: folderComponent
+    }, {
+        name: "playlist",
+        component: playlistComponent
+    }, {
+        name: "artist",
+        component: artistComponent
+    }, {
         name: "favorites",
         component: favoritesComponent
     }, {
@@ -65,6 +74,57 @@ Widgets.PageLoader {
 
             onSeeAllButtonClicked: (name, reason) => {
                 History.push([...root.pagePrefix, name], reason)
+            }
+        }
+    }
+
+    // Reuse existing leaf views inside Home so their parameters are not
+    // assigned to unrelated intermediary Videos/Music PageLoaders.
+    Component {
+        id: playlistComponent
+        PlaylistMediaDisplay {
+            id: playlist
+            isMusic: false
+            Connections {
+                target: playlist.model
+                function onLoadingChanged() {
+                    if (!playlist.model.loading) console.debug("Home playlist loaded:", playlist.parentId.toString(), "count:", playlist.model.count)
+                }
+            }
+        }
+    }
+    Component {
+        id: artistComponent
+        MusicArtistsAlbums {
+            id: artist
+            Connections {
+                target: artist.model
+                function onLoadingChanged() {
+                    if (!artist.model.loading && artist.artistId) console.debug("Home artist loaded:", artist.artistId.toString(), "count:", artist.model.count)
+                }
+            }
+        }
+    }
+
+    Component {
+        id: folderComponent
+
+        Widgets.PageExt {
+            id: folderPage
+            property alias parentId: folderModel.parentId
+            title: qsTr("Folder")
+
+            MediaView {
+                anchors.fill: parent
+                focus: true
+                model: MLMediaModel {
+                    id: folderModel
+                    onLoadingChanged: if (!loading) console.debug("Home folder loaded:", parentId.toString(), "count:", count)
+                    ml: MediaLib
+                    sortCriteria: folderPage.sort.criteria
+                    sortOrder: folderPage.sort.order
+                    searchPattern: folderPage.search.pattern
+                }
             }
         }
     }

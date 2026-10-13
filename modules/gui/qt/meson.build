@@ -99,6 +99,7 @@ moc_headers = files(
     'medialibrary/mlrecentvideomodel.hpp',
     'medialibrary/mlurlmodel.hpp',
     'medialibrary/mlvideo.hpp',
+    'medialibrary/mlhomemodel.hpp',
     'medialibrary/mlmediamodel.hpp',
     'medialibrary/mlvideomodel.hpp',
     'medialibrary/mlplaylistlistmodel.hpp',
@@ -368,7 +369,10 @@ qt_plugin_sources = files(
     'medialibrary/mlvideofoldersmodel.hpp',
     'medialibrary/mlvideogroupsmodel.cpp',
     'medialibrary/mlvideogroupsmodel.hpp',
+    'medialibrary/mlhomeranking.hpp',
+    'medialibrary/mlhomemodel.cpp',
     'medialibrary/mlmediamodel.cpp',
+    'medialibrary/mlhomemodel.hpp',
     'medialibrary/mlmediamodel.hpp',
     'medialibrary/mlvideomodel.cpp',
     'medialibrary/mlvideomodel.hpp',
@@ -1361,6 +1365,15 @@ if qt6_dep.found()
             'link_with': [libvlccore, libvlc],
             'link_args': qt_link_args,
             'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep],
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_home_ranking',
+            'sources': files('tests/test_home_ranking.cpp'),
+            'moc_sources': files('tests/test_home_ranking.cpp'),
+            'suite': ['qt'],
+            'include_directories': qt_include_dir,
+            'dependencies': [qt6_dep, qtest_qt6_dep],
         }
 
         vlc_tests += {

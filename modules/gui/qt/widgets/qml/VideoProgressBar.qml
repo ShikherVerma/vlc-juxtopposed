@@ -28,6 +28,7 @@ Item {
 
     clip :true
 
+    property color trackColor: "white"
     property real value: 0
     property int radius: implicitHeight
 
@@ -47,7 +48,7 @@ Item {
                          parent.height + radius) //the top radius section should be always clipped
 
         //FIXME do we want it always white or do we want it to change with the theme
-        color: "white"
+        color: progressBar.trackColor
         radius: progressBar.radius
 
         gradient: Gradient {
