@@ -349,6 +349,7 @@ void SystemPalette::updateAccent(bool dark)
         return QColor(result.red(), result.green(), result.blue());
     };
     accentMain = custom.isValid() ? custom : main;
+    m_playAccent = custom.isValid() ? custom : QColor("#d37918");
     accentBright = family("#fc9729", "#ffa13b");
     accentDim = family("#ab6314", "#965916");
     bgAccentDark = family("#1a1611", "#c6ab89");
@@ -543,6 +544,7 @@ void SystemPalette::makeLightPalette()
     //window banner & miniplayer
     {
         C::ColorSet CS = C::Window;
+        setColor(CS, C::Bg, C::Highlight, C::Normal, QColor("#ababaa"));
         setColor(CS, C::Bg, C::Primary, C::Normal, QColor("#d5d5d5")); // Light/BG/A3
         setColor(CS, C::Bg, C::Secondary, C::Normal, QColor("#d5d5d5")); // Light/BG/A3
         setColor(CS, C::Decoration, C::Border, C::Normal, QColor("#acacac")); // Light/Divider/Dim
@@ -574,6 +576,11 @@ void SystemPalette::makeLightPalette()
     //tool button
     {
         C::ColorSet CS = C::ToolButton;
+        setColor(CS, C::Fg, C::Highlight, C::Normal, QColor("#8f8f8f")); // 2425:13645 transport/effects
+        setColor(CS, C::Fg, C::Highlight, C::Hovered, QColor("#2e2e2e"));
+        setColor(CS, C::Fg, C::Highlight, C::Focused, QColor("#2e2e2e"));
+        setColor(CS, C::Fg, C::Highlight, C::Pressed, QColor("#161616"));
+        setColor(CS, C::Fg, C::Highlight, C::Disabled, QColor("#b3b3b3"));
         setColor(CS, C::Bg, C::Primary, C::Normal, setColorAlpha(QColor("#d5d5d5"), 0.0)); // Light/BG/A3 × alpha 0
         setColor(CS, C::Bg, C::Secondary, C::Normal, QColor("#d5d5d5")); // Light/BG/A3
 
@@ -625,6 +632,11 @@ void SystemPalette::makeLightPalette()
     //Accent Buttons
     {
         C::ColorSet CS = C::ButtonAccent;
+        setColor(CS, C::Bg, C::Highlight, C::Normal, m_playAccent);
+        setColor(CS, C::Bg, C::Highlight, C::Hovered, accentBright);
+        setColor(CS, C::Bg, C::Highlight, C::Pressed, accentDim);
+        setColor(CS, C::Bg, C::Highlight, C::Disabled, QColor("#b3b3b3"));
+        setColor(CS, C::Bg, C::Secondary, C::Normal, QColor("#6b6b6b")); // 848:1713 pause pill
         setColor(CS, C::Bg, C::Primary, C::Normal, accentMain); // Light/Accent/Main
         setColor(CS, C::Bg, C::Primary, C::Hovered, accentBright); // Light/Accent/Bright
         setColor(CS, C::Bg, C::Primary, C::Pressed, accentDim); // Light/Accent/DIm
@@ -642,6 +654,7 @@ void SystemPalette::makeLightPalette()
     //Standard Buttons
     {
         C::ColorSet CS = C::ButtonStandard;
+        setColor(CS, C::Fg, C::Highlight, C::Normal, QColor("#161616"));
         setColor(CS, C::Bg, C::Primary, C::Normal, QColor("#dedede")); // 500:3063 / D-control-states
 
         setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#6b6b6b")); // 500:3061 normal label
@@ -664,6 +677,8 @@ void SystemPalette::makeLightPalette()
     //tooltip
     {
         C::ColorSet CS = C::Tooltip;
+        setColor(CS, C::Bg, C::Secondary, C::Normal, QColor("#d5d5d5")); // volume tooltip light analogue
+        setColor(CS, C::Fg, C::Secondary, C::Normal, QColor("#2e2e2e"));
         setColor(CS, C::Bg, C::Primary, C::Normal, QColor("#b3b3b3")); // D-tooltip; popup panel analogue
         setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#3c3c3c")); // Light/FG/A1
     }
@@ -671,6 +686,7 @@ void SystemPalette::makeLightPalette()
     //slider
     {
         C::ColorSet CS = C::Slider;
+        setColor(CS, C::Bg, C::Neutral, C::Normal, QColor("#888888"));
         setColor(CS, C::Bg, C::Primary, C::Normal, QColor("#dedede")); // Light/BG/B2
         setColor(CS, C::Bg, C::Secondary, C::Normal, bgAccentBright); // 3056:10877 slider fill
         setColor(CS, C::Bg, C::Secondary, C::Disabled, QColor("#b3b3b3")); // Light/BG/A4 disabled fill
@@ -678,8 +694,8 @@ void SystemPalette::makeLightPalette()
         setColor(CS, C::Fg, C::Positive, C::Normal, QColor("#127124")); // D-status-Light-Fg-Positive
         setColor(CS, C::Fg, C::Neutral, C::Normal, accentMain); // Light/Accent/Main
         setColor(CS, C::Fg, C::Negative, C::Normal, QColor("#9e3823")); // D-status-Light-Fg-Negative
-        setColor(CS, C::Fg, C::Primary, C::Disabled, QColor("#6b6b6b")); // D-control-disabled
-        setColor(CS, C::Bg, C::Primary, C::Disabled, QColor("#b3b3b3")); // D-control-disabled
+        setColor(CS, C::Fg, C::Primary, C::Disabled, QColor("#b3b3b3")); // D-control-disabled
+        setColor(CS, C::Bg, C::Primary, C::Disabled, QColor("#dedede")); // D-control-disabled
     }
 
     //Combo box
@@ -698,6 +714,7 @@ void SystemPalette::makeLightPalette()
     //TextField
     {
         C::ColorSet CS = C::TextField;
+        setColor(CS, C::Fg, C::Secondary, C::Normal, QColor("#6b6b6b")); // placeholder
         setColor(CS, C::Decoration, C::Border, C::Normal, QColor("#b3b3b3")); // 3062:10959 input rim
         setColor(CS, C::Decoration, C::Border, C::Focused, accentMain); // Light/Accent/Main
         setColor(CS, C::Decoration, C::Border, C::Hovered, QColor("#9b9b9b")); // Light/Divider/Bright
@@ -713,6 +730,7 @@ void SystemPalette::makeLightPalette()
     //Switch
     {
         C::ColorSet CS = C::Switch;
+        setColor(CS, C::Fg, C::Link, C::Normal, QColor("#3b3b3b"));
         setColor(CS, C::Bg, C::Primary, C::Normal, QColor("#b3b3b3")); // Light/BG/A4
         setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#6b6b6b")); // Light/FG/A3
         setColor(CS, C::Decoration, C::Border, C::Normal, QColor("#acacac")); // Light/Divider/Dim
@@ -793,6 +811,7 @@ void SystemPalette::makeDarkPalette()
     //window banner & miniplayer
     {
         C::ColorSet CS = C::Window;
+        setColor(CS, C::Bg, C::Highlight, C::Normal, QColor("#1b1b1b"));
         setColor(CS, C::Bg, C::Primary, C::Normal, QColor("#1b1b1b")); // Dark/BG/A3
         setColor(CS, C::Bg, C::Secondary, C::Normal, QColor("#1b1b1b")); // Dark/BG/A3
         setColor(CS, C::Decoration, C::Border, C::Normal, QColor("#222222")); // Dark/Divider/Dim
@@ -824,6 +843,11 @@ void SystemPalette::makeDarkPalette()
     //tool button
     {
         C::ColorSet CS = C::ToolButton;
+        setColor(CS, C::Fg, C::Highlight, C::Normal, QColor("#8f8f8f")); // 187:328 transport/effects
+        setColor(CS, C::Fg, C::Highlight, C::Hovered, QColor("#c6c6c6"));
+        setColor(CS, C::Fg, C::Highlight, C::Focused, QColor("#c6c6c6"));
+        setColor(CS, C::Fg, C::Highlight, C::Pressed, QColor("#eaeaea"));
+        setColor(CS, C::Fg, C::Highlight, C::Disabled, QColor("#404040"));
         setColor(CS, C::Bg, C::Primary, C::Normal, setColorAlpha(QColor("#1b1b1b"), 0.0)); // Dark/BG/A3 × alpha 0
         setColor(CS, C::Bg, C::Secondary, C::Normal, QColor("#1b1b1b")); // Dark/BG/A3
 
@@ -874,6 +898,11 @@ void SystemPalette::makeDarkPalette()
     //Accent Buttons
     {
         C::ColorSet CS = C::ButtonAccent;
+        setColor(CS, C::Bg, C::Highlight, C::Normal, m_playAccent);
+        setColor(CS, C::Bg, C::Highlight, C::Hovered, accentBright);
+        setColor(CS, C::Bg, C::Highlight, C::Pressed, accentDim);
+        setColor(CS, C::Bg, C::Highlight, C::Disabled, QColor("#191919"));
+        setColor(CS, C::Bg, C::Secondary, C::Normal, QColor("#6b6b6b")); // 848:1713 pause pill
         setColor(CS, C::Bg, C::Primary, C::Normal, accentMain); // Dark/Accent/Main
         setColor(CS, C::Bg, C::Primary, C::Hovered, accentBright); // Dark/Accent/Bright
         setColor(CS, C::Bg, C::Primary, C::Pressed, accentDim); // Dark/Accent/DIm
@@ -891,6 +920,7 @@ void SystemPalette::makeDarkPalette()
     //Standard Buttons
     {
         C::ColorSet CS = C::ButtonStandard;
+        setColor(CS, C::Fg, C::Highlight, C::Normal, accentMain);
         setColor(CS, C::Bg, C::Primary, C::Normal, QColor("#090909")); // 500:3063 / D-control-states
 
         setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#6b6b6b")); // 500:3061 normal label
@@ -913,6 +943,8 @@ void SystemPalette::makeDarkPalette()
     //tooltip
     {
         C::ColorSet CS = C::Tooltip;
+        setColor(CS, C::Bg, C::Secondary, C::Normal, QColor("#0f0f0f")); // 2245:9805 numeric volume tooltip
+        setColor(CS, C::Fg, C::Secondary, C::Normal, QColor("#969696"));
         setColor(CS, C::Bg, C::Primary, C::Normal, QColor("#191919")); // D-tooltip; popup panel analogue
         setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#969696")); // Dark/FG/A1
     }
@@ -920,6 +952,7 @@ void SystemPalette::makeDarkPalette()
     //slider
     {
         C::ColorSet CS = C::Slider;
+        setColor(CS, C::Bg, C::Neutral, C::Normal, QColor("#090909"));
         setColor(CS, C::Bg, C::Primary, C::Normal, QColor("#090909")); // Dark/BG/B2
         setColor(CS, C::Bg, C::Primary, C::Focused, QColor("#090909")); // Dark/BG/B2
         setColor(CS, C::Bg, C::Primary, C::Hovered, QColor("#090909")); // Dark/BG/B2
@@ -950,6 +983,7 @@ void SystemPalette::makeDarkPalette()
     //TextField
     {
         C::ColorSet CS = C::TextField;
+        setColor(CS, C::Fg, C::Secondary, C::Normal, QColor("#6b6b6b")); // placeholder
         setColor(CS, C::Decoration, C::Border, C::Normal, QColor("#191919")); // 3062:10959 input rim
         setColor(CS, C::Decoration, C::Border, C::Focused, accentMain); // Dark/Accent/Main
         setColor(CS, C::Decoration, C::Border, C::Hovered, QColor("#373737")); // Dark/Divider/Bright
@@ -965,6 +999,7 @@ void SystemPalette::makeDarkPalette()
     //Switch
     {
         C::ColorSet CS = C::Switch;
+        setColor(CS, C::Fg, C::Link, C::Normal, accentMain);
         setColor(CS, C::Bg, C::Primary, C::Normal, QColor("#191919")); // Dark/BG/A4
         setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#404040")); // Dark/FG/A4
         setColor(CS, C::Decoration, C::Border, C::Normal, QColor("#222222")); // Dark/Divider/Dim

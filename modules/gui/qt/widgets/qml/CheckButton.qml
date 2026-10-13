@@ -186,7 +186,7 @@ T.Switch {
                 font.pixelSize: VLCStyle.fontSize_secondary
                 color: !root.enabled ? theme.fg.primary
                                      : (root.checked
-                                        ? ((theme.palette?.isDark ?? VLCStyle.palette.isDark) ? theme.accent : "#3b3b3b")
+                                        ? theme.fg.link
                                         : wellTheme.fg.secondary)
                 Accessible.ignored: true
             }

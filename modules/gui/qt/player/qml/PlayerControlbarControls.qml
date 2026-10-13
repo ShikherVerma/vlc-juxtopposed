@@ -30,6 +30,8 @@ QtObject {
     readonly property string controlPath : "qrc:///qt/qml/VLC/PlayerControls/"
 
     readonly property var controlList: [
+        { id: ControlListModel.SEEK_WIDGET, file: "SeekWidget.qml", label: VLCIcons.time, text: qsTr("Seek and time") },
+        { id: ControlListModel.AUDIO_BUTTON, file: "AudioButton.qml", label: VLCIcons.audio, text: qsTr("Audio tracks") },
         { id: ControlListModel.PLAY_BUTTON, file: "PlayButton.qml", label: VLCIcons.play_filled, text: qsTr("Play") },
         { id: ControlListModel.STOP_BUTTON, file: "StopButton.qml", label: VLCIcons.stop, text: qsTr("Stop") },
         { id: ControlListModel.OPEN_BUTTON, file: "OpenButton.qml", label: VLCIcons.eject, text: qsTr("Open") },

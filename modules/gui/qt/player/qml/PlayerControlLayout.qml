@@ -133,7 +133,7 @@ FocusScope {
                                                                                                                : 0
 
                 Layout.fillWidth: true
-                visible: true
+                visible: !playerControlLayout.model.inlineSeek
             }
 
             ControlRepeater {

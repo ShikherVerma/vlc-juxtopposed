@@ -43,9 +43,7 @@ T.Slider {
     // colors based on different parts and states
     property color color: control.enabled ? (theme.palette?.accentDim ?? VLCStyle.palette.accentDim) : theme.fg.primary
     property color fillColor: theme.bg.secondary
-    property color bgColor: control.enabled ? theme.bg.primary
-                                            : ((theme.palette?.isDark ?? VLCStyle.palette.isDark)
-                                               ? theme.bg.primary : "#dedede")
+    property color bgColor: theme.bg.primary
 
     property real handleWidth: VLCStyle.icon_xsmall
 

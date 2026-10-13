@@ -407,6 +407,15 @@ static void on_player_state_changed(vlc_player_t *, enum vlc_player_state state,
             that->m_audioStereoMode.resetObject( aout.get() );
             that->m_audioMixMode.resetObject( aout.get() );
             that->m_audioVisualization.resetObject( aout.get() );
+            {
+                vlc_player_locker locker{that->m_player};
+                const float volume = vlc_player_aout_GetVolume( that->m_player );
+                if ( volume >= 0.f )
+                {
+                    that->m_volume = volume;
+                    emit q->volumeChanged( volume );
+                }
+            }
             break;
         }
         case VLC_PLAYER_STATE_PAUSED:

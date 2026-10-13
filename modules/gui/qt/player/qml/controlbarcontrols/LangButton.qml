@@ -27,6 +27,8 @@ import VLC.Util
 Widgets.IconToolButton {
     id: root
 
+    property bool audioPage: false
+
     // Proprerties
 
     readonly property var _parentItem: {
@@ -44,17 +46,20 @@ Widgets.IconToolButton {
     // Settings
 
     text: (menuLoader.item && menuLoader.item.visible)
-          ? VLCIcons.subtitles_state_active : VLCIcons.audiosub
+          ? (audioPage ? VLCIcons.audio_state_active : VLCIcons.subtitles_state_active) : (audioPage ? VLCIcons.audio : VLCIcons.subtitles)
 
     enabled: menuLoader.status === Loader.Ready
 
-    description: qsTr("Languages and tracks")
+    description: audioPage ? qsTr("Audio tracks") : qsTr("Subtitles")
 
     AccessibleCompat.id: "langButton"
 
     // Events
 
-    onClicked: menuLoader.item.open()
+    onClicked: {
+        menuLoader.item.open()
+        menuLoader.item.focusTracks(audioPage)
+    }
 
     // Children
 
@@ -66,7 +71,7 @@ Widgets.IconToolButton {
 
             parent: root._parentItem
 
-            x: 0
+            x: Math.max(0, Math.min(parent.width - width, root.mapToItem(parent, 0, 0).x))
             y: (parent.positionSliderY - height)
             z: 1
 

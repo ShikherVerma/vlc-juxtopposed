@@ -720,7 +720,17 @@ void MainCtx::setPlayerView(bool enable)
 
 void MainCtx::setShowRemainingTime( bool show )
 {
+    if ( m_showRemainingTime == show )
+        return;
+
     m_showRemainingTime = show;
+    const QString settingsGroup = settings->group();
+    while ( !settings->group().isEmpty() )
+        settings->endGroup();
+    settings->setValue( "MainWindow/ShowRemainingTime", show );
+    settings->sync();
+    if ( !settingsGroup.isEmpty() )
+        settings->beginGroup( settingsGroup );
     emit showRemainingTimeChanged(show);
 }
 

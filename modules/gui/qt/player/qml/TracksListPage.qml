@@ -38,6 +38,11 @@ RowLayout {
         colorSet: ColorContext.View
     }
 
+    function focusTracks(audio) {
+        const column = audio ? audioColumn : subtitleColumn
+        column.forceActiveFocus(Qt.TabFocusReason)
+    }
+
     //FIXME make TrackMenuController a proper type (see TrackMenu)
     required property QtObject trackMenuController
 
@@ -76,6 +81,7 @@ RowLayout {
         Navigation.leftItem: playbackBtn
 
         TrackColumn {
+            id: subtitleColumn
             title: qsTr("Subtitle")
             tracksModel: Player.subtitleTracks
             menuIcon: VLCIcons.expand
@@ -86,6 +92,7 @@ RowLayout {
         }
 
         TrackColumn {
+            id: audioColumn
             title: qsTr("Audio")
             tracksModel: Player.audioTracks
             menuIcon: VLCIcons.expand

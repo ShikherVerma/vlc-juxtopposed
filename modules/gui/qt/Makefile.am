@@ -1465,6 +1465,8 @@ libqml_module_playercontrols_a_QML = \
 	player/qml/controlbarcontrols/TeletextColorButton.qml \
 	player/qml/controlbarcontrols/TeletextWidget.qml \
 	player/qml/controlbarcontrols/VolumeWidget.qml \
+	player/qml/controlbarcontrols/SeekWidget.qml \
+	player/qml/controlbarcontrols/AudioButton.qml \
 	player/qml/controlbarcontrols/Fallback.qml
 libqml_module_playercontrols_a_Singleton_QML =
 libqml_module_playercontrols_a_SOURCES = $(QML_MODULE_playercontrols_SRC)

@@ -43,7 +43,7 @@ T.Button {
     property int iconSize: VLCStyle.button_iconSize
 
     property color color: checked && enabled && theme.colorSet === ColorContext.ButtonStandard
-                          ? ((theme.palette?.isDark ?? VLCStyle.palette.isDark) ? theme.accent : "#161616")
+                          ? theme.fg.highlight
                           : theme.fg.primary
     property color colorFocus: theme.visualFocus
 

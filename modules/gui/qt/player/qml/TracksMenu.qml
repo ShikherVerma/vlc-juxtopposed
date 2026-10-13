@@ -30,6 +30,11 @@ import VLC.Util
 T.Popup {
     id: root
 
+    function focusTracks(audio) {
+        stackView.pop(null, T.StackView.Immediate)
+        stackView.currentItem.focusTracks(audio)
+    }
+
     // Settings
     property var preferredWidth : stackView.currentItem.preferredWidth
 

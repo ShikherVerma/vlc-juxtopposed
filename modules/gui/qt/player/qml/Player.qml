@@ -56,9 +56,7 @@ FocusScope {
 
     // Private
 
-    property bool _controlsUnderVideo: (MainCtx.pinVideoControls
-                                        &&
-                                        (MainCtx.intfMainWindow.visibility !== Window.FullScreen))
+    property bool _controlsUnderVideo: MainCtx.pinVideoControls && MainCtx.intfMainWindow.visibility !== Window.FullScreen
 
     property bool _keyPressed: false
 
@@ -1289,11 +1287,12 @@ FocusScope {
 
         focus: true
 
-        rightPadding: VLCStyle.applicationHorizontalMargin
-        leftPadding: VLCStyle.applicationHorizontalMargin
-        bottomPadding: VLCStyle.applicationVerticalMargin + VLCStyle.margin_xsmall
+        rightPadding: inlineSeek ? VLCStyle.dp(20, VLCStyle.scale) : VLCStyle.applicationHorizontalMargin
+        leftPadding: inlineSeek ? VLCStyle.dp(20, VLCStyle.scale) : VLCStyle.applicationHorizontalMargin
+        topPadding: inlineSeek ? VLCStyle.dp(11, VLCStyle.scale) : 0
+        bottomPadding: inlineSeek ? VLCStyle.dp(11, VLCStyle.scale) : VLCStyle.applicationVerticalMargin + VLCStyle.margin_xsmall
 
-        textPosition: (MainCtx.pinVideoControls)
+        textPosition: inlineSeek ? ControlBar.TimeTextPosition.Inline : (MainCtx.pinVideoControls)
                       ? ControlBar.TimeTextPosition.LeftRightSlider
                       : ControlBar.TimeTextPosition.AboveSlider
 
@@ -1333,9 +1332,10 @@ FocusScope {
         background: Rectangle {
             id: controlBarBackground
 
-            visible: !MainCtx.hasEmbededVideo || MainCtx.pinVideoControls || !rootPlayer.displayFadeRectangles
+            visible: rootPlayer._controlsUnderVideo || !MainCtx.hasEmbededVideo || MainCtx.pinVideoControls || !rootPlayer.displayFadeRectangles
 
             opacity: {
+                if (rootPlayer._controlsUnderVideo) return 1.0
                 if (MainCtx.hasEmbededVideo && !MainCtx.pinVideoControls && !rootPlayer.displayFadeRectangles) {
                     return 0.6
                 } else if ((Window.visibility === Window.FullScreen) && MainCtx.hasEmbededVideo) {
@@ -1347,7 +1347,7 @@ FocusScope {
                 }
             }
 
-            color: windowTheme.bg.primary
+            color: controlBar.inlineSeek ? windowTheme.bg.highlight : windowTheme.bg.primary
         }
 
         FadeControllerStateGroup {

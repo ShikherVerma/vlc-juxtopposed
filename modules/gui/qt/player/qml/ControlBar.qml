@@ -34,7 +34,8 @@ T.Pane {
     enum TimeTextPosition {
         Hide,
         AboveSlider,
-        LeftRightSlider
+        LeftRightSlider,
+        Inline
     }
 
     implicitWidth: Math.max(implicitBackgroundWidth + leftInset + rightInset,
@@ -42,7 +43,9 @@ T.Pane {
     implicitHeight: Math.max(implicitBackgroundHeight + bottomInset,
                              implicitContentHeight + topPadding + bottomPadding)
 
-    topInset: sliderY
+    topInset: inlineSeek ? 0 : sliderY
+
+    readonly property bool inlineSeek: playerControlLayout.model?.inlineSeek ?? false
 
     bottomPadding: VLCStyle.margin_xsmall
 
@@ -123,7 +126,7 @@ T.Pane {
     contentItem: ColumnLayout {
         spacing: VLCStyle.margin_xsmall
 
-        readonly property real sliderY: row2.y
+        readonly property real sliderY: root.inlineSeek ? playerControlLayout.y + VLCStyle.dp(2, VLCStyle.scale) : row2.y
 
         property alias trackPositionSlider: trackPositionSlider
 
@@ -245,7 +248,7 @@ T.Pane {
                 id: bookmarksLoader
 
                 parent: root
-                active: MainCtx.mediaLibraryAvailable
+                active: MainCtx.mediaLibraryAvailable && !root.inlineSeek
                 source: "qrc:///qt/qml/VLC/MediaLibrary/Bookmarks.qml"
 
                 x: root.leftPadding + trackPositionSlider.x + row2.Layout.leftMargin
@@ -320,12 +323,13 @@ T.Pane {
 
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.leftMargin: VLCStyle.margin_large
-            Layout.rightMargin: VLCStyle.margin_large
+            Layout.leftMargin: root.inlineSeek ? 0 : VLCStyle.margin_large
+            Layout.rightMargin: root.inlineSeek ? 0 : VLCStyle.margin_large
 
             identifier: root.identifier
+            spacing: root.inlineSeek ? VLCStyle.dp(8, VLCStyle.scale) : VLCStyle.margin_normal
 
-            implicitHeight: MainCtx.pinVideoControls ? VLCStyle.controlLayoutHeightPinned
+            implicitHeight: root.inlineSeek ? VLCStyle.dp(32, VLCStyle.scale) : MainCtx.pinVideoControls ? VLCStyle.controlLayoutHeightPinned
                                                      : VLCStyle.controlLayoutHeight
 
             visible: !model?.empty ?? false

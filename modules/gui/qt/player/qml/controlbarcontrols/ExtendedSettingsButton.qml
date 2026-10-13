@@ -26,6 +26,8 @@ import VLC.Util
 Widgets.IconToolButton {
     id: extdSettingsBtn
 
+    color: colorContext.fg.highlight
+
     text: VLCIcons.effect_filter
 
     description: qsTr("Extended settings")

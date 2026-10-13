@@ -190,6 +190,7 @@ private:
     std::unique_ptr<ExternalPaletteImpl> m_palettePriv;
 
     QMap<quint64, QColor> m_colorMap;
+    QColor m_playAccent;
 
 };
 

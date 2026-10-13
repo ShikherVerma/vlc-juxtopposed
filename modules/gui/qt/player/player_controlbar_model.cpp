@@ -101,6 +101,13 @@ bool PlayerControlbarModel::empty() const
     return m_empty;
 }
 
+bool PlayerControlbarModel::inlineSeek() const
+{
+    return m_left->getControls().contains(ControlListModel::SEEK_WIDGET)
+        || m_center->getControls().contains(ControlListModel::SEEK_WIDGET)
+        || m_right->getControls().contains(ControlListModel::SEEK_WIDGET);
+}
+
 std::array<QVector<int>, 3> PlayerControlbarModel::serializeModels() const
 {
     return { left()->getControls(),

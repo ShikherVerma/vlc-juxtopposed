@@ -26,6 +26,12 @@ import VLC.Util
 Widgets.IconToolButton {
     id: nextBtn
 
+    implicitHeight: VLCStyle.dp(28, VLCStyle.scale)
+    topPadding: VLCStyle.dp(2, VLCStyle.scale)
+    bottomPadding: topPadding
+
+    color: colorContext.fg.highlight
+
     text: VLCIcons.next
     enabled: MainPlaylistController.hasNext
     onClicked: MainPlaylistController.next()

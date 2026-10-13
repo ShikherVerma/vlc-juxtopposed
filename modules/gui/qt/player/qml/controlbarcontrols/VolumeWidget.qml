@@ -30,12 +30,27 @@ T.Pane {
 
     property bool paintOnly: false
 
-    readonly property color sliderColor: {
-        const theme = volControl.colorContext
-        return (volControl.position > _fullvolpos) ? theme.fg.negative : theme.fg.primary
+    // Source component 244:184 defines these authored level widths.
+    function levelWidth(volume) {
+        const levels = [0, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1, 1.5, 2]
+        const widths = [1, 7, 14, 20, 26, 33, 41, 48, 53, 58, 63, 75, 88]
+        for (let i = 1; i < levels.length; ++i)
+            if (volume <= levels[i])
+                return widths[i-1] + (widths[i] - widths[i-1]) * (volume - levels[i-1]) / (levels[i] - levels[i-1])
+        return 88
+    }
+
+    function volumeAt(x) {
+        const levels = [0, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1, 1.5, 2]
+        const widths = [1, 7, 14, 20, 26, 33, 41, 48, 53, 58, 63, 75, 88]
+        for (let i = 1; i < widths.length; ++i)
+            if (x <= widths[i])
+                return Math.max(0, levels[i-1] + (levels[i] - levels[i-1]) * (x - widths[i-1]) / (widths[i] - widths[i-1]))
+        return 2
     }
 
     readonly property var _player: paintOnly ? ({ muted: false, volume: .5 }) : Player
+    readonly property real _displayVolume: _player.volume >= 0 ? _player.volume : 1
     readonly property int _maxvol: MainCtx.maxVolume
     readonly property real _fullvolpos: 100 / _maxvol
     readonly property real _maxvolpos: _maxvol / 100
@@ -55,11 +70,16 @@ T.Pane {
         id: volumeWidget
 
         anchors.fill: parent
-        spacing: 0
+        spacing: VLCStyle.dp(8, VLCStyle.scale)
 
         Widgets.IconToolButton{
             id: volumeBtn
 
+            padding: 0
+            leftPadding: 0
+            rightPadding: 0
+            implicitWidth: VLCStyle.dp(24, VLCStyle.scale)
+            implicitHeight: VLCStyle.dp(28, VLCStyle.scale)
             focus: true
             paintOnly: root.paintOnly
             text: {
@@ -67,10 +87,6 @@ T.Pane {
                     return VLCIcons.volume_muted
                 else if (_player.volume === 0)
                     return VLCIcons.volume_zero
-                else if (_player.volume < .33)
-                    return VLCIcons.volume_low
-                else if (_player.volume <= .66)
-                    return VLCIcons.volume_medium
                 else
                     return VLCIcons.volume_high
             }
@@ -98,7 +114,8 @@ T.Pane {
             id: volControl
 
             // FIXME: use VLCStyle
-            implicitWidth: VLCStyle.dp(100, VLCStyle.scale)
+            implicitWidth: VLCStyle.dp(88, VLCStyle.scale)
+            implicitHeight: VLCStyle.dp(28, VLCStyle.scale)
 
             // WARNING: Directly setting the insets break handle and background positioning.
             Binding on topInset {
@@ -111,7 +128,7 @@ T.Pane {
             }
 
             Layout.fillHeight: true
-            Layout.margins: VLCStyle.margin_xsmall
+            Layout.margins: 0
 
             property bool _inhibitPlayerVolumeUpdate: false
 
@@ -125,7 +142,7 @@ T.Pane {
 
             property bool filterEvents: false
 
-            color: root.sliderColor
+            stepSize: 0.05
 
             from: 0
             to: root._maxvolpos
@@ -138,7 +155,7 @@ T.Pane {
                 // from bounds of this widget and we want to show the current
                 // volume here, so directly use Player.volume instead of "value"
 
-                return Math.round(Player.volume * 100) + "%"
+                return Player.volume < 0 ? "—" : Math.round(Player.volume * 100) + " %"
             }
 
             Accessible.name: qsTr("Volume")
@@ -167,7 +184,7 @@ T.Pane {
 
             function _syncVolumeWithPlayer() {
                 volControl._inhibitPlayerVolumeUpdate = true
-                volControl.value = _player.volume
+                volControl.value = root._displayVolume
                 volControl._inhibitPlayerVolumeUpdate = false
             }
 
@@ -201,9 +218,52 @@ T.Pane {
                 function onVolumeChanged() { volControl._syncVolumeWithPlayer() }
             }
 
-            Binding on Widgets.PointingToolTipAttached.visible {
-                when: sliderMouseArea.pressed
-                value: true
+            function updateTooltip() {
+                if (!root.paintOnly && (sliderMouseArea.containsMouse || sliderMouseArea.pressed || visualFocus))
+                    volumeTip.open()
+                else
+                    volumeTip.close()
+            }
+
+            onVisualFocusChanged: updateTooltip()
+
+            // This control has the authored numeric popup, not the shared arrow tooltip.
+            Widgets.PointingToolTipAttached.visible: false
+
+            T.ToolTip {
+                id: volumeTip
+                delay: VLCStyle.delayToolTipAppear
+                // Native video children cover in-scene popups; use a tooltip window.
+                Component.onCompleted: {
+                    if (volumeTip.popupType !== undefined)
+                        volumeTip.popupType = 1 // Popup.Window, Qt 6.8+
+                }
+                text: Player.volume < 0 ? "—" : Math.round(Player.volume * 100) + " %"
+                width: VLCStyle.dp(121, VLCStyle.scale)
+                height: VLCStyle.dp(37, VLCStyle.scale)
+                x: root.levelWidth(root._displayVolume) * volControl.width / 88 - width / 2
+                y: -height - VLCStyle.dp(10, VLCStyle.scale)
+                padding: VLCStyle.dp(10, VLCStyle.scale)
+                font.family: VLCStyle.fontFamily
+                font.pixelSize: VLCStyle.dp(14, VLCStyle.scale)
+
+                readonly property ColorContext colorContext: ColorContext {
+                    id: tooltipTheme
+                    palette: VLCStyle.palette
+                    colorSet: ColorContext.Tooltip
+                }
+
+                background: Rectangle {
+                    radius: VLCStyle.control_radius
+                    color: tooltipTheme.bg.secondary
+                }
+                contentItem: T.Label {
+                    text: volumeTip.text
+                    font: volumeTip.font
+                    color: tooltipTheme.fg.secondary
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
             }
 
             Navigation.leftItem: volumeBtn
@@ -235,38 +295,64 @@ T.Pane {
                 }
             }
 
-            Rectangle{
-                id: tickmark
+            handle: Item {
+                x: root.levelWidth(volControl.value) * volControl.width / 88
+                implicitWidth: 0
+                implicitHeight: VLCStyle.dp(28, VLCStyle.scale)
+            }
 
-                parent: volControl.background
-
-                x : parent.width * root._fullvolpos
-                width: VLCStyle.dp(1, VLCStyle.scale)
-                height: parent.height
-                radius: VLCStyle.dp(2, VLCStyle.scale)
-
-                // NOTE: This shouldn't be visible when the volume stops before a 100.
-                visible: (root._maxvol > 100)
-
-                // FIXME: tick mark is not visible when it's over slider
-                color: root.sliderColor
-
-                // NOTE: This is a helper to select the default volume when clicking on the
-                //       tickmark. We apply a higher clamp value to achieve that behavior on
-                //       the Slider.
-                MouseArea {
-                    anchors.fill: parent
-
-                    anchors.margins: -(VLCStyle.dp(4, VLCStyle.scale))
-
-                    onPressed: (mouse) => {
-                        mouse.accepted = false
-
-                        if (mouse.modifiers === Qt.ShiftModifier)
-                            return
-
-                        volControl._clamp = 0.1
-                    }
+            background: Canvas {
+                id: cone
+                anchors.fill: parent
+                property real volume: root._displayVolume
+                property color well: volControl.enabled ? volControl.colorContext.bg.neutral : volControl.colorContext.bg.primary
+                property bool dark: volControl.colorContext.palette?.isDark ?? VLCStyle.palette.isDark
+                onDarkChanged: requestPaint()
+                onVolumeChanged: requestPaint()
+                onWellChanged: requestPaint()
+                onWidthChanged: requestPaint()
+                onHeightChanged: requestPaint()
+                onPaint: {
+                    const ctx = getContext("2d")
+                    ctx.reset()
+                    ctx.scale(width / 88, height / 28)
+                    ctx.beginPath()
+                    ctx.moveTo(0, 12.6159)
+                    ctx.bezierCurveTo(0,10.5626,1.5547,8.8428,3.5976,8.6362)
+                    ctx.lineTo(85.6982,.3339)
+                    ctx.bezierCurveTo(87.4654,.1552,89,1.5425,89,3.3187)
+                    ctx.lineTo(89,24.6813)
+                    ctx.bezierCurveTo(89,26.4575,87.4654,27.8448,85.6982,27.6661)
+                    ctx.lineTo(3.5976,19.3638)
+                    ctx.bezierCurveTo(1.5547,19.1572,0,17.4374,0,15.3841)
+                    ctx.closePath()
+                    ctx.fillStyle = well
+                    ctx.fill()
+                    ctx.save()
+                    ctx.beginPath()
+                    ctx.rect(0,0,root.levelWidth(volume),28)
+                    ctx.clip()
+                    ctx.beginPath()
+                    ctx.moveTo(1.5,15.6984)
+                    ctx.lineTo(1.5,12.3016)
+                    ctx.bezierCurveTo(1.5,11.2777,2.2734,10.4191,3.2918,10.3125)
+                    ctx.lineTo(85.2918,1.7311)
+                    ctx.bezierCurveTo(86.4723,1.6076,87.5,2.5334,87.5,3.7203)
+                    ctx.lineTo(87.5,24.2798)
+                    ctx.bezierCurveTo(87.5,25.4667,86.4723,26.3925,85.2918,26.2689)
+                    ctx.lineTo(3.2918,17.6875)
+                    ctx.bezierCurveTo(2.2734,17.581,1.5,16.7224,1.5,15.6984)
+                    ctx.closePath()
+                    const gradient = ctx.createLinearGradient(-1,14,89,14)
+                    gradient.addColorStop(0,"#95d318")
+                    gradient.addColorStop(.5788,"#b2a918")
+                    gradient.addColorStop(.7924,"#d37918")
+                    gradient.addColorStop(1,"#ff3737")
+                    ctx.fillStyle = volControl.enabled ? gradient : volControl.colorContext.bg.secondary
+                    ctx.fill()
+                    ctx.fillStyle = dark ? "#33000000" : "#33ffffff"
+                    ctx.fill()
+                    ctx.restore()
                 }
             }
 
@@ -276,6 +362,9 @@ T.Pane {
                 anchors.fill: parent
 
                 acceptedButtons: (Qt.LeftButton | Qt.RightButton)
+                hoverEnabled: true
+                onContainsMouseChanged: volControl.updateTooltip()
+                onPressedChanged: volControl.updateTooltip()
 
                 onPressed: (mouse) => {
                     if (root.paintOnly) {
@@ -283,11 +372,11 @@ T.Pane {
                         return
                     }
 
+                    volControl.forceActiveFocus(Qt.MouseFocusReason)
                     volControl._shiftPressed = (mouse.modifiers === Qt.ShiftModifier)
 
                     if (mouse.button === Qt.LeftButton) {
-                        mouse.accepted = false
-
+                        volControl.value = Math.min(root._maxvolpos, root.volumeAt(mouse.x * 88 / width))
                         return
                     }
 
@@ -298,6 +387,8 @@ T.Pane {
                 onPositionChanged: (mouse) => {
                     if (mouse.buttons & Qt.RightButton)
                         adjustVolume(mouse)
+                    else if (mouse.buttons & Qt.LeftButton)
+                        volControl.value = Math.min(root._maxvolpos, root.volumeAt(mouse.x * 88 / width))
                 }
 
                 onWheel: (wheel) => {

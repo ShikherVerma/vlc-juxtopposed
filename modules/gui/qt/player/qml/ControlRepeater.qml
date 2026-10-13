@@ -19,6 +19,8 @@ import QtQuick
 import QtQuick.Layouts
 
 import VLC.MainInterface
+import VLC.Style
+import VLC.PlayerControls
 
 Repeater {
     id: repeater
@@ -54,12 +56,25 @@ Repeater {
 
         focus: (index === 0)
 
+        Layout.leftMargin: {
+            if (!(playerControlLayout.model?.inlineSeek ?? false)) return 0
+            switch (model.id) {
+            case ControlListModel.SEEK_WIDGET:
+            case ControlListModel.VOLUME:
+            case ControlListModel.AUDIO_BUTTON:
+            case ControlListModel.PLAYLIST_BUTTON: return VLCStyle.dp(12, VLCStyle.scale)
+            case ControlListModel.LANG_BUTTON:
+            case ControlListModel.EXTENDED_BUTTON: return VLCStyle.dp(4, VLCStyle.scale)
+            default: return 0
+            }
+        }
+
         Layout.fillWidth: (item && item.Layout.minimumWidth > 0)
         Layout.minimumWidth: Layout.fillWidth ? item.Layout.minimumWidth : (item ? item.implicitWidth : -1)
         Layout.maximumWidth: Layout.fillWidth ? (item ? item.implicitWidth : -1) : -1
 
         Layout.minimumHeight: 0
-        Layout.maximumHeight: Math.min((item && item.implicitHeight <= 0) ? Number.MAX_VALUE : item.implicitHeight, repeater.availableHeight)
+        Layout.maximumHeight: Math.min((!item || item.implicitHeight <= 0) ? Number.MAX_VALUE : item.implicitHeight, repeater.availableHeight)
         Layout.fillHeight: true
 
         Layout.alignment: repeater.alignment
@@ -228,9 +243,9 @@ Repeater {
         // Private
 
         function _focusIfFocusable(_loader) {
-            if (_loader?.item?.focus) {
-                if (item.focusReason !== undefined)
-                    _loader.item.forceActiveFocus(item.focusReason)
+            if (_loader?.item?.focus && _loader.item.enabled && _loader.item.visible) {
+                if (_loader.item.focusReason !== undefined)
+                    _loader.item.forceActiveFocus(_loader.item.focusReason)
                 else {
                     console.warn("focusReason is not available in %1!".arg(item))
                     _loader.item.forceActiveFocus()

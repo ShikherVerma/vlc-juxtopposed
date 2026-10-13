@@ -170,8 +170,7 @@ FocusScope {
 
                 radius: VLCStyle.control_radius
                 bgColor: VLCStyle.searchInputColor(colorContext.palette?.isDark ?? VLCStyle.palette.isDark)
-                placeholderTextColor: (colorContext.palette?.isDark ?? VLCStyle.palette.isDark)
-                                        ? theme.fg.secondary : "#6b6b6b" // Light/FG/A3
+                placeholderTextColor: colorContext.fg.secondary
 
                 selectByMouse: true
 

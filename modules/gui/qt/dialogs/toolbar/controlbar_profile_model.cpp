@@ -99,52 +99,27 @@ decltype (ControlbarProfileModel::m_defaults)
                 {
                     {
                         PlayerControlbarModel::Videoplayer,
-                        {
-                            {
-                                {
-                                    ControlListModel::LANG_BUTTON,
-                                    ControlListModel::BOOKMARK_BUTTON,
-                                    ControlListModel::EXTENDED_BUTTON,
-                                    ControlListModel::NAVIGATION_BUTTONS
-                                },
-                                {
-                                    ControlListModel::SKIP_BACK_BUTTON,
-                                    ControlListModel::PREVIOUS_BUTTON,
-                                    ControlListModel::PLAY_BUTTON,
-                                    ControlListModel::NEXT_BUTTON,
-                                    ControlListModel::SKIP_FW_BUTTON
-                                },
-                                {
-                                    ControlListModel::VOLUME,
-                                    ControlListModel::RENDERER_BUTTON,
-                                    ControlListModel::FULLSCREEN_BUTTON
-                                }
-                            }
-                        }
+                        {{{ControlListModel::PREVIOUS_BUTTON,
+                           ControlListModel::PLAY_BUTTON,
+                           ControlListModel::NEXT_BUTTON,
+                           ControlListModel::SEEK_WIDGET,
+                           ControlListModel::VOLUME,
+                           ControlListModel::AUDIO_BUTTON,
+                           ControlListModel::LANG_BUTTON,
+                           ControlListModel::EXTENDED_BUTTON,
+                           ControlListModel::PLAYLIST_BUTTON}, {}, {}}}
                     },
                     {
                         PlayerControlbarModel::Audioplayer,
-                        {
-                            {
-                                {
-                                    ControlListModel::LANG_BUTTON,
-                                    ControlListModel::BOOKMARK_BUTTON,
-                                    ControlListModel::EXTENDED_BUTTON
-                                },
-                                {
-                                    ControlListModel::RANDOM_BUTTON,
-                                    ControlListModel::PREVIOUS_BUTTON,
-                                    ControlListModel::PLAY_BUTTON,
-                                    ControlListModel::NEXT_BUTTON,
-                                    ControlListModel::LOOP_BUTTON
-                                },
-                                {
-                                    ControlListModel::VOLUME,
-                                    ControlListModel::RENDERER_BUTTON,
-                                    ControlListModel::FULLSCREEN_BUTTON
-                                }
-                            }
-                        }
+                        {{{ControlListModel::PREVIOUS_BUTTON,
+                           ControlListModel::PLAY_BUTTON,
+                           ControlListModel::NEXT_BUTTON,
+                           ControlListModel::SEEK_WIDGET,
+                           ControlListModel::VOLUME,
+                           ControlListModel::AUDIO_BUTTON,
+                           ControlListModel::LANG_BUTTON,
+                           ControlListModel::EXTENDED_BUTTON,
+                           ControlListModel::PLAYLIST_BUTTON}, {}, {}}}
                     },
                     {
                         PlayerControlbarModel::Miniplayer,
