@@ -46,7 +46,6 @@ FocusScope {
     property bool navigationVisible: false
     property bool showLocation: true
     property bool playlistVisible: false
-    property alias resumeVisible: resumeDialog.visible
 
     signal togglePlaylistVisibility()
     signal requestLockUnlockAutoHide(bool lock)
@@ -235,15 +234,4 @@ FocusScope {
         onMenuOpenedChanged: root.requestLockUnlockAutoHide(menuOpened)
     }
 
-    // Keep the existing resume workflow until Lane 2.3 moves it beside playback.
-    ResumeDialog {
-        id: resumeDialog
-        anchors.top: parent.bottom
-        anchors.left: parent.left
-        anchors.leftMargin: VLCStyle.dp(20, VLCStyle.scale)
-        maxWidth: root.width - VLCStyle.dp(40, VLCStyle.scale)
-        Navigation.parentItem: root
-        onVisibleChanged: root.requestLockUnlockAutoHide(visible)
-        onHidden: { if (activeFocus) menuSelector.forceActiveFocus() }
-    }
 }

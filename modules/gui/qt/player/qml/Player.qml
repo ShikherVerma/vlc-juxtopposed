@@ -1214,6 +1214,16 @@ FocusScope {
         }
     }
 
+    ResumeDialog {
+        id: resumeDialog
+        anchors.horizontalCenter: parent.horizontalCenter
+        // Keep the notification beside playback even when fullscreen bars hide.
+        y: rootPlayer.height - controlBar.height - height - VLCStyle.dp(24, VLCStyle.scale)
+        maxWidth: rootPlayer.width - VLCStyle.dp(40, VLCStyle.scale)
+        Navigation.parentItem: rootPlayer
+        onHidden: rootPlayer.forceActiveFocus()
+    }
+
     Widgets.ButtonExt {
         id: toggleControlBarButton
         visible: Player.isInteractive

@@ -121,6 +121,7 @@ public:
 
     SharedInputItem    m_currentItem;
     bool            m_canRestorePlayback = false;
+    double          m_restorePlaybackPosition = -1.0;
 
     int             m_capabilities = 0;
 

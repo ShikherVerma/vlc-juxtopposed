@@ -152,6 +152,8 @@ public:
 
     Q_PROPERTY(bool canRestorePlayback READ canRestorePlayback NOTIFY playbackRestoreQueried FINAL)
 
+    Q_PROPERTY(double restorePlaybackPosition READ restorePlaybackPosition NOTIFY playbackRestoreQueried FINAL)
+
     // meta
     Q_PROPERTY(QString title READ getTitle NOTIFY currentMetaChanged FINAL)
     Q_PROPERTY(QString artist READ getArtist NOTIFY currentMetaChanged FINAL)
@@ -331,6 +333,7 @@ public slots:
     void updatePositionFromTimer();
     void updateTimeFromTimer();
     bool canRestorePlayback() const;
+    double restorePlaybackPosition() const;
     void restorePlaybackPos();
     void openVLsub();
     void acknowledgeRestoreCallback();
