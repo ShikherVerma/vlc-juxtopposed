@@ -213,6 +213,7 @@ QtObject {
     readonly property int slider_trackSize: MainCtx.dp(16, scale)
     readonly property int slider_thumbSize: MainCtx.dp(24, scale)
     // Authored transparent popup and search fills (Light analogues are named tokens).
+    function titlebarDividerColor(dark: bool): color { return dark ? "#373737" : "#9b9b9b" }
     function popupTint(dark: bool): color { return dark ? "#191919" : "#d5d5d5" }
     function searchInputColor(dark: bool): color { return dark ? "#151515" : "#dedede" }
     readonly property int popup_blurRadius: MainCtx.dp(50, scale)

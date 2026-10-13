@@ -30,16 +30,18 @@ Row {
 
     width: implicitWidth
 
+    property bool playerStyle: false
+
     property color color: theme.fg.primary
     property color hoverColor: theme.bg.primary.alpha(0.5)
 
-    readonly property bool useWinIcons: ((MainCtx.osName === MainCtx.Windows)&&(MainCtx.osVersion >= 10))
+    readonly property bool useWinIcons: !playerStyle && ((MainCtx.osName === MainCtx.Windows)&&(MainCtx.osVersion >= 10))
 
     readonly property bool buttonHovered: {
         let h = false
         for (let i = 0; i < repeater.count; ++i) {
             const button = repeater.itemAt(i)
-            h = h || button.hovered || button.showHovered
+            h = h || button.buttonHovered
         }
 
         return h
@@ -47,7 +49,7 @@ Row {
 
     readonly property ColorContext colorContext: ColorContext {
         id: theme
-        colorSet: ColorContext.Window
+        colorSet: windowButtonGroup.playerStyle ? ColorContext.ToolButton : ColorContext.Window
     }
 
     Repeater {
@@ -55,78 +57,106 @@ Row {
 
         model: MainCtx.csdButtonModel.windowCSDButtons
 
-        CSDWindowButton {
+        Row {
+            id: buttonRow
             required property var modelData
+            readonly property bool buttonHovered: windowButton.hovered || windowButton.showHovered || fullscreenButton.hovered
 
-            height: windowButtonGroup.height
-
-            showHovered: modelData.showHovered
-
-            externalPressed: modelData.externalPressed
-
-            color: (modelData.type === CSDButton.Close && (hovered || modelData.showHovered))
-                   ? "white"
-                   : windowButtonGroup.color
-
-            hoverColor: (modelData.type === CSDButton.Close) ? "red" : windowButtonGroup.hoverColor
-
-            isThemeDark: theme.palette.isDark
-
-            iconTxt:{
-                switch (modelData.type) {
-                case CSDButton.Minimize:
-                {
-                    if (useWinIcons)
-                        return "\uE921"
-
-                    else
-                        return VLCIcons.window_minimize
-                }
-
-                case CSDButton.MaximizeRestore:
-                {
-                    if (useWinIcons)
-                        return (MainCtx.intfMainWindow.visibility === Window.Maximized)
-                                ? "\uE923"
-                                : "\uE922"
-
-                    else
-                        return (MainCtx.intfMainWindow.visibility === Window.Maximized)
-                                ? VLCIcons.window_restore
-                                : VLCIcons.window_maximize
-                }
-
-                case CSDButton.Close:
-                {
-                    if (useWinIcons)
-                        return "\uE8BB"
-
-                    else
-                        return VLCIcons.window_close
-                }
-                }
-                console.assert(false, "unreachable")
+            CSDWindowButton {
+                id: fullscreenButton
+                visible: windowButtonGroup.playerStyle && buttonRow.modelData.type === CSDButton.Close
+                width: visible ? VLCStyle.dp(36, VLCStyle.scale) : 0
+                height: windowButtonGroup.height
+                authoredIcon: windowButtonGroup.playerStyle
+                iconTxt: MainCtx.intfMainWindow.visibility === Window.FullScreen ? VLCIcons.defullscreen : VLCIcons.fullscreen
+                color: windowButtonGroup.color
+                hoverColor: windowButtonGroup.hoverColor
+                isThemeDark: theme.palette.isDark
+                Accessible.name: qsTr("Fullscreen")
+                onClicked: MainCtx.toggleInterfaceFullScreen()
             }
 
-            onClicked: modelData.click()
+            CSDWindowButton {
+                id: windowButton
+                property var modelData: buttonRow.modelData
+                width: windowButtonGroup.playerStyle ? VLCStyle.dp(36, VLCStyle.scale) : VLCStyle.dp(40, VLCStyle.scale)
+                authoredIcon: windowButtonGroup.playerStyle
+                height: windowButtonGroup.height
 
-            // handles VLCStyle.scale changes
-            onWidthChanged: Qt.callLater(updateRect)
-            onHeightChanged: Qt.callLater(updateRect)
+                showHovered: modelData.showHovered
 
-            Connections {
-                target: VLCStyle
+                externalPressed: modelData.externalPressed
 
-                // handle window resize
-                function onAppWidthChanged() { Qt.callLater(updateRect) }
-                function onAppHeightChanged() { Qt.callLater(updateRect) }
-            }
+                color: (!windowButtonGroup.playerStyle && modelData.type === CSDButton.Close && (hovered || modelData.showHovered))
+                       ? "white"
+                       : windowButtonGroup.color
 
-            function updateRect() {
-                const point = mapToItem(null, 0, 0)
-                const rect = Qt.rect(point.x, point.y, width, height)
+                hoverColor: (!windowButtonGroup.playerStyle && modelData.type === CSDButton.Close) ? "red" : windowButtonGroup.hoverColor
 
-                modelData.rect = rect
+                isThemeDark: theme.palette.isDark
+
+                iconTxt:{
+                    switch (modelData.type) {
+                    case CSDButton.Minimize:
+                    {
+                        if (useWinIcons)
+                            return "\uE921"
+
+                        else
+                            return VLCIcons.window_minimize
+                    }
+
+                    case CSDButton.MaximizeRestore:
+                    {
+                        if (useWinIcons)
+                            return (MainCtx.intfMainWindow.visibility === Window.Maximized)
+                                    ? "\uE923"
+                                    : "\uE922"
+
+                        else
+                            return (MainCtx.intfMainWindow.visibility === Window.Maximized)
+                                    ? VLCIcons.window_restore
+                                    : VLCIcons.window_maximize
+                    }
+
+                    case CSDButton.Close:
+                    {
+                        if (useWinIcons)
+                            return "\uE8BB"
+
+                        else
+                            return VLCIcons.window_close
+                    }
+                    }
+                    console.assert(false, "unreachable")
+                }
+
+                Accessible.name: modelData.type === CSDButton.Close ? qsTr("Close") : modelData.type === CSDButton.Minimize ? qsTr("Minimize") : qsTr("Maximize or restore")
+                onClicked: modelData.click()
+
+                // handles VLCStyle.scale changes
+                onWidthChanged: Qt.callLater(windowButton.updateRect)
+                onHeightChanged: Qt.callLater(windowButton.updateRect)
+                onVisibleChanged: Qt.callLater(windowButton.updateRect)
+                Component.onDestruction: {
+                    if (modelData)
+                        modelData.rect = Qt.rect(0, 0, 0, 0)
+                }
+
+                Connections {
+                    target: VLCStyle
+
+                    // handle window resize
+                    function onAppWidthChanged() { Qt.callLater(windowButton.updateRect) }
+                    function onAppHeightChanged() { Qt.callLater(windowButton.updateRect) }
+                }
+
+                function updateRect() {
+                    const point = mapToItem(null, 0, 0)
+                    const rect = visible ? Qt.rect(point.x, point.y, width, height) : Qt.rect(0, 0, 0, 0)
+
+                    modelData.rect = rect
+                }
             }
         }
     }

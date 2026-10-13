@@ -415,12 +415,7 @@ vlc_module_begin ()
               QT_DISABLE_VOLUME_KEYS_LONGTEXT      /* longtext */)
 #endif
 
-    add_bool( "qt-titlebar",
-#ifdef _WIN32
-              false                              /* use CSD by default on windows */,
-#else
-              true                               /* but not on linux */,
-#endif
+    add_bool( "qt-titlebar", false /* client-side decoration by default */,
               QT_CLIENT_SIDE_DECORATION_TEXT, QT_CLIENT_SIDE_DECORATION_LONGTEXT )
 
     add_bool( "qt-menubar", false, QT_MENUBAR_TEXT, QT_MENUBAR_LONGTEXT )

@@ -36,6 +36,8 @@ FocusScope {
 
     // Properties
 
+    readonly property real dialogBottomMargin: miniPlayer.visible ? height - miniPlayer.y : 0
+
     property bool hasMiniPlayer: miniPlayer.visible
 
     // NOTE: The main view must be above the indexing bar and the mini player.
@@ -249,7 +251,7 @@ FocusScope {
         }
     }
 
-    LocalTopbar {
+    TopBar {
         id: localTopbar
         z: 5
 
@@ -259,9 +261,9 @@ FocusScope {
             right: parent.right
         }
 
-        leftPadding: VLCStyle.applicationHorizontalMargin
-        rightPadding: VLCStyle.applicationHorizontalMargin
-        topPadding: menuTopbar.visible ? 0 : VLCStyle.applicationVerticalMargin
+        showCSD: MainCtx.clientSideDecoration
+        title: Player.title || qsTr("VLC Media Player")
+        showLocation: false
 
         plListView: {
             if (playlistLoader.active)
@@ -273,14 +275,14 @@ FocusScope {
         }
 
         navigationVisible: pannelVisiblity.showNavigation
-        playqueueVisible: pannelVisiblity.showPlayqueue
+        playlistVisible: pannelVisiblity.showPlayqueue
 
         Navigation.parentItem: g_mainDisplay
         Navigation.upItem: menuTopbar
         Navigation.downItem: mainRow
 
-        onToggleNavigationVisibility: pannelVisiblity.toggleNavigationVisibility()
-        onTogglePlayqueueVisibility:  pannelVisiblity.togglePlayqueueVisibility()
+        onBackRequested: pannelVisiblity.toggleNavigationVisibility()
+        onTogglePlaylistVisibility: pannelVisiblity.togglePlayqueueVisibility()
     }
 
     FocusScope {
@@ -1025,16 +1027,6 @@ FocusScope {
         }
     }
 
-    Dialogs {
-        z: 10
-        bgContent: g_mainDisplay
-
-        anchors {
-            bottom: miniPlayer.visible ? miniPlayer.top : parent.bottom
-            left: parent.left
-            right: parent.right
-        }
-    }
 
     Widgets.FloatingNotification {
         id: notif

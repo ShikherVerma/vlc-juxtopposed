@@ -16,8 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  *****************************************************************************/
 import QtQuick
+import QtQuick.Window
 
 import VLC.MainInterface
+import VLC.Player
 import VLC.Util
 
 /**
@@ -57,6 +59,34 @@ FSM {
  
     //exposed internal states
     property alias isVisible: fsmVisible.active
+
+    // Fullscreen is edge-driven, not the windowed inactivity timer. Locks
+    // belong to the bar that opened the popup, never to both bars.
+    property bool fullscreen: MainCtx.intfMainWindow.visibility === Window.FullScreen
+    property bool topEdge: false
+    property bool bottomEdge: false
+    property int topLocks: 0
+    property int bottomLocks: 0
+    readonly property bool topVisible: !fullscreen ? isVisible : topEdge || topLocks > 0
+    readonly property bool bottomVisible: !fullscreen ? isVisible : bottomEdge || bottomLocks > 0
+
+    onFullscreenChanged: {
+        topEdge = false
+        bottomEdge = false
+    }
+
+    function pointerAt(y, height, topHeight, bottomHeight) {
+        topEdge = y >= 0 && y < topHeight
+        bottomEdge = y <= height && y >= height - bottomHeight
+    }
+
+    function lockTop(lock) {
+        topLocks = Math.max(0, topLocks + (lock ? 1 : -1))
+    }
+
+    function lockBottom(lock) {
+        bottomLocks = Math.max(0, bottomLocks + (lock ? 1 : -1))
+    }
 
     property int lockCount: 0 // Track the number of locks
     property int timeoutDuration: MainCtx.mouseHideTimeout

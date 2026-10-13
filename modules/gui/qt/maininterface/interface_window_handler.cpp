@@ -247,6 +247,25 @@ bool InterfaceWindowHandler::eventFilter(QObject*, QEvent* event)
     {
         QKeyEvent * keyEvent = static_cast<QKeyEvent *> (event);
 
+        // These UI actions must also work when the video has hotkey priority.
+        if (keyEvent->key() == Qt::Key_Backslash && keyEvent->modifiers() == Qt::ControlModifier)
+        {
+            if (!keyEvent->isAutoRepeat())
+                m_mainCtx->setMinimalView(!m_mainCtx->isMinimalView());
+            return true;
+        }
+        if (keyEvent->key() == Qt::Key_Escape &&
+            (m_mainCtx->isMinimalView() || m_window->visibility() == QWindow::FullScreen))
+        {
+            m_mainCtx->setMinimalView(false);
+            if (m_window->visibility() == QWindow::FullScreen)
+            {
+                THEMIM->setFullscreen(false);
+                setInterfaceFullScreen(false);
+            }
+            return true;
+        }
+
         /* easter eggs sequence handling */
         if ( keyEvent->key() == kc[ i_kc_offset ] )
             i_kc_offset++;

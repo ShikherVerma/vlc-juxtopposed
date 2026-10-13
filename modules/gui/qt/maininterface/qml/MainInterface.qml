@@ -330,6 +330,17 @@ Item {
             }
         }
 
+        // Keep one provider alive across Player / Library / Hide UI switches:
+        // tearing down a view must not dismiss pending engine dialogs.
+        Dialogs {
+            z: 10
+            bgContent: viewLoader.item
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: viewLoader.item?.dialogBottomMargin ?? 0
+        }
+
         Loader {
             asynchronous: true
             source: "qrc:///qt/qml/VLC/Menus/GlobalShortcuts.qml"

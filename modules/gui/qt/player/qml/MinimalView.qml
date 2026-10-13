@@ -27,11 +27,6 @@ import VLC.Menus
 FocusScope {
     id: root
 
-    property bool _showCSD: MainCtx.clientSideDecoration
-                            && (MainCtx.intfMainWindow.visibility !== Window.FullScreen)
-                            && (!MainCtx.hasEmbededVideo || _csdOnVideo)
-    property bool _csdOnVideo: true
-
     readonly property ColorContext colorContext: ColorContext {
         id: theme
 
@@ -54,13 +49,11 @@ FocusScope {
         onMouseMoved: {
             mouseAutoHide.restart()
             videoSurface.cursorShape = Qt.ArrowCursor
-            root._csdOnVideo = true
         }
 
         onVisibleChanged: {
             mouseAutoHide.restart()
             videoSurface.cursorShape = Qt.ArrowCursor
-            root._csdOnVideo = true
         }
 
         Timer {
@@ -74,7 +67,6 @@ FocusScope {
                 // Cursor hides when toggleControlBarButton is not visible
                 videoSurface.forceActiveFocus()
                 videoSurface.cursorShape = Qt.BlankCursor
-                root._csdOnVideo = false
             }
         }
     }
@@ -115,54 +107,6 @@ FocusScope {
             onTapped: (eventPoint, button) => {
                 audioContextMenu.popup(eventPoint.globalPosition)
             }
-        }
-    }
-
-    Item {
-        id: csd
-
-        anchors {
-            top: parent.top
-            left: parent.left
-            right: parent.right
-        }
-
-        height: VLCStyle.globalToolbar_height
-
-        //drag and dbl click the titlebar in CSD mode
-        Loader {
-            id: tapNDrag
-
-            anchors.fill: parent
-            active: root._showCSD
-            source: "qrc:///qt/qml/VLC/Widgets/CSDTitlebarTapNDrapHandler.qml"
-        }
-
-        Loader {
-            id: csdDecorations
-
-            anchors {
-                top: parent.top
-                right: parent.right
-                bottom: parent.bottom
-            }
-
-            focus: false
-            active:  root._showCSD
-            enabled: root._showCSD
-            visible: root._showCSD
-            source:  VLCStyle.palette.hasCSDImage
-                     ? "qrc:///qt/qml/VLC/Widgets/CSDThemeButtonSet.qml"
-                     : "qrc:///qt/qml/VLC/Widgets/CSDWindowButtonSet.qml"
-        }
-    }
-
-    Widgets.FloatingNotification {
-        anchors {
-            bottom: parent.bottom
-            left: parent.left
-            right: parent.right
-            margins: VLCStyle.margin_large
         }
     }
 

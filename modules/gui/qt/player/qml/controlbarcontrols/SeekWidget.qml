@@ -57,7 +57,7 @@ T.Control {
             }
             Layout.preferredWidth: VLCStyle.dp(76, VLCStyle.scale)
             Layout.fillHeight: true
-            text: root.paintOnly ? "00:02:10" : (MainCtx.showRemainingTime ? "-" + root.format(Player.remainingTime) : root.format(Player.time))
+            text: root.paintOnly ? "00:02:10" : (MainCtx.showRemainingTime && Player.length.valid() && Player.remainingTime.valid() ? "-" + root.format(Player.remainingTime) : root.format(Player.time))
             color: theme.fg.primary
             font.family: VLCStyle.fontFamily
             font.pixelSize: VLCStyle.fontSize_timecode

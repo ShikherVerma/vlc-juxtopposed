@@ -27,6 +27,8 @@ import VLC.Style
 T.Button {
     id: control
 
+    property bool authoredIcon: false
+
     property color color
     property color hoverColor
     property string iconTxt: ""
@@ -68,7 +70,7 @@ T.Button {
             text: control.iconTxt
 
             font.family:{
-                if (MainCtx.osName === MainCtx.Windows)
+                if (!control.authoredIcon && MainCtx.osName === MainCtx.Windows)
                 {
                     if(MainCtx.osVersion === 10)
                         return "Segoe MDL2 Assets"
@@ -80,7 +82,7 @@ T.Button {
                 return VLCIcons.fontFamily
             }
 
-            font.pixelSize: VLCStyle.icon_CSD
+            font.pixelSize: control.authoredIcon ? VLCStyle.dp(24, VLCStyle.scale) : VLCStyle.icon_CSD
             color: control.color
         }
     }

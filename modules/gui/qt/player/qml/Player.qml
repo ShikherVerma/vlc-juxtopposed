@@ -38,6 +38,8 @@ FocusScope {
     //behave like a Page
     property var pagePrefix: []
 
+    readonly property real dialogBottomMargin: controlBar.visible ? height - controlBar.y : 0
+
     readonly property int positionSliderY: controlBar.y + controlBar.sliderY
 
     readonly property string coverSource: {
@@ -101,6 +103,10 @@ FocusScope {
     // Functions
 
     function lockUnlockAutoHide(lock) {
+        if (playerToolbarVisibilityFSM.fullscreen) {
+            playerToolbarVisibilityFSM.lockBottom(lock)
+            return
+        }
         if (lock) {
             playerToolbarVisibilityFSM.lock()
         } else {
@@ -130,10 +136,11 @@ FocusScope {
     PlayerToolbarVisibilityFSM {
         id: playerToolbarVisibilityFSM
 
-        onForceUnlock:{
-            controlBar.forceUnlock()
-
-            topBar.forceUnlock()
+        onForceUnlock: {
+            if (!fullscreen) {
+                controlBar.forceUnlock()
+                topBar.forceUnlock()
+            }
         }
     }
 
@@ -270,6 +277,14 @@ FocusScope {
 
                     cursorShape: playerSpecializationLoader.cursorShape
 
+                    onMouseMoved: (x, y) => {
+                        if (playerToolbarVisibilityFSM.fullscreen) {
+                            const dpr = MainCtx.effectiveDevicePixelRatio(Window.window)
+                            const point = mapToItem(rootPlayer, x / dpr, y / dpr)
+                            playerToolbarVisibilityFSM.pointerAt(point.y, rootPlayer.height, topBar.height, controlBar.height)
+                        }
+                    }
+
                     function onMouseEvent() {
                         //short interval for mouse events
                         if (Player.isInteractive)
@@ -287,7 +302,7 @@ FocusScope {
 
                     Binding on cursorShape {
                         when: playerToolbarVisibilityFSM.started
-                            && !playerToolbarVisibilityFSM.isVisible
+                            && !playerToolbarVisibilityFSM.topVisible && !playerToolbarVisibilityFSM.bottomVisible
                             && !interactiveAutoHideTimer.running
                         value: Qt.BlankCursor
                     }
@@ -306,20 +321,6 @@ FocusScope {
                         // Since `Rectangle` does not provide explicit control over
                         // blending, we are using `SGManipulator`:
                         blending: false
-                    }
-                }
-
-                FadeRectangle {
-                    anchors.top: parent.top
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-
-                    opacity: topBar.opacity
-                    visible: rootPlayer.displayFadeRectangles && !topBarAcrylicBg.visible
-
-                    gradient: Gradient {
-                        GradientStop { position: 0; color: Qt.alpha(windowTheme.bg.primary, .8) }
-                        GradientStop { position: 1; color: "transparent" }
                     }
                 }
 
@@ -940,20 +941,17 @@ FocusScope {
                  ? rootPlayer.width - playlistpopup.width
                  : rootPlayer.width
 
-        // NOTE: With pinned controls, the top controls are hidden when switching to
-        //       fullScreen. Except when resume is visible
-        visible: (MainCtx.pinVideoControls === false
-                  ||
-                  MainCtx.intfMainWindow.visibility !== Window.FullScreen
-                  ||
-                  resumeVisible)
-
         focus: true
-        title: Player.title
+        title: Player.title || qsTr("VLC Media Player")
+        location: {
+            if (!Player.url.toString().startsWith("file:")) return qsTr("Videos")
+            const parts = decodeURIComponent(Player.url.toString()).split("/")
+            return parts.length > 2 ? parts[parts.length - 2] : qsTr("Videos")
+        }
 
         pinControls: MainCtx.pinVideoControls
 
-        showCSD: MainCtx.clientSideDecoration && (MainCtx.intfMainWindow.visibility !== Window.FullScreen)
+        showCSD: MainCtx.clientSideDecoration || playerToolbarVisibilityFSM.fullscreen
         showToolbar: MainCtx.hasToolbarMenu && (MainCtx.intfMainWindow.visibility !== Window.FullScreen)
         playlistVisible: playlistVisibility.isPlaylistVisible
 
@@ -980,13 +978,24 @@ FocusScope {
         //initial state value is "", using a binding avoid animation on startup
         Binding on state {
             when: playerToolbarVisibilityFSM.started
-            value: (playerToolbarVisibilityFSM.isVisible || rootPlayer._controlsUnderVideo) ? "visible" : "hidden"
+            value: (playerToolbarVisibilityFSM.topVisible || rootPlayer._controlsUnderVideo) ? "visible" : "hidden"
         }
 
         onTogglePlaylistVisibility: playlistVisibility.togglePlaylistVisibility()
 
         onRequestLockUnlockAutoHide: (lock) => {
-            rootPlayer.lockUnlockAutoHide(lock)
+            playerToolbarVisibilityFSM.lockTop(lock)
+            if (!playerToolbarVisibilityFSM.fullscreen) rootPlayer.lockUnlockAutoHide(lock)
+        }
+
+        enabled: state !== "hidden"
+        onEnabledChanged: {
+            if (!enabled && activeFocus) playerSpecializationLoader.forceActiveFocus()
+        }
+        HoverHandler {
+            onHoveredChanged: {
+                if (playerToolbarVisibilityFSM.fullscreen) playerToolbarVisibilityFSM.topEdge = hovered
+            }
         }
 
         onBackRequested: {
@@ -998,30 +1007,9 @@ FocusScope {
 
         FadeControllerStateGroup {
             target: topBar
+            duration: playerToolbarVisibilityFSM.fullscreen ? 0 : VLCStyle.duration_long
         }
 
-        // TODO: Make TopBar a Control and use background
-        Widgets.AcrylicBackground {
-            id: topBarAcrylicBg
-
-            z: -1
-
-            anchors.fill: parent
-
-            opacity: {
-                if (MainCtx.hasEmbededVideo && !MainCtx.pinVideoControls && !rootPlayer.displayFadeRectangles) {
-                    return 0.6
-                } else if (MainCtx.intfMainWindow.visibility === Window.FullScreen && MainCtx.hasEmbededVideo) {
-                    return MainCtx.pinOpacity
-                } else {
-                    return 1.0
-                }
-            }
-
-            tintColor: windowTheme.bg.primary
-
-            visible: MainCtx.pinVideoControls || (MainCtx.hasEmbededVideo && !rootPlayer.displayFadeRectangles)
-        }
     }
 
     Loader {
@@ -1180,19 +1168,6 @@ FocusScope {
         }
     }
 
-    Dialogs {
-        z: 10
-        bgContent: rootPlayer
-
-        anchors {
-            bottom: controlBar.visible ? controlBar.top : rootPlayer.bottom
-            left: parent.left
-            right: parent.right
-
-            bottomMargin: (rootPlayer._controlsUnderVideo || !controlBar.visible)
-                          ? 0 : - VLCStyle.margin_large
-        }
-    }
 
     Timer {
         // NavigationBox's visibility depends on this timer
@@ -1319,7 +1294,7 @@ FocusScope {
         //initial state value is "", using a binding avoid animation on startup
         Binding on state {
             when: playerToolbarVisibilityFSM.started
-            value: (playerToolbarVisibilityFSM.isVisible || rootPlayer._controlsUnderVideo) ? "visible" : "hidden"
+            value: (playerToolbarVisibilityFSM.bottomVisible || rootPlayer._controlsUnderVideo) ? "visible" : "hidden"
         }
 
         onRequestLockUnlockAutoHide: (lock) => rootPlayer.lockUnlockAutoHide(lock)
@@ -1327,7 +1302,14 @@ FocusScope {
         identifier: (Player.hasVideoOutput) ? PlayerControlbarModel.Videoplayer
                                             : PlayerControlbarModel.Audioplayer
 
-        onHoveredChanged: rootPlayer.lockUnlockAutoHide(hovered)
+        onHoveredChanged: {
+            if (playerToolbarVisibilityFSM.fullscreen) playerToolbarVisibilityFSM.bottomEdge = hovered
+            else rootPlayer.lockUnlockAutoHide(hovered)
+        }
+        enabled: state !== "hidden"
+        onEnabledChanged: {
+            if (!enabled && activeFocus) playerSpecializationLoader.forceActiveFocus()
+        }
 
         background: Rectangle {
             id: controlBarBackground
@@ -1352,6 +1334,7 @@ FocusScope {
 
         FadeControllerStateGroup {
             target: controlBar
+            duration: playerToolbarVisibilityFSM.fullscreen ? 0 : VLCStyle.duration_long
         }
     }
 
@@ -1391,7 +1374,7 @@ FocusScope {
         Keys.onPressed: (event) => {
             if (Player.isInteractive)
                 interactiveAutoHideTimer.restart()
-            else
+            else if (!playerToolbarVisibilityFSM.fullscreen)
                 playerToolbarVisibilityFSM.keyboardMove()
         }
     }

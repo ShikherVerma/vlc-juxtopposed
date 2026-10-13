@@ -87,9 +87,10 @@ void RenderTask::render(unsigned int requestId)
     xcb_flush(m_conn);
     xcb_render_picture_t drawingarea = getBackTexture();
 
-    if (m_hasAcrylic || m_hasExtendedFrame)
     {
-        //clear screen
+        // Hide UI can replace an opaque toolbar with a fully transparent scene.
+        // Never retain pixels from the previous scene, even without acrylic/CSD.
+        // This matters while paused, when no new video frame overwrites them.
         xcb_render_color_t clear = { 0x0000, 0x0000, 0x0000, 0x0000 };
 
 

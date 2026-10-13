@@ -27,6 +27,8 @@ StateGroup {
 
     state: target?.state ?? ""
 
+    property int duration: VLCStyle.duration_long
+
     required property Item target
 
     states: [
@@ -60,7 +62,7 @@ StateGroup {
                 NumberAnimation {
                     property: "opacity"
 
-                    duration: VLCStyle.duration_long
+                    duration: root.duration
                     easing.type: Easing.InSine
                 }
 
@@ -80,7 +82,7 @@ StateGroup {
                 NumberAnimation {
                     property: "opacity"
 
-                    duration: VLCStyle.duration_long
+                    duration: root.duration
                     easing.type: Easing.OutSine
                 }
             }

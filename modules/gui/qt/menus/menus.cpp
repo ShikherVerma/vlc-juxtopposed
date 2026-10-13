@@ -340,10 +340,10 @@ void VLCMenuBar::ViewMenu(qt_intf_t *p_intf, QMenu *menu)
     action->setChecked( mi->interfaceVisibility() == QWindow::FullScreen );
 
     /*Minimal View*/
-    action = menu->addAction( qtr( "&Minimal View" ) );
-    action->setShortcut(QString( "Ctrl+H" ));
+    action = menu->addAction( qtr( "&Hide UI" ) );
+    action->setShortcut(QString( "Ctrl+\\" ));
     action->setCheckable( true );
-    connect( action, &QAction::triggered, mi, &MainCtx::setMinimalView );
+    connect(action, &QAction::triggered, mi, &MainCtx::setMinimalView, Qt::QueuedConnection);
     action->setChecked( mi->isMinimalView() );
 
     action = menu->addAction( qtr( "&View Items as Grid" ), mi,
@@ -750,6 +750,13 @@ QMenu* VLCMenuBar::PopupMenu( qt_intf_t *p_intf, bool show )
     input_item_t* p_input = THEMIM->getInput();
     QAction *action;
     bool b_isFullscreen = false;
+
+    action = menu->addAction(qtr("&Hide UI"));
+    action->setShortcut(QKeySequence(QStringLiteral("Ctrl+\\")));
+    action->setCheckable(true);
+    action->setChecked(p_intf->p_mi->isMinimalView());
+    connect(action, &QAction::triggered, p_intf->p_mi, &MainCtx::setMinimalView, Qt::QueuedConnection);
+    menu->addSeparator();
 
     PopupMenuPlaylistEntries( menu, p_intf );
     menu->addSeparator();
