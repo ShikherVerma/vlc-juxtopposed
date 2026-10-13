@@ -20,6 +20,10 @@ import QtQuick
 import VLC.MainInterface
 
 Shortcut {
-    context: Qt.ApplicationShortcut
+    // Qt Quick Controls rejects ApplicationShortcut in hidden windows. With
+    // render-control compositors the QQuickWindow is intentionally offscreen;
+    // WindowShortcut resolves its native render window and checks activation.
+    // Keep these interface actions scoped to that window, not other dialogs.
+    context: Qt.WindowShortcut
     enabled: MainCtx.useGlobalShortcuts
 }

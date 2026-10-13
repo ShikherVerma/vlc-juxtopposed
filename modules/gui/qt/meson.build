@@ -1320,6 +1320,14 @@ if qt6_dep.found()
     qtest_qt6_dep = dependency('qt6', version: '=' + qt6_dep.version(), modules: ['Test'], required: false)
     if qtest_qt6_dep.found()
         vlc_tests += {
+            'name': 'test_qt_global_shortcuts',
+            'sources': files('tests/test_global_shortcuts.cpp'),
+            'moc_sources': files('tests/test_global_shortcuts.cpp'),
+            'suite': ['qt'],
+            'cpp_args': ['-DQT_TEST_SOURCE_DIR="' + meson.current_source_dir() + '/tests"'],
+            'dependencies': [qt6_dep, qtest_qt6_dep],
+        }
+        vlc_tests += {
             'name': 'test_qt_settings_metadata',
             'sources': files('tests/test_settings_metadata.cpp',
                 'dialogs/settings/settings_metadata.cpp'),
