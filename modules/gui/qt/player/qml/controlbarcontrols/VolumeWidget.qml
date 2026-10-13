@@ -94,7 +94,7 @@ T.Pane {
 
             AccessibleCompat.id: "muteButton"
 
-            onClicked: Player.muted = !Player.muted
+            onClicked: Player.toggleMuted()
 
             Accessible.onIncreaseAction: {
                 Player.muted = false

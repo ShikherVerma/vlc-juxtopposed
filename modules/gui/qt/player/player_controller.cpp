@@ -1254,6 +1254,8 @@ PlayerControllerPrivate::PlayerControllerPrivate(PlayerController *playercontrol
         m_subtitleFPS = vlc_player_GetAssociatedSubsFPS(m_player);
         m_player_listener = vlc_player_AddListener( m_player, &player_cbs, this );
         m_player_aout_listener = vlc_player_aout_AddListener( m_player, &player_aout_cbs, this );
+        // Listeners report changes, not the aout's already restored state.
+        m_muted = vlc_player_aout_IsMuted(m_player) > 0;
         m_player_vout_listener = vlc_player_vout_AddListener( m_player, &player_vout_cbs, this );
         m_player_timer = vlc_player_AddTimer( m_player, VLC_TICK_FROM_MS(500), &player_timer_cbs, this );
     }
@@ -1867,8 +1869,8 @@ void PlayerController::setVolumeDown(int steps)
 void PlayerController::setMuted(bool muted)
 {
     Q_D(PlayerController);
-    if( d->m_muted == muted )
-        return;
+    // m_muted is an asynchronously updated UI snapshot, not an authority for
+    // suppressing writes (in particular during aout startup/replacement).
     vlc_player_locker lock{ d->m_player };
     vlc_player_aout_Mute( d->m_player, muted );
 }
@@ -1876,7 +1878,8 @@ void PlayerController::setMuted(bool muted)
 void PlayerController::toggleMuted()
 {
     Q_D(PlayerController);
-    setMuted( !d->m_muted );
+    vlc_player_locker lock{ d->m_player };
+    vlc_player_aout_ToggleMute( d->m_player );
 }
 
 bool PlayerController::hasAudioVisualization() const

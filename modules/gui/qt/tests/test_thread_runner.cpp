@@ -19,8 +19,11 @@
 #include <QTest>
 #include <QSignalSpy>
 #include <QWaitCondition>
+#include <QElapsedTimer>
 #include "../medialibrary/mlthreadpool.hpp"
 #include "qtestcase.h"
+#include <thread>
+#include <atomic>
 
 static const int TASK_TIMEOUT = 300; //MS
 
@@ -728,6 +731,32 @@ private slots:
         CHECK_TASK_TIMEOUT(taskRet);
     }
 
+
+    void testConcurrentSerialContinuation()
+    {
+        ThreadRunner* runner = getRunner();
+        auto dummy = std::make_unique<Dummy>();
+        std::atomic<unsigned> completed{0};
+        constexpr unsigned count = 2000;
+        // A serialized queue continuation modifies the task maps on the
+        // runner's thread while another thread submits tasks. Both paths
+        // must use the same lock, including allocation of unique task IDs.
+        std::thread producer([&] {
+            for (unsigned i = 0; i < count; ++i)
+            {
+                runner->runOnThread<Ctx>(dummy.get(), [](Ctx&) {},
+                    [&completed](quint64, Ctx&) { ++completed; }, "concurrent");
+                if ((i % 8) == 0)
+                    std::this_thread::yield();
+            }
+        });
+        QElapsedTimer timeout;
+        timeout.start();
+        while (completed != count && timeout.elapsed() < 10000)
+            QCoreApplication::processEvents(QEventLoop::AllEvents, 1);
+        producer.join();
+        QCOMPARE(completed.load(), count);
+    }
 
     void testNestedTask()
     {

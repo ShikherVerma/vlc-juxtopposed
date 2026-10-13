@@ -375,7 +375,9 @@ void MLBookmarkModel::onCurrentMediaChanged( vlc_player_t*, input_item_t* media,
             mediaUri = media->psz_uri;
     }
 
-    //UI Thread
+    // Player callbacks can also originate on the UI thread (e.g. indexed
+    // playlist activation), with the player lock still held. Always queue:
+    // resetting a model synchronously can re-enter player getters/listeners.
     QMetaObject::invokeMethod(self,
     [self, revision, mediaUri]()
     {
@@ -386,7 +388,7 @@ void MLBookmarkModel::onCurrentMediaChanged( vlc_player_t*, input_item_t* media,
                 return;
         }
         self->updateMediaId(revision, mediaUri);
-    });
+    }, Qt::QueuedConnection);
 }
 
 void MLBookmarkModel::onPlaybackStateChanged( vlc_player_t *, vlc_player_state state,
@@ -401,7 +403,7 @@ void MLBookmarkModel::onPlaybackStateChanged( vlc_player_t *, vlc_player_state s
             self->refresh( MLBOOKMARKMODEL_REFRESH );
         else if ( state == VLC_PLAYER_STATE_STOPPING )
             self->refresh( MLBOOKMARKMODEL_CLEAR );
-    });
+    }, Qt::QueuedConnection);
 }
 
 

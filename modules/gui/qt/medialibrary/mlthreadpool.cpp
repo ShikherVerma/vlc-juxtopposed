@@ -128,7 +128,11 @@ void ThreadRunner::processQueueLocked(const QString& queueName)
                 delete task;
         },
         [this, queueName](quint64, const Ctx&){
-             QMutexLocker lock(&m_serialTaskLock);
+             // Match start()'s lock order. The continuation also allocates a
+             // task ID and updates both task maps; the serial-queue lock alone
+             // does not protect these against concurrent submissions/cancels.
+             QMutexLocker taskLock(&m_lock);
+             QMutexLocker queueLock(&m_serialTaskLock);
              processQueueLocked(queueName);
         });
     connect(runnable, &RunOnThreadBaseRunner::done, this, &ThreadRunner::runOnThreadDone);

@@ -22,6 +22,8 @@
 #include <QPainter>
 #include <QPushButton>
 #include <QShortcut>
+#include <QScrollArea>
+#include <QScreen>
 #include <QStackedWidget>
 #include <QTreeWidget>
 #include <QWindow>
@@ -106,8 +108,7 @@ SettingsDialog::SettingsDialog(QWindow *parent, qt_intf_t *intf)
     setWindowFlags(windowFlags() | Qt::FramelessWindowHint);
     setAttribute(Qt::WA_DeleteOnClose);
     setAttribute(Qt::WA_TranslucentBackground);
-    resize(1048, 865);
-    setMinimumSize(1048, 865);
+    setMinimumSize(760, 480);
     m_savedAccent = m_accent = configAccent();
     // Read the actual add_string default; reset never touches other keys.
     module_config_t *accent = config_FindConfig("qt-accent-color");
@@ -163,7 +164,15 @@ SettingsDialog::SettingsDialog(QWindow *parent, qt_intf_t *intf)
     body->setSpacing(32);
     auto *navigation = new QWidget;
     navigation->setObjectName("settingsNavigation");
-    navigation->setFixedWidth(200);
+    auto *navigationScroll = new QScrollArea;
+    navigationScroll->setObjectName("settingsNavigationScroll");
+    navigationScroll->setFixedWidth(200);
+    navigationScroll->setFrameShape(QFrame::NoFrame);
+    navigationScroll->setWidgetResizable(true);
+    navigationScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    navigationScroll->setWidget(navigation);
+    navigationScroll->viewport()->setAutoFillBackground(false);
+    navigation->setAutoFillBackground(false);
     auto *nav = new QVBoxLayout(navigation);
     nav->setContentsMargins(6, 6, 6, 6);
     nav->setSpacing(8);
@@ -199,7 +208,7 @@ SettingsDialog::SettingsDialog(QWindow *parent, qt_intf_t *intf)
     all->setToolTip(qtr("Open the original VLC preferences. Simple, All and Expert views remain available."));
     nav->addWidget(all);
     connect(all, &QPushButton::clicked, this, &SettingsDialog::openAllSettings);
-    body->addWidget(navigation);
+    body->addWidget(navigationScroll);
 
     auto *content = new QVBoxLayout;
     content->setContentsMargins(0, 12, 0, 8);
@@ -287,7 +296,14 @@ SettingsDialog::SettingsDialog(QWindow *parent, qt_intf_t *intf)
     m_pages->addWidget(searchPage);
     m_search->installEventFilter(this);
     m_results->installEventFilter(this);
-    content->addWidget(m_pages, 1);
+    auto *pageScroll = new QScrollArea;
+    pageScroll->setObjectName("settingsPageScroll");
+    pageScroll->setFrameShape(QFrame::NoFrame);
+    pageScroll->setWidgetResizable(true);
+    pageScroll->setWidget(m_pages);
+    pageScroll->viewport()->setAutoFillBackground(false);
+    m_pages->setAutoFillBackground(false);
+    content->addWidget(pageScroll, 1);
     m_restart = label(QString());
     m_restart->setObjectName("settingsRestart");
     content->addWidget(m_restart);
@@ -325,6 +341,12 @@ SettingsDialog::SettingsDialog(QWindow *parent, qt_intf_t *intf)
     applyTheme();
     selectCategory(0);
     updateAccent();
+    // Keep the authored size on large desktops, but never place the footer
+    // outside the usable screen (including the Windows taskbar).
+    const QRect available = screen()->availableGeometry();
+    resize(QSize(1048, 865).boundedTo(available.size()));
+    move(available.topLeft() + QPoint((available.width() - width()) / 2,
+                                     (available.height() - height()) / 2));
 }
 
 void SettingsDialog::selectCategory(int category)

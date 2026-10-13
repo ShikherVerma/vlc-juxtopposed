@@ -890,6 +890,36 @@ static void *Thread( void *obj )
     Q_INIT_RESOURCE( qmake_QtQuick_Layouts );
     Q_INIT_RESOURCE( qmake_QtQuick_Templates );
 
+    // Importing the Effects plugin only retains its qmldir resource. Static
+    // links must also retain BlurItem.qml and the shader variants used by
+    // MultiEffect; otherwise Qt dereferences the failed BlurItem creation.
+    Q_INIT_RESOURCE( effects );
+    Q_INIT_RESOURCE( multieffect_shaders1 );
+    Q_INIT_RESOURCE( multieffect_shaders2 );
+    Q_INIT_RESOURCE( multieffect_shaders3 );
+    Q_INIT_RESOURCE( multieffect_shaders4 );
+    Q_INIT_RESOURCE( multieffect_shaders5 );
+    Q_INIT_RESOURCE( multieffect_shaders6 );
+    Q_INIT_RESOURCE( multieffect_shaders7 );
+    Q_INIT_RESOURCE( multieffect_shaders8 );
+    Q_INIT_RESOURCE( multieffect_shaders9 );
+    Q_INIT_RESOURCE( multieffect_shaders10 );
+    Q_INIT_RESOURCE( multieffect_shaders11 );
+    Q_INIT_RESOURCE( multieffect_shaders12 );
+    Q_INIT_RESOURCE( multieffect_shaders13 );
+    Q_INIT_RESOURCE( multieffect_shaders14 );
+    Q_INIT_RESOURCE( multieffect_shaders15 );
+    Q_INIT_RESOURCE( multieffect_shaders16 );
+    Q_INIT_RESOURCE( multieffect_shaders17 );
+    Q_INIT_RESOURCE( multieffect_shaders18 );
+    Q_INIT_RESOURCE( multieffect_shaders19 );
+    Q_INIT_RESOURCE( multieffect_shaders20 );
+    Q_INIT_RESOURCE( multieffect_shaders21 );
+    Q_INIT_RESOURCE( multieffect_shaders22 );
+    Q_INIT_RESOURCE( multieffect_shaders23 );
+    Q_INIT_RESOURCE( multieffect_shaders24 );
+    Q_INIT_RESOURCE( multieffect_shaders25 );
+
     Q_INIT_RESOURCE( QuickControls2Basic_raw_qml_0 );
     Q_INIT_RESOURCE( qtquickcontrols2basicstyle );
 
