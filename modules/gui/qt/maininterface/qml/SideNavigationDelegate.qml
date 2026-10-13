@@ -35,7 +35,7 @@ T.ItemDelegate {
 
     property bool showText: true
 
-    property real radius: VLCStyle.button_radius
+    property real radius: VLCStyle.dp(4, VLCStyle.scale)
 
     // Settings
 
@@ -44,7 +44,8 @@ T.ItemDelegate {
     implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset,
                              implicitContentHeight + topPadding + bottomPadding)
 
-    padding: VLCStyle.margin_xxsmall
+    padding: 0
+    focusPolicy: Qt.StrongFocus
 
     leftInset: implicitLeftInset
     rightInset: implicitRightInset
@@ -52,30 +53,19 @@ T.ItemDelegate {
     topInset: implicitTopInset
     bottomInset: implicitBottomInset
 
-    property real implicitLeftInset: VLCStyle.margin_xxsmall
-    property real implicitRightInset: VLCStyle.margin_xxsmall
+    property real implicitLeftInset: 0
+    property real implicitRightInset: 0
 
-    property real implicitTopInset: VLCStyle.margin_xxxsmall
-    property real implicitBottomInset: VLCStyle.margin_xxxsmall
+    property real implicitTopInset: 0
+    property real implicitBottomInset: 0
 
     // Accessible
 
     Accessible.onPressAction: control.clicked()
-    AccessibleCompat.id: {
-        if (model.depth !== 0 || !model.uri || model.uri.length === 0) return "";
-        const navBarIds = {
-            "home": "homeNavBar",
-            "video": "videoNavBar",
-            "music": "musicNavBar",
-            "network": "browseNavBar",
-            "discover": "discoverNavBar"
-        }
-        const id = navBarIds[model.uri[0]]
-        if (id !== undefined)
-            return id
-        else
-            return ""
-    }
+    Accessible.name: text
+    Accessible.role: Accessible.Button
+    Accessible.selected: highlighted || checked
+    property int navigationDepth: 0
 
     // Tooltip
 
@@ -104,24 +94,14 @@ T.ItemDelegate {
 
         radius: control.radius
 
-        Widgets.CurrentIndicator {
-            anchors {
-                left: parent.left
-                leftMargin: VLCStyle.margin_xxxsmall
-                verticalCenter: parent.verticalCenter
-            }
-            implicitHeight: parent.height / 2
-            visible: control.checked
-
-            radius: control.radius / 2
-        }
     }
 
     contentItem: RowLayout {
-        spacing: VLCStyle.margin_xsmall
+        spacing: VLCStyle.dp(8, VLCStyle.scale)
 
         Item {
-            Layout.preferredWidth: VLCStyle.icon_banner
+            Layout.preferredWidth: VLCStyle.dp(control.iconTxt === VLCIcons.topbar_video ? 32 : 30, VLCStyle.scale)
+            visible: control.navigationDepth === 0
             Layout.fillHeight: true
 
             Widgets.IconLabel {
@@ -139,6 +119,7 @@ T.ItemDelegate {
                     case VLCIcons.topbar_video: return VLCIcons.videos_state_active
                     case VLCIcons.topbar_music: return VLCIcons.songs_state_active
                     case VLCIcons.topbar_network: return VLCIcons.streaming_state_active
+                    case VLCIcons.media_playlist: return VLCIcons.playlist_state_active
                     case VLCIcons.settings: return VLCIcons.settings_state_active
                     default: return control.iconTxt
                     }
@@ -149,7 +130,7 @@ T.ItemDelegate {
 
                 color: (control.highlighted || control.checked) ? theme.accent : theme.fg.primary
 
-                font.pixelSize: VLCStyle.icon_banner
+                font.pixelSize: VLCStyle.dp(24, VLCStyle.scale)
             }
         }
 
@@ -163,7 +144,7 @@ T.ItemDelegate {
 
             verticalAlignment: Text.AlignVCenter
 
-            color: control.checked ? theme.fg.secondary : theme.fg.primary
+            color: (control.highlighted || control.checked) ? theme.fg.secondary : theme.fg.primary
 
             elide: Text.ElideRight
 
@@ -171,7 +152,7 @@ T.ItemDelegate {
 
             font.pixelSize: VLCStyle.fontSize_normal
 
-            font.weight: control.checked ? Font.DemiBold : Font.Normal
+            font.weight: Font.Normal
 
             //button text is already exposed
             Accessible.ignored: true

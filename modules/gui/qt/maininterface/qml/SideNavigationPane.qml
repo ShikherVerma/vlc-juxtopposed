@@ -38,20 +38,22 @@ T.Pane {
     property int safeAreaLeftMargin: 0
     property int safeAreaRightMargin: 0
 
-    property bool useAcrylic: true
-
     property bool delegateShowText: true
 
     property alias model: navigationModel
 
-    readonly property int minimumWidth: VLCStyle.expandNavigationPaneWidth + safeAreaLeftMargin + safeAreaRightMargin
+    readonly property int minimumWidth: VLCStyle.dp(217, VLCStyle.scale) + safeAreaLeftMargin + safeAreaRightMargin
 
     implicitWidth: Math.max(implicitBackgroundWidth + leftInset + rightInset,
                             implicitContentWidth + leftPadding + rightPadding)
     implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset,
                              implicitContentHeight + topPadding + bottomPadding)
 
-    padding: VLCStyle.margin_normal
+    padding: 0
+    topPadding: VLCStyle.dp(delegateShowText ? 20 : 8, VLCStyle.scale)
+    bottomPadding: VLCStyle.dp(20, VLCStyle.scale)
+    leftPadding: VLCStyle.dp(delegateShowText ? 24 : 10, VLCStyle.scale)
+    rightPadding: VLCStyle.dp(delegateShowText ? 24 : 10, VLCStyle.scale)
 
     readonly property ColorContext colorContext: ColorContext {
         id: theme
@@ -65,32 +67,69 @@ T.Pane {
         hasMedialib: MainCtx.mediaLibraryAvailable
     }
 
-    Connections {
-        target: History
-
-        // NOTE: handles cases where the path changes not by clicking in the sidebar
-        function onViewPathChanged(viewPath) {
-            for (let i = 0; i < listView.count; ++i) {
-                const rowIndex = navigationModel.index(i, 0)
-                const uri = navigationModel.data(rowIndex, NavigationModel.URI)
-
-                if (uri && History.match(viewPath, uri)) {
-                    // handle back button
-                    listView.currentIndex = i
-
-                    // handle keyboard navigation
-                    if (!navigationModel.data(rowIndex, NavigationModel.EXPANDED))
-                        navigationModel.setData(rowIndex, true, NavigationModel.EXPANDED)
-
-                    return
+    // Longest route wins (Playlists aliases existing Video/Music paths). Also
+    // recognize children while their parent is collapsed or history changes.
+    function selectedRow() {
+        let best = -1
+        let length = 0
+        for (let i = 0; i < navigationModel.rowCount(); ++i) {
+            const index = navigationModel.index(i, 0)
+            const uri = navigationModel.data(index, NavigationModel.URI)
+            const children = navigationModel.data(index, NavigationModel.CHILDREN)
+            for (const route of [uri, ...children.map(child => child.uri)]) {
+                if (route && route.length >= length && History.match(History.viewPath, route)) {
+                    best = i
+                    length = route.length
                 }
             }
         }
+        return best
     }
 
-    background: Widgets.AcrylicBackground {
-        enabled: root.useAcrylic
-        tintColor: theme.bg.primary
+    property int selectedIndex: -1
+    property int selectedParentIndex: -1
+
+    function synchronizeSelection() {
+        if (!delegateShowText) {
+            for (let i = 0; i < navigationModel.rowCount(); ++i) {
+                const index = navigationModel.index(i, 0)
+                if (navigationModel.data(index, NavigationModel.DEPTH) === 0 && navigationModel.data(index, NavigationModel.EXPANDED))
+                    navigationModel.setData(index, false, NavigationModel.EXPANDED)
+            }
+        }
+        const row = selectedRow()
+        if (row < 0)
+            return
+        const index = navigationModel.index(row, 0)
+        if (delegateShowText && !navigationModel.data(index, NavigationModel.EXPANDED))
+            navigationModel.setData(index, true, NavigationModel.EXPANDED)
+        selectedIndex = selectedRow()
+        selectedParentIndex = selectedIndex
+        while (selectedParentIndex > 0 && navigationModel.data(navigationModel.index(selectedParentIndex, 0), NavigationModel.DEPTH) > 0)
+            --selectedParentIndex
+        listView.currentIndex = selectedIndex
+    }
+
+    onDelegateShowTextChanged: Qt.callLater(synchronizeSelection)
+    Component.onCompleted: {
+        if (!MainCtx.mediaLibraryAvailable)
+            console.info("Library navigation: Videos, Music, Playlists, Recent and folder-add unavailable without the media-library module")
+        Qt.callLater(synchronizeSelection)
+    }
+    Connections {
+        target: History
+        function onViewPathChanged() { root.synchronizeSelection() }
+    }
+
+    background: Rectangle {
+        color: viewTheme.bg.primary
+        ColorContext { id: viewTheme; colorSet: ColorContext.View }
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: root.delegateShowText ? VLCStyle.dp(8, VLCStyle.scale) : 0
+            radius: root.delegateShowText ? VLCStyle.dp(6, VLCStyle.scale) : 0
+            color: VLCStyle.popupTint(theme.palette.isDark)
+        }
     }
 
     contentItem:  Item {
@@ -100,7 +139,7 @@ T.Pane {
         //would be parented (and layouted) to the Layout
         ColumnLayout {
             anchors.fill: parent
-            spacing: VLCStyle.margin_xsmall
+            spacing: VLCStyle.dp(14, VLCStyle.scale)
 
             Widgets.ListViewExt {
                 id: listView
@@ -112,6 +151,12 @@ T.Pane {
                 focus: true
 
                 model: navigationModel
+                spacing: VLCStyle.dp(14, VLCStyle.scale)
+                onActionAtIndex: (index) => {
+                    const item = itemAtIndex(index)
+                    if (item && item.visible && item.enabled)
+                        item.clicked()
+                }
 
                 Binding {
                     target: listView.T.ScrollBar.vertical
@@ -122,8 +167,7 @@ T.Pane {
 
                 colorContext.colorSet: ColorContext.Window
 
-                fadingEdge.backgroundColor:  (root.background && (root.background.color.a >= 1.0)) ? root.background.color
-                                                                                                   : "transparent"
+                fadingEdge.backgroundColor: VLCStyle.popupTint(theme.palette.isDark)
 
                 component DelegateAnimation : NumberAnimation {
                     easing.type: Easing.InOutSine
@@ -137,14 +181,6 @@ T.Pane {
                 // do not need to have `addDisplaced` transition here, but we can have `removeDisplaced` here:
                 removeDisplaced: Transition {
                     DelegateAnimation { property: "y" }
-                }
-
-                onCurrentIndexChanged: {
-                    const rowIndex = navigationModel.index(currentIndex, 0)
-
-                    if (rowIndex.valid && !navigationModel.data(rowIndex, NavigationModel.EXPANDED)
-                            && History.match(History.viewPath, navigationModel.data(rowIndex, NavigationModel.URI)))
-                        navigationModel.setData(rowIndex, true, NavigationModel.EXPANDED)
                 }
 
                 property bool readyForAnimations: false
@@ -163,9 +199,9 @@ T.Pane {
                     width: ListView.view.contentWidth
                     height: preferredHeight
 
-                    property real preferredHeight: shouldShow ? VLCStyle.buttonHeightNavigationPane : 0.0
+                    property real preferredHeight: shouldShow ? VLCStyle.dp(32, VLCStyle.scale) : 0.0
 
-                    leftPadding: root.safeAreaLeftMargin + VLCStyle.margin_xsmall
+                    leftPadding: root.safeAreaLeftMargin + (depth > 0 ? VLCStyle.dp(38, VLCStyle.scale) : 0)
                     rightPadding: root.safeAreaRightMargin
 
                     leftInset: root.safeAreaLeftMargin + implicitLeftInset
@@ -173,6 +209,17 @@ T.Pane {
 
                     iconTxt: icon_alias
                     text: title
+                    navigationDepth: depth
+                    AccessibleCompat.id: {
+                        if (depth > 0)
+                            return "libraryNav-" + uri.join("-")
+                        const ids = { "home": "homeNavBar", "video": "videoNavBar", "music": "musicNavBar",
+                                      "network": "browseNavBar", "recent": "recentNavBar", "library-add": "addItemNavBar" }
+                        return uri[0] === "video" && uri[1] === "playlists" ? "playlistsNavBar" : (ids[uri[0]] || "")
+                    }
+                    Accessible.description: uri[0] === "library-add"
+                                            ? qsTr("Add library folders in Preferences, Media Library, Add")
+                                            : ""
 
                     showText: root.delegateShowText
 
@@ -188,23 +235,23 @@ T.Pane {
 
                     visible: (height > 0.0)
 
-                    property bool shouldShow: showText || (iconTxt.length > 0)
+                    property bool shouldShow: showText || depth === 0
 
                     onShouldShowChanged: {
                         if (listView.readyForAnimations)
                             heightBehavior.enabled = true // At this point, it can keep being enabled for good.
                     }
 
-                    Binding on highlighted {
-                        when: !!uri && History.match(History.viewPath, uri)
-                        value: true
-                    }
-                    checked: (!showText || !expanded) && highlighted
+                    highlighted: root.selectedIndex === index || root.selectedParentIndex === index
+                    checked: highlighted
 
                     onClicked: {
+                        // History can retract this delegate synchronously when
+                        // an alias changes sections. Capture the live view first.
+                        const view = ListView.view
+                        const reason = focusReason
                         itemClicked(uri, this)
-                        listView.currentIndex = index
-                        listView.forceActiveFocus(focusReason)
+                        Qt.callLater(() => { if (view) view.setCurrentItemFocus(reason) })
                     }
 
                     Behavior on height {
@@ -265,9 +312,9 @@ T.Pane {
                 AccessibleCompat.id: "preferencesButton"
 
                 Layout.fillWidth: true
-                Layout.preferredHeight: VLCStyle.buttonHeightNavigationPane
+                Layout.preferredHeight: VLCStyle.dp(32, VLCStyle.scale)
 
-                leftPadding: root.safeAreaLeftMargin + VLCStyle.margin_xsmall
+                leftPadding: root.safeAreaLeftMargin
                 rightPadding: root.safeAreaRightMargin
 
                 leftInset: root.safeAreaLeftMargin + implicitLeftInset

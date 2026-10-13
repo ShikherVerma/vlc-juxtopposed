@@ -26,6 +26,7 @@ import VLC.Player
 
 import VLC.Util
 import VLC.Dialogs
+import VLC.MediaLibrary
 
 FocusScope {
     id: g_mainDisplay
@@ -65,12 +66,50 @@ FocusScope {
 
     //MainDisplay behave as a PageLoader
     function loadView(path, properties, focusReason) {
-        const found = stackView.loadView(path, properties, focusReason)
+        // History's item index belongs to the leaf media view, not each
+        // intermediate PageLoader/PageExt (which do not declare initialIndex).
+        // Preserve the real property map; forward every other page parameter.
+        const savedIndex = properties.initialIndex
+        const keys = properties.keys().filter(key => key !== "initialIndex")
+        const pageProperties = { keys: () => keys }
+        for (const key of keys)
+            pageProperties[key] = properties[key]
+        const found = stackView.loadView(path, pageProperties, focusReason)
         if (!found)
             return
+        if (savedIndex !== undefined)
+            restoreItemIndex(stackView.currentItem, savedIndex)
 
         if (Player.hasVideoOutput && MainCtx.hasEmbededVideo)
             _showMiniPlayer = true
+    }
+
+    function restoreItemIndex(item, index) {
+        if (!item)
+            return false
+        if (item.initialIndex !== undefined && typeof item.resetFocus === "function") {
+            item.initialIndex = index
+            // A freshly loaded ML model may finish after PageLoader has given
+            // the grid focus/its default selection. Restore once loading ends.
+            const restore = () => {
+                if (item.isLoading || !item.currentItem)
+                    return
+                item.isLoadingChanged.disconnect(restore)
+                item.resetFocus()
+                console.debug("Library media selection:", item.currentIndex, "count:", item.count)
+            }
+            item.isLoadingChanged.connect(restore)
+            restore()
+            return true
+        }
+        // Follow only the loaded page, never a cached/dormant sibling page.
+        if (typeof item.loadView === "function" && item.currentItem)
+            return restoreItemIndex(item.currentItem, index)
+        for (const child of item.children) {
+            if (restoreItemIndex(child, index))
+                return true
+        }
+        return false
     }
 
     function loadCurrentHistoryView(focusReason) {
@@ -125,10 +164,34 @@ FocusScope {
             name: "discover",
             url: "qrc:///qt/qml/VLC/Network/DiscoverDisplay.qml"
         }, {
-            name: "mlsettings",
-            url: "qrc:///qt/qml/VLC/MediaLibrary/MLFoldersSettings.qml"
+            name: "recent",
+            component: recentComponent
         }
     ]
+
+    // Reuse the existing media view and genuine history model; no Home content
+    // or new Recent-page presentation is authored by this navigation lane.
+    Component {
+        id: recentComponent
+        Widgets.PageExt {
+            id: recentPage
+            title: qsTr("Recent")
+            MediaView {
+                anchors.fill: parent
+                focus: true
+                model: MLRecentMediaModel {
+                    ml: MediaLib
+                    sortCriteria: recentPage.sort.criteria
+                    sortOrder: recentPage.sort.order
+                    searchPattern: recentPage.search.pattern
+                }
+                displayMarginBeginning: recentPage.displayMarginBeginning
+                displayMarginEnd: recentPage.displayMarginEnd
+                enableBeginningFade: recentPage.enableBeginningFade
+                enableEndFade: recentPage.enableEndFade
+            }
+        }
+    }
 
     PinchHandler {
         id: interfaceScalePinchHandler
@@ -264,6 +327,7 @@ FocusScope {
         showCSD: MainCtx.clientSideDecoration
         title: Player.title || qsTr("VLC Media Player")
         showLocation: false
+        showNavigationToggle: true
 
         plListView: {
             if (playlistLoader.active)
@@ -472,7 +536,7 @@ FocusScope {
 
                     z: 99
                     color: sidebar.background.color
-                    visible: sidebar.visible && (stackViewTopLeftRadiusRectangle.topLeftRadius !== undefined)
+                    visible: false
 
                     anchors.left: stackView.left
                     anchors.leftMargin: -1
@@ -565,7 +629,7 @@ FocusScope {
 
             width: VLCStyle.isScreenReallySmall ? 0.0 : collapsedWidth
 
-            property real collapsedWidth: VLCStyle.icon_normal + VLCStyle.margin_small + VLCStyle.margin_xsmall + VLCStyle.applicationHorizontalMargin
+            property real collapsedWidth: VLCStyle.dp(50, VLCStyle.scale)
 
             delegateShowText: (state === "expanded")
 
@@ -575,43 +639,16 @@ FocusScope {
 
             property int maximumWidth: Math.max(minimumWidth, (g_mainDisplay.width + sidebarResizeHandle.width) / 3)
 
-            topPadding: 0
-            leftPadding: 0
-            rightPadding: sidebarResizeHandle.visible ? sidebarResizeHandle.visualBorder.width : 0.0
-            bottomPadding: VLCStyle.applicationVerticalMargin + VLCStyle.margin_small
-
-            safeAreaLeftMargin: VLCStyle.applicationHorizontalMargin
-
-            useAcrylic: (VLCStyle.isScreenSmall ? (sidebar.state === "") : true) // See `694d51a7` for the reasoning.
-
-            NavigationBarContextMenu {
-                id: navigationBarContextMenu
-
-                ctx: MainCtx
-
-                model: sidebar.model
-
-                onPageRequested: (uri) => {
-                    if (stackView.isDefaulLoadedForPath([...uri]) ||
-                        History.exactMatch(History.viewPath, uri)) {
-                        stackView.positionContentAtBeginning()
-                        return
-                    }
-
-                    History.push(uri)
-                }
-            }
+            // Pane owns the authored inset/surface geometry in both states.
+            safeAreaLeftMargin: 0
 
             onItemClicked: (modelUri, item) => {
-                console.assert(modelUri)
-
-                console.assert(item)
-                if ((sidebar.state !== 'expanded') && item.expandable) {
-                    // TODO: Investigate opening the menu on hover, if
-                    //       we switch to `Popup.Item` type of menus.
-                    const mappedPos = item.mapToGlobal(item.width, 0)
-                    navigationBarContextMenu.popup(item.index, mappedPos, !item.hovered)
-
+                Qt.callLater(() => console.debug("Library navigation:", History.viewPath.join("/"), "page:", stackView.pageName))
+                if (modelUri[0] === "library-add") {
+                    // The retained preferences Media Library category owns the
+                    // real folder picker/indexing flow until lane 3.4.
+                    console.info("Library Add item: use Media Library > Add in the existing Preferences dialog")
+                    DialogsProvider.prefsDialog()
                     return
                 }
 
@@ -675,7 +712,7 @@ FocusScope {
                 atRight: true
 
                 resizeHandle.visible: (sidebar.state === "expanded") && !VLCStyle.isScreenSmall
-                visualBorder.visible: !topLeftCornerBackground.visible
+                visualBorder.visible: false
 
                 minimumWidth: sidebar.minimumWidth
                 maximumWidth: sidebar.maximumWidth

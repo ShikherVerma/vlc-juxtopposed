@@ -23,17 +23,19 @@
 //hierachical model entry
 struct ModelEntry
 {
-    ModelEntry( QString name, QString uri, QString icon = {}, QString iconSvg = {})
+    ModelEntry( QString name, QString uri, QString icon = {}, QString iconSvg = {}, QStringList route = {})
         : name(name)
         , urinode(uri)
         , icon(icon)
         , icon_svg(iconSvg)
+        , route(std::move(route))
     {}
 
     const QString name;
     const QString urinode;
     const QString icon;
     const QString icon_svg;
+    const QStringList route;
     std::vector<ModelEntry> children;
     size_t visibleChildren = 0;
     int expandedIndex = -1;
@@ -234,7 +236,7 @@ struct ModelEntry
         if (it == end)
             return this;
         else
-            return &children[*it];
+            return children[*it].getModelEntry(it + 1, end);
     }
 
     template<typename OutIterator>
@@ -269,27 +271,35 @@ public:
 
         if (m_hasMedialib)
         {
-            ModelEntry videoEntry{ qtr("Video"), "video", VLCIcons::topbar_video, QStringLiteral(":/icons/ic_fluent_filmstrip.svg") };
-            videoEntry.children.emplace_back(qtr("All"), "all");
-            videoEntry.children.emplace_back(qtr("Playlists"), "playlists");
+            ModelEntry videoEntry{ qtr("Videos"), "video", VLCIcons::topbar_video, QStringLiteral(":/icons/ic_fluent_filmstrip.svg") };
+            videoEntry.children.emplace_back(qtr("All videos"), "all");
             m_model.children.push_back(std::move(videoEntry));
 
             ModelEntry musicEntry{ qtr("Music"), "music", VLCIcons::topbar_music, QStringLiteral(":/icons/ic_fluent_music_note_2.svg") };
-            musicEntry.children.emplace_back(qtr("Artists"), "artists");
+            musicEntry.children.emplace_back(qtr("Songs"), "tracks");
             musicEntry.children.emplace_back(qtr("Albums"), "albums");
-            musicEntry.children.emplace_back(qtr("Tracks"), "tracks");
+            musicEntry.children.emplace_back(qtr("Artists"), "artists");
             musicEntry.children.emplace_back(qtr("Genres"), "genres");
-            musicEntry.children.emplace_back(qtr("Playlists"), "playlists");
             m_model.children.push_back(std::move(musicEntry));
         }
 
-        m_model.children.emplace_back(qtr("Browse"), "network", VLCIcons::topbar_network, QStringLiteral(":/icons/ic_fluent_wifi_1.svg"));
+        // Keep the original pages and their history paths: these are navigation
+        // aliases, not new network capabilities or replacement page models.
+        ModelEntry networkEntry{ qtr("Network"), "network", VLCIcons::topbar_network, QStringLiteral(":/icons/ic_fluent_wifi_1.svg") };
+        networkEntry.children.emplace_back(qtr("Browse"), "browse", QString{}, QString{}, QStringList{"network"});
+        networkEntry.children.emplace_back(qtr("Network streams"), "streams", QString{}, QString{}, QStringList{"discover", "url"});
+        networkEntry.children.emplace_back(qtr("Services (Podcasts / Radio)"), "services", QString{}, QString{}, QStringList{"discover", "services"});
+        m_model.children.push_back(std::move(networkEntry));
 
-        ModelEntry discoverEntry{ qtr("Discover"), "discover", VLCIcons::topbar_discover, QStringLiteral(":/icons/ic_fluent_globe.svg") };
-        discoverEntry.children.emplace_back(qtr("Services"), "services");
-
-        discoverEntry.children.emplace_back(qtr("URL"), "url");
-        m_model.children.push_back(std::move(discoverEntry));
+        if (m_hasMedialib)
+        {
+            ModelEntry playlistsEntry{ qtr("Playlists"), "playlists", VLCIcons::media_playlist, QStringLiteral(":/sd/playlist.svg"), QStringList{"video", "playlists"} };
+            playlistsEntry.children.emplace_back(qtr("Video playlists"), "video", QString{}, QString{}, QStringList{"video", "playlists"});
+            playlistsEntry.children.emplace_back(qtr("Music playlists"), "music", QString{}, QString{}, QStringList{"music", "playlists"});
+            m_model.children.push_back(std::move(playlistsEntry));
+            m_model.children.emplace_back(qtr("Recent"), "recent", VLCIcons::history, QStringLiteral(":/menu/redesign/recent.svg"));
+            m_model.children.emplace_back(qtr("Add item"), "library-add", VLCIcons::add, QStringLiteral(":/menu/add.svg"));
+        }
 
         m_model.visibleChildren = m_model.children.size();
     }
@@ -449,6 +459,9 @@ QVariant NavigationModel::data(const QModelIndex &index, int role) const
         return d->m_model.getName(path.cbegin(), path.cend());
     case URI:
     {
+        const auto* entry = d->m_model.getModelEntry(path.cbegin(), path.cend());
+        if (!entry->route.isEmpty())
+            return entry->route;
         QStringList outlist;
         d->m_model.getUri(path.cbegin(), path.cend(), std::back_inserter(outlist));
         //don't advertise our root note
@@ -483,7 +496,7 @@ QVariant NavigationModel::data(const QModelIndex &index, int role) const
             outlist.pop_front();
             outlist.push_back(child.urinode);
 
-            list.emplace_back(child.name, child.icon, child.icon_svg, outlist);
+            list.emplace_back(child.name, child.icon, child.icon_svg, child.route.isEmpty() ? outlist : child.route);
         }
 
         return QVariant::fromValue(list);

@@ -45,6 +45,7 @@ FocusScope {
     property bool pinControls: false
     property bool navigationVisible: false
     property bool showLocation: true
+    property bool showNavigationToggle: showLocation
     property bool playlistVisible: false
 
     signal togglePlaylistVisibility()
@@ -127,14 +128,28 @@ FocusScope {
         height: width
         font.pixelSize: VLCStyle.dp(24, VLCStyle.scale)
         text: root.navigationVisible ? VLCIcons.sidebar_state_active : VLCIcons.panel_left
-        description: qsTr("Show library")
+        description: root.showLocation ? qsTr("Show library")
+                                       : (root.navigationVisible ? qsTr("Collapse library navigation") : qsTr("Expand library navigation"))
         AccessibleCompat.id: "sidebarToggleButton"
-        visible: root.showLocation
+        visible: root.showNavigationToggle
+        // Tool buttons normally take Tab focus only. In the library the
+        // collapse/expand button also retains mouse focus for Space activation.
+        focusPolicy: root.showLocation ? Qt.TabFocus : Qt.StrongFocus
         checked: root.navigationVisible
         Navigation.parentItem: root
         Navigation.leftItem: menuSelector
-        Navigation.rightItem: locationButton
+        Navigation.rightItem: root.showLocation ? locationButton : null
         onClicked: root.backRequested()
+        // ToolTipExt normally opens above its owner. At this top-edge button
+        // Popup.Window clamps it over the button and intercepts mouse presses.
+        // Move only this library-owned popup below; restore the shared binding
+        // when the tooltip changes owner (or this is the player topbar).
+        Binding {
+            target: sidebarButton.T.ToolTip.toolTip
+            property: "y"
+            when: !root.showLocation && sidebarButton.T.ToolTip.toolTip.parent === sidebarButton
+            value: sidebarButton.height + VLCStyle.margin_xxxsmall
+        }
     }
 
     Widgets.IconLabel {
