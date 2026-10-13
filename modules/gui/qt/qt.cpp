@@ -967,7 +967,13 @@ static void *Thread( void *obj )
     }
 #endif
 
-    p_intf->mainSettings = new QSettings(
+    // Isolated development runs must not write the logged-in user's native
+    // macOS preferences (CFPreferences does not follow HOME reliably).
+    const auto settingsFile = qEnvironmentVariable("VLC_QT_SETTINGS_FILE");
+    if (!settingsFile.isEmpty())
+        p_intf->mainSettings = new QSettings(settingsFile, QSettings::IniFormat);
+    else
+        p_intf->mainSettings = new QSettings(
 #ifdef _WIN32
             QSettings::IniFormat,
 #else

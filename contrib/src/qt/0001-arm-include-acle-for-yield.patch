@@ -1,0 +1,19 @@
+From: VLC (Juxtopposed) build
+Subject: [PATCH] Core: include the ARM ACLE declaration for __yield
+
+Apple Clang 21 reports __yield as a builtin but requires its declaration
+from arm_acle.h. Keep other processor/compiler paths unchanged.
+
+--- a/src/corelib/thread/qyieldcpu.h
++++ b/src/corelib/thread/qyieldcpu.h
+@@ -9,6 +9,10 @@
+ #include <QtCore/qprocessordetection.h>
+ #include <QtCore/qtconfigmacros.h>
+ 
++#if defined(Q_PROCESSOR_ARM) && __has_builtin(__yield)
++#  include <arm_acle.h>
++#endif
++
+ #ifdef Q_CC_MSVC_ONLY
+ // MSVC defines _YIELD_PROCESSOR() in <xatomic.h>, but as that is a private
+ // header, we include the public ones

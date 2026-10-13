@@ -81,6 +81,10 @@ endif
 	install_name_tool -rpath "$(libdir)" "@executable_path/../Frameworks/" $@/Contents/MacOS/VLC
 	cp "$(macos_destdir)$(pkglibexecdir)/vlc-preparser" $@/Contents/MacOS/
 	install_name_tool -rpath "$(libdir)" "@executable_path/../Frameworks/" $@/Contents/MacOS/vlc-preparser
+if ENABLE_QT
+	## Qt's normal runtime sanity check must travel with an enabled Qt interface.
+	cp "$(macos_destdir)$(pkglibexecdir)/vlc-qt-check" $@/Contents/MacOS/
+endif
 	## Generate plugin cache
 	if test "$(build)" = "$(host)"; then \
 		VLC_LIB_PATH="$@/Contents/Frameworks" bin/vlc-cache-gen $@/Contents/Frameworks/plugins ; \

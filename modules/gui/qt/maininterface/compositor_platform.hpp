@@ -65,6 +65,10 @@ private:
     std::unique_ptr<QWindow> m_rootWindow;
     QPointer<QWindow> m_videoWindow;
     QPointer<QQuickView> m_quickWindow;
+#ifdef Q_OS_MACOS
+    // Non-owning: retained by the video QWindow's native view hierarchy.
+    void *m_nativeVideoView = nullptr;
+#endif
 
     std::optional<QSize> m_pendingSize;
     std::optional<QPoint> m_pendingPosition;

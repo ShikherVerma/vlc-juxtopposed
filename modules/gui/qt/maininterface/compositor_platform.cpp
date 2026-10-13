@@ -27,6 +27,10 @@
 
 #ifdef __APPLE__
 #include <objc/runtime.h>
+#ifdef Q_OS_MACOS
+#include <objc/message.h>
+#include <CoreGraphics/CGGeometry.h>
+#endif
 #endif
 
 using namespace vlc;
@@ -76,6 +80,10 @@ bool CompositorPlatform::makeMainInterface(MainCtx *mainCtx, std::function<void 
     m_mainCtx = mainCtx;
 
     m_rootWindow = std::make_unique<QWindow>();
+#ifdef Q_OS_MACOS
+    if (qEnvironmentVariableIsSet("VLC_QT_NO_ACTIVATE"))
+        m_rootWindow->setFlag(Qt::WindowDoesNotAcceptFocus);
+#endif
 
     m_videoWindow = new QWindow(m_rootWindow.get());
 
@@ -109,12 +117,57 @@ bool CompositorPlatform::makeMainInterface(MainCtx *mainCtx, std::function<void 
     if (aboutToShowQuickWindowCallback)
         aboutToShowQuickWindowCallback(m_quickWindow);
 
+#ifdef Q_OS_MACOS
+    // Opt-in unattended probes use a small corner without normal UI size limits.
+    if (qEnvironmentVariableIsSet("VLC_QT_NO_ACTIVATE"))
+    {
+        m_rootWindow->setMinimumSize(QSize(0, 0));
+        const auto probeSize = qEnvironmentVariable("VLC_QT_PROBE_SIZE", "480x320").split('x');
+        m_rootWindow->setGeometry(20, 100, probeSize.value(0).toInt(), probeSize.value(1).toInt());
+    }
+#endif
     m_rootWindow->setVisible(true);
     m_videoWindow->setVisible(true);
     m_quickWindow->setVisible(true);
 
     m_quickWindow->raise(); // Make sure quick window is above the video window.
 
+#ifdef Q_OS_MACOS
+    // Set background only after QPA has finished showing the transparent child
+    // views. A backing-store image would overpaint native video; a parent layer
+    // background sits below all child layers and fills uncovered letterboxes.
+    const auto getObject = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend);
+    const auto setObject = reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend);
+    const auto setBool = reinterpret_cast<void (*)(id, SEL, bool)>(objc_msgSend);
+    const id view = reinterpret_cast<id>(m_rootWindow->winId());
+    const id window = getObject(view, sel_registerName("window"));
+    const id black = getObject(reinterpret_cast<id>(objc_getClass("NSColor")), sel_registerName("blackColor"));
+    setObject(window, sel_registerName("setBackgroundColor:"), black);
+    setBool(window, sel_registerName("setOpaque:"), true);
+    setBool(view, sel_registerName("setWantsLayer:"), true);
+    setObject(getObject(view, sel_registerName("layer")), sel_registerName("setBackgroundColor:"),
+              getObject(black, sel_registerName("CGColor")));
+
+    // QNSView is flipped, whereas VLC's native renderers expect a Cocoa
+    // bottom-left coordinate system (including convertRectFromBacking).
+    // Keep Qt's child geometry in top-left logical coordinates, but hand vout
+    // an unflipped NSView that tracks the child bounds on every resize.
+    const id videoView = reinterpret_cast<id>(m_videoWindow->winId());
+    const id nativeVideoView = getObject(getObject(reinterpret_cast<id>(objc_getClass("NSView")),
+                                                   sel_registerName("alloc")), sel_registerName("init"));
+    CGRect frame;
+#if defined(__x86_64__)
+    reinterpret_cast<void (*)(CGRect *, id, SEL)>(objc_msgSend_stret)(&frame, videoView, sel_registerName("bounds"));
+#else
+    frame = reinterpret_cast<CGRect (*)(id, SEL)>(objc_msgSend)(videoView, sel_registerName("bounds"));
+#endif
+    reinterpret_cast<void (*)(id, SEL, CGRect)>(objc_msgSend)(nativeVideoView, sel_registerName("setFrame:"), frame);
+    // NSViewWidthSizable | NSViewHeightSizable
+    reinterpret_cast<void (*)(id, SEL, unsigned long)>(objc_msgSend)(nativeVideoView, sel_registerName("setAutoresizingMask:"), 2 | 16);
+    setObject(videoView, sel_registerName("addSubview:"), nativeVideoView);
+    m_nativeVideoView = nativeVideoView;
+    reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(nativeVideoView, sel_registerName("release")); // retained by videoView
+#endif
     return ret;
 }
 
@@ -147,7 +200,11 @@ bool CompositorPlatform::setupVoutWindow(vlc_window_t *p_wnd, VoutDestroyCb dest
 
 #ifdef __APPLE__
     p_wnd->type = VLC_WINDOW_TYPE_NSOBJECT;
+#ifdef Q_OS_MACOS
+    p_wnd->handle.nsobject = reinterpret_cast<id>(m_nativeVideoView);
+#else
     p_wnd->handle.nsobject = reinterpret_cast<id>(m_videoWindow->winId());
+#endif
 
     return true;
 #endif
@@ -225,8 +282,20 @@ void CompositorPlatform::commitSurface()
     }
 }
 
-int CompositorPlatform::windowEnable(const vlc_window_cfg_t *)
+int CompositorPlatform::windowEnable(const vlc_window_cfg_t *cfg)
 {
+#ifdef Q_OS_MACOS
+    // The renderer can prepare its first native frame before QML reports the
+    // video item bounds. Give it a valid initial backing-sized host; otherwise
+    // an unchanged first placement (e.g. a 1920x1080 viewport) stays stale.
+    if (cfg->width && cfg->height)
+    {
+        const qreal dpr = m_videoWindow->devicePixelRatio();
+        m_videoWindow->resize(std::ceil(cfg->width / dpr), std::ceil(cfg->height / dpr));
+    }
+#else
+    Q_UNUSED(cfg);
+#endif
     commonWindowEnable();
     return VLC_SUCCESS;
 }

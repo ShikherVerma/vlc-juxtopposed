@@ -20,7 +20,7 @@ PKGS_FOUND += qtshadertools-tools
 endif
 
 $(TARBALLS)/qtshadertools-everywhere-src-$(QTSHADERTOOLS_VERSION).tar.xz:
-	$(call download_pkg,$(QTSHADERTOOLS_URL),qtshadertools)
+	$(call download_pkg,$(QTSHADERTOOLS_URL),qt)
 
 .sum-qtshadertools: qtshadertools-everywhere-src-$(QTSHADERTOOLS_VERSION).tar.xz
 
@@ -44,3 +44,9 @@ qtshadertools: qtshadertools-everywhere-src-$(QTSHADERTOOLS_VERSION).tar.xz .sum
 	+$(CMAKEBUILD)
 	$(CMAKEINSTALL)
 	touch $@
+
+ifndef HAVE_CROSS_COMPILE
+# Native Qt tools live beside qtbase, not in the separate cross-host prefix.
+.qtshadertools-tools: .qt
+.qtshadertools-tools: CMAKE_NATIVE = $(CMAKECONFIG) -DCMAKE_INSTALL_PREFIX:STRING=$(PREFIX)
+endif

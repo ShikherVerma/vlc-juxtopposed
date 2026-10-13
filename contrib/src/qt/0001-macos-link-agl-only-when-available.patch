@@ -1,0 +1,34 @@
+From: VLC (Juxtopposed) build
+Subject: [PATCH] CMake: link AGL only when the selected macOS SDK provides it
+
+SDK 26 no longer ships the legacy Carbon AGL framework. Qt's Cocoa
+backend uses OpenGL.framework. Do not fall back to the host's legacy
+framework when targeting an SDK without it; keep old-SDK AGL linkage
+in exported dependencies, without an unconditional qmake mkspec flag.
+
+--- a/cmake/FindWrapOpenGL.cmake
++++ b/cmake/FindWrapOpenGL.cmake
+@@ -40,12 +40,13 @@
+-        find_library(WrapOpenGL_AGL NAMES AGL)
++        find_library(WrapOpenGL_AGL NAMES AGL
++            PATHS "${CMAKE_OSX_SYSROOT}/System/Library/Frameworks"
++            NO_DEFAULT_PATH)
+         if(WrapOpenGL_AGL)
+             set(__opengl_agl_fw_path "${WrapOpenGL_AGL}")
+         endif()
+-        if(NOT __opengl_agl_fw_path)
+-            set(__opengl_agl_fw_path "-framework AGL")
+-        endif()
+ 
+         target_link_libraries(WrapOpenGL::WrapOpenGL INTERFACE ${__opengl_fw_path})
+-        target_link_libraries(WrapOpenGL::WrapOpenGL INTERFACE ${__opengl_agl_fw_path})
++        if(WrapOpenGL_AGL)
++            target_link_libraries(WrapOpenGL::WrapOpenGL INTERFACE ${__opengl_agl_fw_path})
++        endif()
+     else()
+         target_link_libraries(WrapOpenGL::WrapOpenGL INTERFACE OpenGL::GL)
+--- a/mkspecs/common/mac.conf
++++ b/mkspecs/common/mac.conf
+@@ -33,1 +33,1 @@
+-QMAKE_LIBS_OPENGL       = -framework OpenGL -framework AGL
++QMAKE_LIBS_OPENGL       = -framework OpenGL

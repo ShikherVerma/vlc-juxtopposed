@@ -841,7 +841,12 @@ endif
 endif
 endif
 ifdef HAVE_MACOSX
+ifdef HAVE_CROSS_COMPILE
 CMAKE_SYSTEM_NAME = Darwin
+else
+# Setting CMAKE_SYSTEM_NAME makes even a native build look cross-compiled to Qt.
+CMAKE_SYSTEM_NAME =
+endif
 else
 ifdef HAVE_TVOS
 CMAKE_SYSTEM_NAME = tvOS
@@ -918,6 +923,16 @@ endif
 
 toolchain.cmake: $(SRC)/gen-cmake-toolchain.py
 	$(CMAKE_TOOLCHAIN_ENV) $(SRC)/gen-cmake-toolchain.py $@
+ifdef HAVE_MACOSX
+ifndef HAVE_CROSS_COMPILE
+ifdef VLC_CONTRIB_ISOLATE_NATIVE_MAC
+	# Native discovery must not substitute unrelated host packages for contribs.
+	printf '%s\n' 'set(CMAKE_IGNORE_PREFIX_PATH "/opt/homebrew;/usr/local")' \
+		'set(Python_FIND_FRAMEWORK LAST)' 'set(Python3_FIND_FRAMEWORK LAST)' \
+		'set(Python_FIND_STRATEGY LOCATION)' 'set(Python3_FIND_STRATEGY LOCATION)' >> $@
+endif
+endif
+endif
 	cat $@
 
 MESON_SYSTEM_NAME =

@@ -43,7 +43,7 @@ $(TARBALLS)/qtbase-everywhere-src-$(QTBASE_VERSION_FULL).tar.xz:
 .sum-qt-tools: .sum-qt
 	touch $@
 
-qt: qtbase-everywhere-src-$(QTBASE_VERSION_FULL).tar.xz .sum-qt
+qt: qtbase-everywhere-src-$(QTBASE_VERSION_FULL).tar.xz .sum-qt $(SRC)/qt/0001-arm-include-acle-for-yield.patch $(SRC)/qt/0001-macos-link-agl-only-when-available.patch
 	$(UNPACK)
 	$(APPLY) $(SRC)/qt/0001-Windows-QPA-Disable-systray-notification-sounds.patch
 	$(APPLY) $(SRC)/qt/0001-Expose-QRhiImplementation-in-QRhi.patch
@@ -56,6 +56,8 @@ qt: qtbase-everywhere-src-$(QTBASE_VERSION_FULL).tar.xz .sum-qt
 	$(APPLY) $(SRC)/qt/0001-Use-DirectWrite-font-engine-only-with-Windows-10-and.patch
 	$(APPLY) $(SRC)/qt/0001-WIP-Core-Add-operator-to-our-bidirectional-meta-iter.patch
 	$(APPLY) $(SRC)/qt/0001-macos-guard-text-html.patch
+	$(APPLY) $(SRC)/qt/0001-arm-include-acle-for-yield.patch
+	$(APPLY) $(SRC)/qt/0001-macos-link-agl-only-when-available.patch
 	$(APPLY) $(SRC)/qt/0001-QEventDispatcherWin32-treat-posted-events-fairly.patch
 	$(APPLY) $(SRC)/qt/0001-rhi-d3d11-Use-DXGI_SWAP_EFFECT_FLIP_DISCARD-only-on-.patch
 	$(MOVE)
@@ -67,6 +69,12 @@ QTBASE_CONFIG += -DFEATURE_freetype=ON -DFEATURE_system_freetype=ON
 endif
 
 QTBASE_CONFIG += -DFEATURE_framework=OFF
+
+ifdef HAVE_MACOSX
+# Cocoa's Vulkan backend also requires MoltenVK, not just Vulkan headers.
+# Use Qt's native Metal/OpenGL backends without introducing that dependency.
+QTBASE_CONFIG += -DFEATURE_vulkan=OFF
+endif
 
 ifdef HAVE_CROSS_COMPILE
 # This is necessary to make use of qmake
@@ -107,8 +115,15 @@ QTBASE_CONFIG += $(QTBASE_COMMON_CONFIG) \
 	-DFEATURE_movie=OFF -DFEATURE_whatsthis=OFF -DFEATURE_lcdnumber=OFF -DFEATURE_testlib=ON \
 	-DFEATURE_syntaxhighlighter=OFF -DFEATURE_undoview=OFF -DFEATURE_splashscreen=OFF \
 	-DFEATURE_dockwidget=OFF -DFEATURE_statusbar=OFF -DFEATURE_statustip=OFF \
-	-DFEATURE_keysequenceedit=OFF -DFEATURE_mdiarea=OFF \
+	-DFEATURE_keysequenceedit=OFF \
 	-DCMAKE_TOOLCHAIN_FILE=$(abspath toolchain.cmake) $(QT_HOST_PATH)
+
+ifdef HAVE_MACOSX
+# QMacStyle refers to QMdiSubWindow even when VLC does not use MDI windows.
+QTBASE_CONFIG += -DFEATURE_mdiarea=ON
+else
+QTBASE_CONFIG += -DFEATURE_mdiarea=OFF
+endif
 
 QTBASE_NATIVE_CONFIG := $(QTBASE_COMMON_CONFIG) -DQT_BUILD_TESTS=FALSE \
 	-DFEATURE_accessibility=ON -DFEATURE_widgets=OFF -DFEATURE_testlib=OFF \

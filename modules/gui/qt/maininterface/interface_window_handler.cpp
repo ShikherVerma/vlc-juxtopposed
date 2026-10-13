@@ -438,6 +438,10 @@ void InterfaceWindowHandler::setInterfaceFullScreen( bool fs )
 
 void InterfaceWindowHandler::setRaise()
 {
+#ifdef Q_OS_MAC
+    if (qEnvironmentVariableIsSet("VLC_QT_NO_ACTIVATE"))
+        return;
+#endif
     assert(m_window);
 
     switch ( m_window->visibility() )
@@ -524,6 +528,10 @@ void InterfaceWindowHandler::setInterfaceNormal()
 
 void InterfaceWindowHandler::requestActivate()
 {
+#ifdef Q_OS_MAC
+    if (qEnvironmentVariableIsSet("VLC_QT_NO_ACTIVATE"))
+        return;
+#endif
     m_window->requestActivate();
 }
 

@@ -149,6 +149,9 @@ done
 
 info "Signing the executables"
 sign "VLC.app/Contents/MacOS/vlc-preparser"
+if [ -e "VLC.app/Contents/MacOS/vlc-qt-check" ]; then
+    sign "VLC.app/Contents/MacOS/vlc-qt-check"
+fi
 sign "VLC.app"
 
 

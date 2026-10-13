@@ -215,13 +215,17 @@ else
 fi
 if [ -n "$PREBUILT_FAILED" ]; then
     make -j$JOBS fetch
-    make -j$JOBS -k || make -j1
+    make -j$JOBS -k || CMAKE_BUILD_PARALLEL_LEVEL=$JOBS make -j1 MESONCOMPILEFLAGS="-j$JOBS"
 
     if [ "$PACKAGE" = "yes" ]; then
         make package
     fi
 else
     make -j$JOBS tools
+fi
+# Optional supplements (e.g. Qt, absent from the standard Darwin contribs).
+if [ -n "$VLC_EXTRA_CONTRIBS" ]; then
+    make -j$JOBS $VLC_EXTRA_CONTRIBS
 fi
 spopd
 
