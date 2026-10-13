@@ -287,6 +287,8 @@ libqt_plugin_la_SOURCES = \
 	style/colorcontext.hpp \
 	style/systempalette.cpp \
 	style/systempalette.hpp \
+	style/vlcfonts.cpp \
+	style/vlcfonts.hpp \
 	style/vlcicons.cpp 	style/vlcicons.hpp \
 	style/defaultthemeproviders.hpp \
 	style/systempalettethemeprovider.cpp \
@@ -1017,6 +1019,14 @@ libqt_plugin_la_RES = \
 	pixmaps/icons/juxt-wrench--2107-6319.svg \
 	pixmaps/icons/juxt-zoom--2154-9680.svg \
 	pixmaps/VLCIcons.ttf \
+	fonts/Inter-Light.ttf \
+	fonts/Inter-Regular.ttf \
+	fonts/Inter-Medium.ttf \
+	fonts/Inter-SemiBold.ttf \
+	fonts/Inter-Bold.ttf \
+	fonts/DMMono-Regular.ttf \
+	fonts/Inter-OFL.txt \
+	fonts/DMMono-OFL.txt \
 	pixmaps/addons/addon_default.svg \
 	pixmaps/addons/addon_broken.svg \
 	pixmaps/addons/addon_blue.svg \
