@@ -315,9 +315,11 @@ ListViewExt {
                         }
 
                         Text {
-                            text: (root.model.sortOrder === Qt.AscendingOrder) ? "▼" : "▲"
+                            text: (root.model.sortOrder === Qt.AscendingOrder)
+                                  ? VLCIcons.chevron_down : VLCIcons.chevron_up
                             visible: root.model.sortCriteria === modelData.model.criteria
                             font.pixelSize: VLCStyle.fontSize_normal
+                            font.family: VLCIcons.fontFamily
                             color: root.colorContext.accent
 
                             anchors {

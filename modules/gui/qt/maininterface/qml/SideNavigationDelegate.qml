@@ -131,7 +131,18 @@ T.ItemDelegate {
 
                 anchors.centerIn: parent
 
-                text: control.iconTxt
+                text: {
+                    if (!(control.highlighted || control.checked))
+                        return control.iconTxt
+                    switch (control.iconTxt) {
+                    case VLCIcons.home: return VLCIcons.home_state_active
+                    case VLCIcons.topbar_video: return VLCIcons.videos_state_active
+                    case VLCIcons.topbar_music: return VLCIcons.songs_state_active
+                    case VLCIcons.topbar_network: return VLCIcons.streaming_state_active
+                    case VLCIcons.settings: return VLCIcons.settings_state_active
+                    default: return control.iconTxt
+                    }
+                }
 
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter

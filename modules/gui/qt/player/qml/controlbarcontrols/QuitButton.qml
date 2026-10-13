@@ -27,7 +27,7 @@ import VLC.Util
 Widgets.IconToolButton {
     id: quitBtn
 
-    text: VLCIcons.clear
+    text: VLCIcons.quit
     onClicked: MainCtx.close()
     description: qsTr("Quit")
 

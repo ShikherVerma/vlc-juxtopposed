@@ -30,7 +30,7 @@ Widgets.IconToolButton {
     enabled: !paintOnly && Player.isStarted
 
     color: "#FFFF0000" //red means recording
-    text: VLCIcons.record
+    text: Player.recording ? VLCIcons.record_state_active : VLCIcons.record
     description: qsTr("record")
 
     AccessibleCompat.id: "recordButton"

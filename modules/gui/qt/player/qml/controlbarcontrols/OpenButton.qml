@@ -26,7 +26,7 @@ import VLC.Util
 Widgets.IconToolButton {
     id: openMediaBtn
 
-    text: VLCIcons.eject
+    text: VLCIcons.file
     onClicked: DialogsProvider.openDialog()
     description: qsTr("Open media")
 

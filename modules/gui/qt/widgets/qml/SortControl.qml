@@ -63,7 +63,7 @@ Widgets.IconToolButton {
 
     description: qsTr("Sort")
 
-    text: VLCIcons.topbar_sort
+    text: checked ? VLCIcons.sort_state_active : VLCIcons.topbar_sort
 
     checked: _menu && _menu.shown
 

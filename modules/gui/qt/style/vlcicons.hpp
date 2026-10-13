@@ -110,6 +110,209 @@ class VLCIcons : public QObject {
     Q_PROPERTY(QChar medialibrary_remove MEMBER medialibrary_remove CONSTANT FINAL)
     Q_PROPERTY(QChar regex MEMBER regex CONSTANT FINAL)
     Q_PROPERTY(QChar ic_fluent_text_change_case_24_regular MEMBER ic_fluent_text_change_case_24_regular CONSTANT FINAL)
+    Q_PROPERTY(QChar subtitles MEMBER subtitles CONSTANT FINAL)
+    Q_PROPERTY(QChar audio MEMBER audio CONSTANT FINAL)
+    Q_PROPERTY(QChar pause MEMBER pause CONSTANT FINAL)
+    Q_PROPERTY(QChar forward_10_sec MEMBER forward_10_sec CONSTANT FINAL)
+    Q_PROPERTY(QChar backward_10_sec MEMBER backward_10_sec CONSTANT FINAL)
+    Q_PROPERTY(QChar forward_15_sec MEMBER forward_15_sec CONSTANT FINAL)
+    Q_PROPERTY(QChar backward_15_sec MEMBER backward_15_sec CONSTANT FINAL)
+    Q_PROPERTY(QChar minimize MEMBER minimize CONSTANT FINAL)
+    Q_PROPERTY(QChar maximize MEMBER maximize CONSTANT FINAL)
+    Q_PROPERTY(QChar vlc MEMBER vlc CONSTANT FINAL)
+    Q_PROPERTY(QChar folder MEMBER folder CONSTANT FINAL)
+    Q_PROPERTY(QChar sidebar_direction_left MEMBER sidebar_direction_left CONSTANT FINAL)
+    Q_PROPERTY(QChar streaming MEMBER streaming CONSTANT FINAL)
+    Q_PROPERTY(QChar songs MEMBER songs CONSTANT FINAL)
+    Q_PROPERTY(QChar videos MEMBER videos CONSTANT FINAL)
+    Q_PROPERTY(QChar divider MEMBER divider CONSTANT FINAL)
+    Q_PROPERTY(QChar chevron_direction_down MEMBER chevron_direction_down CONSTANT FINAL)
+    Q_PROPERTY(QChar chevron_direction_up MEMBER chevron_direction_up CONSTANT FINAL)
+    Q_PROPERTY(QChar chevron_direction_right MEMBER chevron_direction_right CONSTANT FINAL)
+    Q_PROPERTY(QChar chevron_direction_left MEMBER chevron_direction_left CONSTANT FINAL)
+    Q_PROPERTY(QChar arrow_direction_down MEMBER arrow_direction_down CONSTANT FINAL)
+    Q_PROPERTY(QChar arrow_direction_up MEMBER arrow_direction_up CONSTANT FINAL)
+    Q_PROPERTY(QChar arrow_direction_right MEMBER arrow_direction_right CONSTANT FINAL)
+    Q_PROPERTY(QChar arrow_direction_left MEMBER arrow_direction_left CONSTANT FINAL)
+    Q_PROPERTY(QChar songs_state_active MEMBER songs_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar videos_state_active MEMBER videos_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar home_state_active MEMBER home_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar folder_state_active MEMBER folder_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar sidebar_state_active MEMBER sidebar_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar icon_wrapper_property_1_default_property_1_default MEMBER icon_wrapper_property_1_default_property_1_default CONSTANT FINAL)
+    Q_PROPERTY(QChar icon_wrapper_property_1_hover_property_1_hover MEMBER icon_wrapper_property_1_hover_property_1_hover CONSTANT FINAL)
+    Q_PROPERTY(QChar volume_value_high MEMBER volume_value_high CONSTANT FINAL)
+    Q_PROPERTY(QChar close_value_medium MEMBER close_value_medium CONSTANT FINAL)
+    Q_PROPERTY(QChar close_value_low MEMBER close_value_low CONSTANT FINAL)
+    Q_PROPERTY(QChar close_value_none MEMBER close_value_none CONSTANT FINAL)
+    Q_PROPERTY(QChar repeat_direction_right MEMBER repeat_direction_right CONSTANT FINAL)
+    Q_PROPERTY(QChar shuffle_direction_right MEMBER shuffle_direction_right CONSTANT FINAL)
+    Q_PROPERTY(QChar lists MEMBER lists CONSTANT FINAL)
+    Q_PROPERTY(QChar volume_property_1_200_property_1_200 MEMBER volume_property_1_200_property_1_200 CONSTANT FINAL)
+    Q_PROPERTY(QChar volume_property_1_0_property_1_0 MEMBER volume_property_1_0_property_1_0 CONSTANT FINAL)
+    Q_PROPERTY(QChar volume_property_1_10_property_1_10 MEMBER volume_property_1_10_property_1_10 CONSTANT FINAL)
+    Q_PROPERTY(QChar volume_property_1_20_property_1_20 MEMBER volume_property_1_20_property_1_20 CONSTANT FINAL)
+    Q_PROPERTY(QChar volume_property_1_30_property_1_30 MEMBER volume_property_1_30_property_1_30 CONSTANT FINAL)
+    Q_PROPERTY(QChar volume_property_1_40_property_1_40 MEMBER volume_property_1_40_property_1_40 CONSTANT FINAL)
+    Q_PROPERTY(QChar volume_property_1_50_property_1_50 MEMBER volume_property_1_50_property_1_50 CONSTANT FINAL)
+    Q_PROPERTY(QChar volume_property_1_60_property_1_60 MEMBER volume_property_1_60_property_1_60 CONSTANT FINAL)
+    Q_PROPERTY(QChar volume_property_1_70_property_1_70 MEMBER volume_property_1_70_property_1_70 CONSTANT FINAL)
+    Q_PROPERTY(QChar volume_property_1_80_property_1_80 MEMBER volume_property_1_80_property_1_80 CONSTANT FINAL)
+    Q_PROPERTY(QChar volume_property_1_90_property_1_90 MEMBER volume_property_1_90_property_1_90 CONSTANT FINAL)
+    Q_PROPERTY(QChar volume_property_1_100_property_1_100 MEMBER volume_property_1_100_property_1_100 CONSTANT FINAL)
+    Q_PROPERTY(QChar volume_property_1_150_property_1_150 MEMBER volume_property_1_150_property_1_150 CONSTANT FINAL)
+    Q_PROPERTY(QChar open MEMBER open CONSTANT FINAL)
+    Q_PROPERTY(QChar move MEMBER move CONSTANT FINAL)
+    Q_PROPERTY(QChar sort MEMBER sort CONSTANT FINAL)
+    Q_PROPERTY(QChar lists_state_active MEMBER lists_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar subtitles_state_active MEMBER subtitles_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar folder_state_selected MEMBER folder_state_selected CONSTANT FINAL)
+    Q_PROPERTY(QChar settings_state_active MEMBER settings_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar videos_state_selected MEMBER videos_state_selected CONSTANT FINAL)
+    Q_PROPERTY(QChar songs_state_selected MEMBER songs_state_selected CONSTANT FINAL)
+    Q_PROPERTY(QChar home_state_selected MEMBER home_state_selected CONSTANT FINAL)
+    Q_PROPERTY(QChar tv_state_active MEMBER tv_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar tv_state_selected MEMBER tv_state_selected CONSTANT FINAL)
+    Q_PROPERTY(QChar streaming_state_active MEMBER streaming_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar streaming_state_selected MEMBER streaming_state_selected CONSTANT FINAL)
+    Q_PROPERTY(QChar check_state_active MEMBER check_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar audio_state_active MEMBER audio_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar link MEMBER link CONSTANT FINAL)
+    Q_PROPERTY(QChar link_state_active MEMBER link_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar play_type_play_type_play MEMBER play_type_play_type_play CONSTANT FINAL)
+    Q_PROPERTY(QChar play_type_pause_type_pause MEMBER play_type_pause_type_pause CONSTANT FINAL)
+    Q_PROPERTY(QChar sort_state_active MEMBER sort_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar view MEMBER view CONSTANT FINAL)
+    Q_PROPERTY(QChar view_state_active MEMBER view_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar playlist_state_active MEMBER playlist_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar artist MEMBER artist CONSTANT FINAL)
+    Q_PROPERTY(QChar artist_state_active MEMBER artist_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar expand_sidebar MEMBER expand_sidebar CONSTANT FINAL)
+    Q_PROPERTY(QChar collapse_sidebar MEMBER collapse_sidebar CONSTANT FINAL)
+    Q_PROPERTY(QChar playback MEMBER playback CONSTANT FINAL)
+    Q_PROPERTY(QChar music MEMBER music CONSTANT FINAL)
+    Q_PROPERTY(QChar video MEMBER video CONSTANT FINAL)
+    Q_PROPERTY(QChar accessibility MEMBER accessibility CONSTANT FINAL)
+    Q_PROPERTY(QChar interface MEMBER interface CONSTANT FINAL)
+    Q_PROPERTY(QChar interface_state_active MEMBER interface_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar hotkeys MEMBER hotkeys CONSTANT FINAL)
+    Q_PROPERTY(QChar hotkeys_state_active MEMBER hotkeys_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar video_state_active MEMBER video_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar refresh MEMBER refresh CONSTANT FINAL)
+    Q_PROPERTY(QChar preferences MEMBER preferences CONSTANT FINAL)
+    Q_PROPERTY(QChar preferences_state_active MEMBER preferences_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar subtitle MEMBER subtitle CONSTANT FINAL)
+    Q_PROPERTY(QChar swap MEMBER swap CONSTANT FINAL)
+    Q_PROPERTY(QChar replay MEMBER replay CONSTANT FINAL)
+    Q_PROPERTY(QChar file MEMBER file CONSTANT FINAL)
+    Q_PROPERTY(QChar window MEMBER window CONSTANT FINAL)
+    Q_PROPERTY(QChar wrench MEMBER wrench CONSTANT FINAL)
+    Q_PROPERTY(QChar speed MEMBER speed CONSTANT FINAL)
+    Q_PROPERTY(QChar speed_state_active MEMBER speed_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar queue MEMBER queue CONSTANT FINAL)
+    Q_PROPERTY(QChar chapters MEMBER chapters CONSTANT FINAL)
+    Q_PROPERTY(QChar bookmarks MEMBER bookmarks CONSTANT FINAL)
+    Q_PROPERTY(QChar spectometer_two_tone_yes MEMBER spectometer_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar spectrum_two_tone_yes MEMBER spectrum_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar scope_two_tone_yes MEMBER scope_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar waveform_two_tone_yes MEMBER waveform_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar pip MEMBER pip CONSTANT FINAL)
+    Q_PROPERTY(QChar new_folder MEMBER new_folder CONSTANT FINAL)
+    Q_PROPERTY(QChar hdr MEMBER hdr CONSTANT FINAL)
+    Q_PROPERTY(QChar paint MEMBER paint CONSTANT FINAL)
+    Q_PROPERTY(QChar paint_state_active MEMBER paint_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar zoom MEMBER zoom CONSTANT FINAL)
+    Q_PROPERTY(QChar recent MEMBER recent CONSTANT FINAL)
+    Q_PROPERTY(QChar playback_settings MEMBER playback_settings CONSTANT FINAL)
+    Q_PROPERTY(QChar playback_settings_state_active MEMBER playback_settings_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar eq MEMBER eq CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_eq_classical MEMBER eq_eq_classical CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_eq_club MEMBER eq_eq_club CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_eq_dance MEMBER eq_eq_dance CONSTANT FINAL)
+    Q_PROPERTY(QChar thumbnail MEMBER thumbnail CONSTANT FINAL)
+    Q_PROPERTY(QChar thumbnail_value_high MEMBER thumbnail_value_high CONSTANT FINAL)
+    Q_PROPERTY(QChar thumbnail_value_medium MEMBER thumbnail_value_medium CONSTANT FINAL)
+    Q_PROPERTY(QChar thumbnail_value_low MEMBER thumbnail_value_low CONSTANT FINAL)
+    Q_PROPERTY(QChar check_state_selected MEMBER check_state_selected CONSTANT FINAL)
+    Q_PROPERTY(QChar favorite MEMBER favorite CONSTANT FINAL)
+    Q_PROPERTY(QChar favorite_state_active MEMBER favorite_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar profile MEMBER profile CONSTANT FINAL)
+    Q_PROPERTY(QChar edit MEMBER edit CONSTANT FINAL)
+    Q_PROPERTY(QChar save MEMBER save CONSTANT FINAL)
+    Q_PROPERTY(QChar save_two_tone_yes MEMBER save_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar disc_two_tone_yes MEMBER disc_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar repeat_direction_right_two_tone_yes MEMBER repeat_direction_right_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar shuffle_direction_right_two_tone_yes MEMBER shuffle_direction_right_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar swap_two_tone_yes MEMBER swap_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar subtitles_two_tone_yes MEMBER subtitles_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar window_two_tone_yes MEMBER window_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar file_two_tone_yes MEMBER file_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar info_two_tone_yes MEMBER info_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar streaming_two_tone_yes MEMBER streaming_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar audio_two_tone_yes MEMBER audio_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar queue_two_tone_yes MEMBER queue_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar playlist_two_tone_yes MEMBER playlist_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar folder_two_tone_yes MEMBER folder_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar arrow_direction_down_two_tone_yes MEMBER arrow_direction_down_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar arrow_direction_up_two_tone_yes MEMBER arrow_direction_up_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar arrow_direction_right_two_tone_yes MEMBER arrow_direction_right_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar arrow_direction_left_two_tone_yes MEMBER arrow_direction_left_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar new_folder_two_tone_yes MEMBER new_folder_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar refresh_two_tone_yes MEMBER refresh_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar recent_two_tone_yes MEMBER recent_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar hotkeys_two_tone_yes MEMBER hotkeys_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar paint_two_tone_yes MEMBER paint_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar settings_two_tone_yes MEMBER settings_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar profile_two_tone_yes MEMBER profile_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar capture_device MEMBER capture_device CONSTANT FINAL)
+    Q_PROPERTY(QChar capture_device_two_tone_yes MEMBER capture_device_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar favorite_two_tone_yes MEMBER favorite_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar plugins MEMBER plugins CONSTANT FINAL)
+    Q_PROPERTY(QChar plugins_state_active MEMBER plugins_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar plugins_two_tone_yes MEMBER plugins_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar privacy MEMBER privacy CONSTANT FINAL)
+    Q_PROPERTY(QChar privacy_two_tone_yes MEMBER privacy_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar privacy_state_active MEMBER privacy_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar playback_state_active MEMBER playback_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar playback_two_tone_yes MEMBER playback_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar check_state_selected_two_tone_yes MEMBER check_state_selected_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar disc MEMBER disc CONSTANT FINAL)
+    Q_PROPERTY(QChar video_two_tone_yes MEMBER video_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar fullscreen_state_active MEMBER fullscreen_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar link_two_tone_yes MEMBER link_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar stop_two_tone_yes MEMBER stop_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar next_two_tone_yes MEMBER next_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar previous_two_tone_yes MEMBER previous_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar record_two_tone_yes MEMBER record_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar playback_state_selected_two_tone_yes MEMBER playback_state_selected_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar quit MEMBER quit CONSTANT FINAL)
+    Q_PROPERTY(QChar quit_two_tone_yes MEMBER quit_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar ui MEMBER ui CONSTANT FINAL)
+    Q_PROPERTY(QChar ui_two_tone_yes MEMBER ui_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_eq_full_bass MEMBER eq_eq_full_bass CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_eq_full_bass_and_treble MEMBER eq_eq_full_bass_and_treble CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_eq_full_treble MEMBER eq_eq_full_treble CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_eq_headphones MEMBER eq_eq_headphones CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_eq_large_hall MEMBER eq_eq_large_hall CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_eq_reggae MEMBER eq_eq_reggae CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_eq_live MEMBER eq_eq_live CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_eq_party MEMBER eq_eq_party CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_eq_pop MEMBER eq_eq_pop CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_eq_rock MEMBER eq_eq_rock CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_eq_ska MEMBER eq_eq_ska CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_eq_soft MEMBER eq_eq_soft CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_eq_soft_rock MEMBER eq_eq_soft_rock CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_eq_techno MEMBER eq_eq_techno CONSTANT FINAL)
+    Q_PROPERTY(QChar genre MEMBER genre CONSTANT FINAL)
+    Q_PROPERTY(QChar genre_two_tone_yes MEMBER genre_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar album MEMBER album CONSTANT FINAL)
+    Q_PROPERTY(QChar upload_direction_up_two_tone_yes MEMBER upload_direction_up_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar bookmarks_two_tone_yes MEMBER bookmarks_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar chapters_two_tone_yes MEMBER chapters_two_tone_yes CONSTANT FINAL)
+    Q_PROPERTY(QChar record_state_active MEMBER record_state_active CONSTANT FINAL)
+    Q_PROPERTY(QChar sidebar_direction_right MEMBER sidebar_direction_right CONSTANT FINAL)
+    Q_PROPERTY(QChar media_playlist MEMBER media_playlist CONSTANT FINAL)
+    Q_PROPERTY(QChar sleep_timer MEMBER sleep_timer CONSTANT FINAL)
 
 
 public:
@@ -216,6 +419,209 @@ public:
     static constexpr inline QChar medialibrary_remove{ u'\ue05d' };
     static constexpr inline QChar regex{ u'\ue05e' };
     static constexpr inline QChar ic_fluent_text_change_case_24_regular{ u'\ue05f' };
+    static constexpr inline QChar subtitles{ u'\ue060' };
+    static constexpr inline QChar audio{ u'\ue061' };
+    static constexpr inline QChar pause{ u'\ue062' };
+    static constexpr inline QChar forward_10_sec{ u'\ue063' };
+    static constexpr inline QChar backward_10_sec{ u'\ue064' };
+    static constexpr inline QChar forward_15_sec{ u'\ue065' };
+    static constexpr inline QChar backward_15_sec{ u'\ue066' };
+    static constexpr inline QChar minimize{ u'\ue067' };
+    static constexpr inline QChar maximize{ u'\ue068' };
+    static constexpr inline QChar vlc{ u'\ue069' };
+    static constexpr inline QChar folder{ u'\ue06a' };
+    static constexpr inline QChar sidebar_direction_left{ u'\ue06b' };
+    static constexpr inline QChar streaming{ u'\ue06c' };
+    static constexpr inline QChar songs{ u'\ue06d' };
+    static constexpr inline QChar videos{ u'\ue06e' };
+    static constexpr inline QChar divider{ u'\ue06f' };
+    static constexpr inline QChar chevron_direction_down{ u'\ue070' };
+    static constexpr inline QChar chevron_direction_up{ u'\ue071' };
+    static constexpr inline QChar chevron_direction_right{ u'\ue072' };
+    static constexpr inline QChar chevron_direction_left{ u'\ue073' };
+    static constexpr inline QChar arrow_direction_down{ u'\ue074' };
+    static constexpr inline QChar arrow_direction_up{ u'\ue075' };
+    static constexpr inline QChar arrow_direction_right{ u'\ue076' };
+    static constexpr inline QChar arrow_direction_left{ u'\ue077' };
+    static constexpr inline QChar songs_state_active{ u'\ue078' };
+    static constexpr inline QChar videos_state_active{ u'\ue079' };
+    static constexpr inline QChar home_state_active{ u'\ue07a' };
+    static constexpr inline QChar folder_state_active{ u'\ue07b' };
+    static constexpr inline QChar sidebar_state_active{ u'\ue07c' };
+    static constexpr inline QChar icon_wrapper_property_1_default_property_1_default{ u'\ue07d' };
+    static constexpr inline QChar icon_wrapper_property_1_hover_property_1_hover{ u'\ue07e' };
+    static constexpr inline QChar volume_value_high{ u'\ue07f' };
+    static constexpr inline QChar close_value_medium{ u'\ue080' };
+    static constexpr inline QChar close_value_low{ u'\ue081' };
+    static constexpr inline QChar close_value_none{ u'\ue082' };
+    static constexpr inline QChar repeat_direction_right{ u'\ue083' };
+    static constexpr inline QChar shuffle_direction_right{ u'\ue084' };
+    static constexpr inline QChar lists{ u'\ue085' };
+    static constexpr inline QChar volume_property_1_200_property_1_200{ u'\ue086' };
+    static constexpr inline QChar volume_property_1_0_property_1_0{ u'\ue087' };
+    static constexpr inline QChar volume_property_1_10_property_1_10{ u'\ue088' };
+    static constexpr inline QChar volume_property_1_20_property_1_20{ u'\ue089' };
+    static constexpr inline QChar volume_property_1_30_property_1_30{ u'\ue08a' };
+    static constexpr inline QChar volume_property_1_40_property_1_40{ u'\ue08b' };
+    static constexpr inline QChar volume_property_1_50_property_1_50{ u'\ue08c' };
+    static constexpr inline QChar volume_property_1_60_property_1_60{ u'\ue08d' };
+    static constexpr inline QChar volume_property_1_70_property_1_70{ u'\ue08e' };
+    static constexpr inline QChar volume_property_1_80_property_1_80{ u'\ue08f' };
+    static constexpr inline QChar volume_property_1_90_property_1_90{ u'\ue090' };
+    static constexpr inline QChar volume_property_1_100_property_1_100{ u'\ue091' };
+    static constexpr inline QChar volume_property_1_150_property_1_150{ u'\ue092' };
+    static constexpr inline QChar open{ u'\ue093' };
+    static constexpr inline QChar move{ u'\ue094' };
+    static constexpr inline QChar sort{ u'\ue095' };
+    static constexpr inline QChar lists_state_active{ u'\ue096' };
+    static constexpr inline QChar subtitles_state_active{ u'\ue097' };
+    static constexpr inline QChar folder_state_selected{ u'\ue098' };
+    static constexpr inline QChar settings_state_active{ u'\ue099' };
+    static constexpr inline QChar videos_state_selected{ u'\ue09a' };
+    static constexpr inline QChar songs_state_selected{ u'\ue09b' };
+    static constexpr inline QChar home_state_selected{ u'\ue09c' };
+    static constexpr inline QChar tv_state_active{ u'\ue09d' };
+    static constexpr inline QChar tv_state_selected{ u'\ue09e' };
+    static constexpr inline QChar streaming_state_active{ u'\ue09f' };
+    static constexpr inline QChar streaming_state_selected{ u'\ue0a0' };
+    static constexpr inline QChar check_state_active{ u'\ue0a1' };
+    static constexpr inline QChar audio_state_active{ u'\ue0a2' };
+    static constexpr inline QChar link{ u'\ue0a3' };
+    static constexpr inline QChar link_state_active{ u'\ue0a4' };
+    static constexpr inline QChar play_type_play_type_play{ u'\ue0a5' };
+    static constexpr inline QChar play_type_pause_type_pause{ u'\ue0a6' };
+    static constexpr inline QChar sort_state_active{ u'\ue0a7' };
+    static constexpr inline QChar view{ u'\ue0a8' };
+    static constexpr inline QChar view_state_active{ u'\ue0a9' };
+    static constexpr inline QChar playlist_state_active{ u'\ue0aa' };
+    static constexpr inline QChar artist{ u'\ue0ab' };
+    static constexpr inline QChar artist_state_active{ u'\ue0ac' };
+    static constexpr inline QChar expand_sidebar{ u'\ue0ad' };
+    static constexpr inline QChar collapse_sidebar{ u'\ue0ae' };
+    static constexpr inline QChar playback{ u'\ue0af' };
+    static constexpr inline QChar music{ u'\ue0b0' };
+    static constexpr inline QChar video{ u'\ue0b1' };
+    static constexpr inline QChar accessibility{ u'\ue0b2' };
+    static constexpr inline QChar interface{ u'\ue0b3' };
+    static constexpr inline QChar interface_state_active{ u'\ue0b4' };
+    static constexpr inline QChar hotkeys{ u'\ue0b5' };
+    static constexpr inline QChar hotkeys_state_active{ u'\ue0b6' };
+    static constexpr inline QChar video_state_active{ u'\ue0b7' };
+    static constexpr inline QChar refresh{ u'\ue0b8' };
+    static constexpr inline QChar preferences{ u'\ue0b9' };
+    static constexpr inline QChar preferences_state_active{ u'\ue0ba' };
+    static constexpr inline QChar subtitle{ u'\ue0bb' };
+    static constexpr inline QChar swap{ u'\ue0bc' };
+    static constexpr inline QChar replay{ u'\ue0bd' };
+    static constexpr inline QChar file{ u'\ue0be' };
+    static constexpr inline QChar window{ u'\ue0bf' };
+    static constexpr inline QChar wrench{ u'\ue0c0' };
+    static constexpr inline QChar speed{ u'\ue0c1' };
+    static constexpr inline QChar speed_state_active{ u'\ue0c2' };
+    static constexpr inline QChar queue{ u'\ue0c3' };
+    static constexpr inline QChar chapters{ u'\ue0c4' };
+    static constexpr inline QChar bookmarks{ u'\ue0c5' };
+    static constexpr inline QChar spectometer_two_tone_yes{ u'\ue0c6' };
+    static constexpr inline QChar spectrum_two_tone_yes{ u'\ue0c7' };
+    static constexpr inline QChar scope_two_tone_yes{ u'\ue0c8' };
+    static constexpr inline QChar waveform_two_tone_yes{ u'\ue0c9' };
+    static constexpr inline QChar pip{ u'\ue0ca' };
+    static constexpr inline QChar new_folder{ u'\ue0cb' };
+    static constexpr inline QChar hdr{ u'\ue0cc' };
+    static constexpr inline QChar paint{ u'\ue0cd' };
+    static constexpr inline QChar paint_state_active{ u'\ue0ce' };
+    static constexpr inline QChar zoom{ u'\ue0cf' };
+    static constexpr inline QChar recent{ u'\ue0d0' };
+    static constexpr inline QChar playback_settings{ u'\ue0d1' };
+    static constexpr inline QChar playback_settings_state_active{ u'\ue0d2' };
+    static constexpr inline QChar eq{ u'\ue0d3' };
+    static constexpr inline QChar eq_eq_classical{ u'\ue0d4' };
+    static constexpr inline QChar eq_eq_club{ u'\ue0d5' };
+    static constexpr inline QChar eq_eq_dance{ u'\ue0d6' };
+    static constexpr inline QChar thumbnail{ u'\ue0d7' };
+    static constexpr inline QChar thumbnail_value_high{ u'\ue0d8' };
+    static constexpr inline QChar thumbnail_value_medium{ u'\ue0d9' };
+    static constexpr inline QChar thumbnail_value_low{ u'\ue0da' };
+    static constexpr inline QChar check_state_selected{ u'\ue0db' };
+    static constexpr inline QChar favorite{ u'\ue0dc' };
+    static constexpr inline QChar favorite_state_active{ u'\ue0dd' };
+    static constexpr inline QChar profile{ u'\ue0de' };
+    static constexpr inline QChar edit{ u'\ue0df' };
+    static constexpr inline QChar save{ u'\ue0e0' };
+    static constexpr inline QChar save_two_tone_yes{ u'\ue0e1' };
+    static constexpr inline QChar disc_two_tone_yes{ u'\ue0e2' };
+    static constexpr inline QChar repeat_direction_right_two_tone_yes{ u'\ue0e3' };
+    static constexpr inline QChar shuffle_direction_right_two_tone_yes{ u'\ue0e4' };
+    static constexpr inline QChar swap_two_tone_yes{ u'\ue0e5' };
+    static constexpr inline QChar subtitles_two_tone_yes{ u'\ue0e6' };
+    static constexpr inline QChar window_two_tone_yes{ u'\ue0e7' };
+    static constexpr inline QChar file_two_tone_yes{ u'\ue0e8' };
+    static constexpr inline QChar info_two_tone_yes{ u'\ue0e9' };
+    static constexpr inline QChar streaming_two_tone_yes{ u'\ue0ea' };
+    static constexpr inline QChar audio_two_tone_yes{ u'\ue0eb' };
+    static constexpr inline QChar queue_two_tone_yes{ u'\ue0ec' };
+    static constexpr inline QChar playlist_two_tone_yes{ u'\ue0ed' };
+    static constexpr inline QChar folder_two_tone_yes{ u'\ue0ee' };
+    static constexpr inline QChar arrow_direction_down_two_tone_yes{ u'\ue0ef' };
+    static constexpr inline QChar arrow_direction_up_two_tone_yes{ u'\ue0f0' };
+    static constexpr inline QChar arrow_direction_right_two_tone_yes{ u'\ue0f1' };
+    static constexpr inline QChar arrow_direction_left_two_tone_yes{ u'\ue0f2' };
+    static constexpr inline QChar new_folder_two_tone_yes{ u'\ue0f3' };
+    static constexpr inline QChar refresh_two_tone_yes{ u'\ue0f4' };
+    static constexpr inline QChar recent_two_tone_yes{ u'\ue0f5' };
+    static constexpr inline QChar hotkeys_two_tone_yes{ u'\ue0f6' };
+    static constexpr inline QChar paint_two_tone_yes{ u'\ue0f7' };
+    static constexpr inline QChar settings_two_tone_yes{ u'\ue0f8' };
+    static constexpr inline QChar profile_two_tone_yes{ u'\ue0f9' };
+    static constexpr inline QChar capture_device{ u'\ue0fa' };
+    static constexpr inline QChar capture_device_two_tone_yes{ u'\ue0fb' };
+    static constexpr inline QChar favorite_two_tone_yes{ u'\ue0fc' };
+    static constexpr inline QChar plugins{ u'\ue0fd' };
+    static constexpr inline QChar plugins_state_active{ u'\ue0fe' };
+    static constexpr inline QChar plugins_two_tone_yes{ u'\ue0ff' };
+    static constexpr inline QChar privacy{ u'\ue100' };
+    static constexpr inline QChar privacy_two_tone_yes{ u'\ue101' };
+    static constexpr inline QChar privacy_state_active{ u'\ue102' };
+    static constexpr inline QChar playback_state_active{ u'\ue103' };
+    static constexpr inline QChar playback_two_tone_yes{ u'\ue104' };
+    static constexpr inline QChar check_state_selected_two_tone_yes{ u'\ue105' };
+    static constexpr inline QChar disc{ u'\ue106' };
+    static constexpr inline QChar video_two_tone_yes{ u'\ue107' };
+    static constexpr inline QChar fullscreen_state_active{ u'\ue108' };
+    static constexpr inline QChar link_two_tone_yes{ u'\ue109' };
+    static constexpr inline QChar stop_two_tone_yes{ u'\ue10a' };
+    static constexpr inline QChar next_two_tone_yes{ u'\ue10b' };
+    static constexpr inline QChar previous_two_tone_yes{ u'\ue10c' };
+    static constexpr inline QChar record_two_tone_yes{ u'\ue10d' };
+    static constexpr inline QChar playback_state_selected_two_tone_yes{ u'\ue10e' };
+    static constexpr inline QChar quit{ u'\ue10f' };
+    static constexpr inline QChar quit_two_tone_yes{ u'\ue110' };
+    static constexpr inline QChar ui{ u'\ue111' };
+    static constexpr inline QChar ui_two_tone_yes{ u'\ue112' };
+    static constexpr inline QChar eq_eq_full_bass{ u'\ue113' };
+    static constexpr inline QChar eq_eq_full_bass_and_treble{ u'\ue114' };
+    static constexpr inline QChar eq_eq_full_treble{ u'\ue115' };
+    static constexpr inline QChar eq_eq_headphones{ u'\ue116' };
+    static constexpr inline QChar eq_eq_large_hall{ u'\ue117' };
+    static constexpr inline QChar eq_eq_reggae{ u'\ue118' };
+    static constexpr inline QChar eq_eq_live{ u'\ue119' };
+    static constexpr inline QChar eq_eq_party{ u'\ue11a' };
+    static constexpr inline QChar eq_eq_pop{ u'\ue11b' };
+    static constexpr inline QChar eq_eq_rock{ u'\ue11c' };
+    static constexpr inline QChar eq_eq_ska{ u'\ue11d' };
+    static constexpr inline QChar eq_eq_soft{ u'\ue11e' };
+    static constexpr inline QChar eq_eq_soft_rock{ u'\ue11f' };
+    static constexpr inline QChar eq_eq_techno{ u'\ue120' };
+    static constexpr inline QChar genre{ u'\ue121' };
+    static constexpr inline QChar genre_two_tone_yes{ u'\ue122' };
+    static constexpr inline QChar album{ u'\ue123' };
+    static constexpr inline QChar upload_direction_up_two_tone_yes{ u'\ue124' };
+    static constexpr inline QChar bookmarks_two_tone_yes{ u'\ue125' };
+    static constexpr inline QChar chapters_two_tone_yes{ u'\ue126' };
+    static constexpr inline QChar record_state_active{ u'\ue127' };
+    static constexpr inline QChar sidebar_direction_right{ u'\ue128' };
+    static constexpr inline QChar media_playlist{ u'\ue129' };
+    static constexpr inline QChar sleep_timer{ u'\ue12a' };
 
 };
 

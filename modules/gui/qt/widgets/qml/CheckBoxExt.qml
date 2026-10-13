@@ -82,13 +82,13 @@ T.CheckBox {
             verticalAlignment: Text.AlignVCenter
 
             font.pixelSize: Math.min(width, height)
-            font.weight: Font.DemiBold
+            font.family: VLCIcons.fontFamily
             minimumPixelSize: 1
             fontSizeMode: Text.Fit
 
             color: theme.accent
 
-            text: "✓"
+            text: VLCIcons.check
 
             visible: (control.checkState === Qt.Checked)
         }

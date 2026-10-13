@@ -46,7 +46,12 @@ ColorizedSvgIcon::ColorizedSvgIcon(const QString& filename, const QColor color1,
     QList<QPair<QString, QString>> replacements;
     {
         if (color1.isValid())
+        {
             replacements.push_back({QStringLiteral(COLOR1_KEY), color1.name(QColor::HexRgb)});
+            // Imported menu silhouettes also have a neutral fallback for legacy
+            // QIcon consumers that do not request palette colorization.
+            replacements.push_back({QStringLiteral("#747474"), color1.name(QColor::HexRgb)});
+        }
 
         if (color2.isValid())
             replacements.push_back({QStringLiteral(COLOR2_KEY), color2.name(QColor::HexRgb)});

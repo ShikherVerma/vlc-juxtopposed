@@ -43,7 +43,8 @@ Widgets.IconToolButton {
 
     // Settings
 
-    text: VLCIcons.audiosub
+    text: (menuLoader.item && menuLoader.item.visible)
+          ? VLCIcons.subtitles_state_active : VLCIcons.audiosub
 
     enabled: menuLoader.status === Loader.Ready
 

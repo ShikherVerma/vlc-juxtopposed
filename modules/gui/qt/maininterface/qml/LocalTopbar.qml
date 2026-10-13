@@ -106,7 +106,7 @@ T.ToolBar {
 
                     focus: true
 
-                    text: VLCIcons.panel_left
+                    text: checked ? VLCIcons.sidebar_state_active : VLCIcons.panel_left
                     description: qsTr("Show navigation menu")
 
                     AccessibleCompat.id: "sidebarToggleButton"
