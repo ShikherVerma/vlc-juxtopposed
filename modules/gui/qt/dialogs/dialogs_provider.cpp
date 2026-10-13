@@ -351,6 +351,15 @@ void DialogsProvider::keyboardShortcutsDialog()
     legacy->activateWindow();
 }
 
+void DialogsProvider::mediaLibraryDialog()
+{
+    auto *legacy = legacyPrefsDialog();
+    legacy->showMediaLibrary();
+    legacy->show();
+    legacy->raise();
+    legacy->activateWindow();
+}
+
 void DialogsProvider::firstRunDialog()
 {
     ensureDialog(m_firstRunDialog);

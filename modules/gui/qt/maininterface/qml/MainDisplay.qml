@@ -648,7 +648,7 @@ FocusScope {
                     // The retained preferences Media Library category owns the
                     // real folder picker/indexing flow until lane 3.4.
                     console.info("Library Add item: use Media Library > Add in the existing Preferences dialog")
-                    DialogsProvider.prefsDialog()
+                    DialogsProvider.mediaLibraryDialog()
                     return
                 }
 

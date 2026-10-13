@@ -46,6 +46,7 @@ public:
     PrefsDialog( QWindow *, qt_intf_t * );
     virtual ~PrefsDialog();
     void showHotkeys();
+    void showMediaLibrary();
 
 private:
     size_t count;

@@ -297,6 +297,12 @@ void PrefsDialog::showHotkeys()
     simple_tree->selectCategory(SPrefsHotkeys);
 }
 
+void PrefsDialog::showMediaLibrary()
+{
+    setSimple();
+    simple_tree->selectCategory(SPrefsMediaLibrary);
+}
+
 /* Switching from on simple panel to another */
 void PrefsDialog::changeSimplePanel( int number )
 {
