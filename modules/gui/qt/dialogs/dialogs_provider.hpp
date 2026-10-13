@@ -163,6 +163,8 @@ private:
     virtual ~DialogsProvider() override;
 
     void loadMediaFile( es_format_category_e category, int filter, const QString& dialogTitle );
+    void closePrefsDialog();
+    PrefsDialog *legacyPrefsDialog();
 
     qt_intf_t *p_intf;
 

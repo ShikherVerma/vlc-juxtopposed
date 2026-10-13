@@ -288,38 +288,67 @@ bool DialogsProvider::eventFilter(QObject *watched, QEvent *event) {
 const QEvent::Type DialogEvent::DialogEvent_Type =
         (QEvent::Type)QEvent::registerEventType();
 
+void DialogsProvider::closePrefsDialog()
+{
+    if (!m_prefsDialog)
+        return;
+
+    m_prefsDialog->reject();
+    // reject() schedules WA_DeleteOnClose deletion. Dispose of the old dialog
+    // before replacing it; QObject removes its pending deferred-delete event.
+    delete m_prefsDialog.data();
+}
+
+PrefsDialog *DialogsProvider::legacyPrefsDialog()
+{
+    auto *legacy = qobject_cast<PrefsDialog *>(m_prefsDialog.data());
+    if (!legacy)
+    {
+        closePrefsDialog();
+        legacy = new PrefsDialog( nullptr, p_intf );
+        m_prefsDialog = legacy;
+        legacy->installEventFilter(this);
+    }
+    return legacy;
+}
+
 void DialogsProvider::prefsDialog()
 {
+    // Settings always targets the new shell, even when legacy prefs are open.
+    if (qobject_cast<PrefsDialog *>(m_prefsDialog.data()))
+        closePrefsDialog();
+
     if (Q_LIKELY(!m_prefsDialog))
     {
         auto *shell = new SettingsDialog( nullptr, p_intf );
         m_prefsDialog = shell;
-        connect(shell, &SettingsDialog::allSettingsRequested, this, [this, shell] {
-            shell->reject();
-            auto *legacy = new PrefsDialog( nullptr, p_intf );
-            m_prefsDialog = legacy;
-            legacy->installEventFilter(this);
+        // Queue the transition so the emitting shell is no longer processing
+        // its button event when we destroy it. Ignore stale queued requests.
+        connect(shell, &SettingsDialog::allSettingsRequested, this,
+                [this, shell = QPointer<SettingsDialog>(shell)] {
+            if (!shell || m_prefsDialog != shell)
+                return;
+            auto *legacy = legacyPrefsDialog();
             QMetaObject::invokeMethod(legacy, "setAdvanced", Qt::DirectConnection);
             legacy->open();
-        });
+        }, Qt::QueuedConnection);
         m_prefsDialog->setAttribute(Qt::WA_DeleteOnClose);
         m_prefsDialog->installEventFilter(this);
         m_prefsDialog->open();
     }
     else
     {
-        m_prefsDialog->reject();
+        closePrefsDialog();
     }
 }
 
 void DialogsProvider::keyboardShortcutsDialog()
 {
-    if (!m_prefsDialog)
-        prefsDialog();
-    m_prefsDialog->showHotkeys();
-    m_prefsDialog->show();
-    m_prefsDialog->raise();
-    m_prefsDialog->activateWindow();
+    auto *legacy = legacyPrefsDialog();
+    legacy->showHotkeys();
+    legacy->show();
+    legacy->raise();
+    legacy->activateWindow();
 }
 
 void DialogsProvider::firstRunDialog()
