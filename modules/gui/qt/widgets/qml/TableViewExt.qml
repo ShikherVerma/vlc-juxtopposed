@@ -34,6 +34,25 @@ ListViewExt {
     }
 
     property var sortModel: []
+    // A page can own sorting without header writes destroying model bindings.
+    property SortCtx sortContext: null
+    readonly property string headerSortCriteria: sortContext?.criteria ?? model.sortCriteria
+    readonly property int headerSortOrder: sortContext?.order ?? model.sortOrder
+
+    function sortFromHeader(criteria) {
+        if (sortContext) {
+            if (!sortContext.model.some(choice => choice.criteria === criteria))
+                return
+            if (sortContext.criteria !== criteria)
+                sortContext.criteria = criteria
+            else
+                sortContext.order = sortContext.order === Qt.AscendingOrder ? Qt.DescendingOrder : Qt.AscendingOrder
+        } else if (model.sortCriteria !== criteria) {
+            model.sortCriteria = criteria
+        } else {
+            model.sortOrder = model.sortOrder === Qt.AscendingOrder ? Qt.DescendingOrder : Qt.AscendingOrder
+        }
+    }
 
     property Component tableHeaderDelegate:  TableHeaderDelegate {
         Widgets.CaptionLabel {
@@ -315,9 +334,9 @@ ListViewExt {
                         }
 
                         Text {
-                            text: (root.model.sortOrder === Qt.AscendingOrder)
+                            text: (root.headerSortOrder === Qt.AscendingOrder)
                                   ? VLCIcons.chevron_down : VLCIcons.chevron_up
-                            visible: root.model.sortCriteria === modelData.model.criteria
+                            visible: root.headerSortCriteria === modelData.model.criteria
                             font.pixelSize: VLCStyle.fontSize_normal
                             font.family: VLCIcons.fontFamily
                             color: root.colorContext.accent
@@ -337,10 +356,8 @@ ListViewExt {
                                     return
                                 if (!(modelData.model.isSortable ?? true))
                                     return
-                                else if (root.model.sortCriteria !== modelData.model.criteria)
-                                    root.model.sortCriteria = modelData.model.criteria
                                 else
-                                    root.model.sortOrder = (root.model.sortOrder === Qt.AscendingOrder) ? Qt.DescendingOrder : Qt.AscendingOrder
+                                    root.sortFromHeader(modelData.model.criteria)
                             }
                         }
                     }

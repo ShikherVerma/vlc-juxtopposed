@@ -74,6 +74,7 @@ FocusScope {
         const pageProperties = { keys: () => keys }
         for (const key of keys)
             pageProperties[key] = properties[key]
+        console.debug("Library history query:", path.join("/"), pageProperties.searchText)
         const found = stackView.loadView(path, pageProperties, focusReason)
         if (!found)
             return
@@ -153,6 +154,7 @@ FocusScope {
                  "qrc:///qt/qml/VLC/MainInterface/NoMedialibHome.qml"
         }, {
             name: "video",
+            forwardProperties: true,
             url: "qrc:///qt/qml/VLC/MediaLibrary/VideoDisplay.qml"
         }, {
             name: "music",

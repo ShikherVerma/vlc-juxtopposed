@@ -64,6 +64,7 @@ T.ItemDelegate {
     property alias titleFont: titleLabel.font
     property alias subtitleFont: subtitleTxt.font
     property alias title: titleLabel.text
+    property alias titleFont: titleLabel.font
     property alias subtitle: subtitleTxt.text
     property alias subtitleVisible: subtitleTxt.visible
     property alias playCoverShowPlay: picture.playCoverShowPlay

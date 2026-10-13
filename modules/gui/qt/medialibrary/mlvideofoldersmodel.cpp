@@ -23,6 +23,7 @@
 #endif
 
 #include "mlvideofoldersmodel.hpp"
+#include <algorithm>
 
 // VLC includes
 #include <vlc_media_library.h>
@@ -46,6 +47,25 @@ static const int MLVIDEOFOLDERSMODEL_COVER_HEIGHT = 162 * 3;
 
 /* explicit */ MLVideoFoldersModel::MLVideoFoldersModel(QObject * parent) : MLBaseModel(parent) {}
 
+void MLVideoFoldersModel::setHierarchical(bool value)
+{
+    if (m_hierarchical == value)
+        return;
+    m_hierarchical = value;
+    emit hierarchicalChanged();
+    emit resetRequested();
+}
+
+void MLVideoFoldersModel::rescan(const QUrl &url)
+{
+    if (!m_mediaLib)
+        return;
+    m_mediaLib->runOnMLThread(this, [url](vlc_medialibrary_t *ml) {
+        const QByteArray mrl = url.toEncoded();
+        vlc_ml_reload_folder(ml, mrl.isEmpty() ? nullptr : mrl.constData());
+    });
+}
+
 // MLBaseModel reimplementation
 
 QHash<int, QByteArray> MLVideoFoldersModel::roleNames() const /* override */
@@ -58,6 +78,7 @@ QHash<int, QByteArray> MLVideoFoldersModel::roleNames() const /* override */
         { FOLDER_DURATION, QByteArrayLiteral("duration") },
         { FOLDER_COUNT, QByteArrayLiteral("count") },
         { FOLDER_NB_VIDEOS, QByteArrayLiteral("nb_videos") },
+        { FOLDER_MRL, QByteArrayLiteral("mrl") },
     };
 }
 
@@ -80,6 +101,8 @@ QVariant MLVideoFoldersModel::itemRoleData(const MLItem * item, const int role) 
             return QVariant::fromValue(folder->getId());
         case FOLDER_TITLE:
             return QVariant::fromValue(folder->getTitle());
+        case FOLDER_MRL:
+            return QUrl(folder->getMRL());
         case FOLDER_TITLE_FIRST_SYMBOL:
             return QVariant::fromValue( getFirstSymbol(folder->getTitle()) );
         case FOLDER_THUMBNAIL:
@@ -117,6 +140,13 @@ MLVideoFoldersModel::createMLLoader() const /* override */
 void MLVideoFoldersModel::onVlcMlEvent(const MLEvent & event) /* override */
 {
     int type = event.i_type;
+    if (m_hierarchical && (type == VLC_ML_EVENT_FOLDER_UPDATED
+        || type == VLC_ML_EVENT_ENTRY_POINT_ADDED || type == VLC_ML_EVENT_ENTRY_POINT_REMOVED
+        || type == VLC_ML_EVENT_ENTRY_POINT_BANNED || type == VLC_ML_EVENT_ENTRY_POINT_UNBANNED))
+    {
+        emit resetRequested();
+        return;
+    }
 
     switch (type)
     {
@@ -144,9 +174,40 @@ void MLVideoFoldersModel::onVlcMlEvent(const MLEvent & event) /* override */
     MLBaseModel::onVlcMlEvent(event);
 }
 
+// The pinned ML subfolder API ignores query parameters. Adapt filtering,
+// ordering and pagination in Qt, on the ML worker, not in the engine.
+std::vector<std::unique_ptr<MLItem>> MLVideoFoldersModel::Loader::folders(vlc_medialibrary_t *ml) const
+{
+    vlc_ml_folder_list_t *raw = nullptr;
+    if (m_parent.id > 0)
+        vlc_ml_list(ml, VLC_ML_LIST_SUBFOLDERS, nullptr, m_parent.id, &raw);
+    else
+        raw = vlc_ml_list_entry_points(ml, nullptr);
+    ml_unique_ptr<vlc_ml_folder_list_t> list(raw);
+    std::vector<std::unique_ptr<MLItem>> result;
+    if (!list)
+        return result;
+    const QString pattern = QString::fromUtf8(m_searchPattern);
+    for (const auto &folder : ml_range_iterate<vlc_ml_folder_t>(list))
+    {
+        if (folder.b_banned || !QString::fromUtf8(folder.psz_name).contains(pattern, Qt::CaseInsensitive))
+            continue;
+        result.emplace_back(std::make_unique<MLFolder>(&folder));
+    }
+    std::stable_sort(result.begin(), result.end(), [this](const auto &a, const auto &b) {
+        const auto left = static_cast<const MLFolder *>(a.get());
+        const auto right = static_cast<const MLFolder *>(b.get());
+        const int cmp = QString::localeAwareCompare(left->getTitle(), right->getTitle());
+        return m_sortDesc ? cmp > 0 : cmp < 0;
+    });
+    return result;
+}
+
 // Loader
 size_t MLVideoFoldersModel::Loader::count(vlc_medialibrary_t * ml, const vlc_ml_query_params_t* queryParams) const /* override */
 {
+    if (hierarchical)
+        return folders(ml).size();
     return vlc_ml_count_folders_by_type(ml, queryParams, VLC_ML_MEDIA_TYPE_VIDEO);
 }
 
@@ -154,6 +215,18 @@ std::vector<std::unique_ptr<MLItem>>
 MLVideoFoldersModel::Loader::load(vlc_medialibrary_t * ml,
                                   const vlc_ml_query_params_t* queryParams) const /* override */
 {
+    if (hierarchical)
+    {
+        auto result = folders(ml);
+        const size_t offset = std::min(size_t(queryParams->i_offset), result.size());
+        const size_t end = queryParams->i_nbResults == 0 ? result.size()
+            : std::min(result.size(), offset + queryParams->i_nbResults);
+        std::vector<std::unique_ptr<MLItem>> page;
+        for (size_t i = offset; i < end; ++i)
+            page.push_back(std::move(result[i]));
+        return page;
+    }
+
     ml_unique_ptr<vlc_ml_folder_list_t> list(vlc_ml_list_folders_by_type(ml, queryParams,
                                                                          VLC_ML_MEDIA_TYPE_VIDEO));
 

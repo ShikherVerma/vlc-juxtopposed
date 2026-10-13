@@ -47,6 +47,7 @@ Widgets.PageExt {
 
     VideoAll {
         id: videoAll
+        sortContext: root.sort
 
         // Aliases
 

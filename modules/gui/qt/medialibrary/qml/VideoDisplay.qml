@@ -45,6 +45,7 @@ Widgets.PageLoader {
 
     pageModel: [{
             name: "all",
+            forwardProperties: true,
             default: true,
             displayText: qsTr("All"),
             url: "qrc:///qt/qml/VLC/MediaLibrary/VideoAllDisplay.qml"

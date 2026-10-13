@@ -28,7 +28,7 @@ Item {
 
     clip :true
 
-    property color trackColor: "white"
+    property color trackColor: "transparent"
     property real value: 0
     property int radius: implicitHeight
 
@@ -47,7 +47,7 @@ Item {
         height: Math.max(progressBar.radius * 2, //to have at least the proper radius applied
                          parent.height + radius) //the top radius section should be always clipped
 
-        //FIXME do we want it always white or do we want it to change with the theme
+        // Unwatched cover remains visible by default; only the watched fraction is painted.
         color: progressBar.trackColor
         radius: progressBar.radius
 

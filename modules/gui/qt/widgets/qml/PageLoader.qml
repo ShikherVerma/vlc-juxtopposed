@@ -91,8 +91,11 @@ StackViewExt {
                     let pageProp = {
                         pagePrefix:[...pagePrefix, head]
                     }
-                    for (const key of properties.keys()) {
-                        pageProp[key] = properties[key]
+                    // Some routes contain only a forwarding PageLoader. Its
+                    // leaf properties must not be assigned to that intermediary.
+                    if (!model.forwardProperties) {
+                        for (const key of properties.keys())
+                            pageProp[key] = properties[key]
                     }
 
                     History.update([...pagePrefix, head])

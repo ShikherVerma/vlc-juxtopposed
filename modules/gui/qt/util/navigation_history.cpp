@@ -15,6 +15,8 @@ bool NavigationHistory::isPreviousEmpty()
 
 void NavigationHistory::push(QStringList path, const QVariantMap& properties, Qt::FocusReason focusReason)
 {
+    m_forward.clear();
+    emit nextEmptyChanged(true);
     auto prop = std::make_unique<QQmlPropertyMap>();
     for (auto it =  properties.keyValueBegin(); it != properties.keyValueEnd(); ++it)
         prop->insert((*it).first, (*it).second);
@@ -31,15 +33,7 @@ void NavigationHistory::push(QStringList path, const QVariantMap& properties, Qt
 
 void NavigationHistory::push(QStringList path, Qt::FocusReason focusReason)
 {
-    m_history.emplace_back(path, std::make_unique<QQmlPropertyMap>());
-
-    updateCurrent();
-
-    if (m_history.size() == 2)
-        emit previousEmptyChanged(false);
-
-    emit navigate(focusReason);
-
+    push(std::move(path), QVariantMap{}, focusReason);
 }
 
 static bool isNodeValid(const QVariant& value)
@@ -136,22 +130,42 @@ void NavigationHistory::update(QStringList path, const QVariantMap& properties)
 
 void NavigationHistory::previous(Qt::FocusReason reason)
 {
-    if (m_history.size() == 1)
+    if (m_history.size() <= 1)
         return;
 
+    m_forward.push_back(std::move(m_history.back()));
     m_history.pop_back();
-
-    while (!isNodeValid(*m_history.back().second)) {
+    while (m_history.size() > 1 && !isNodeValid(*m_history.back().second))
         m_history.pop_back();
-        if (m_history.size() == 1)
-            break;
-    }
 
-    if (m_history.size() == 1)
-        emit previousEmptyChanged(true);
-
+    emit previousEmptyChanged(isPreviousEmpty());
+    emit nextEmptyChanged(false);
     updateCurrent();
     emit navigate(reason);
+}
+
+void NavigationHistory::next(Qt::FocusReason reason)
+{
+    while (!m_forward.empty() && !isNodeValid(*m_forward.back().second))
+        m_forward.pop_back();
+    if (m_forward.empty())
+    {
+        emit nextEmptyChanged(true);
+        return;
+    }
+    m_history.push_back(std::move(m_forward.back()));
+    m_forward.pop_back();
+    emit previousEmptyChanged(false);
+    emit nextEmptyChanged(isNextEmpty());
+    updateCurrent();
+    emit navigate(reason);
+}
+
+void NavigationHistory::setViewProperty(const QString &key, const QVariant &value)
+{
+    // QML can update existing QQmlPropertyMap keys, but cannot insert new ones.
+    if (m_viewProperties)
+        m_viewProperties->insert(key, value);
 }
 
 void NavigationHistory::updateCurrent()

@@ -44,6 +44,10 @@ Widgets.PageLoader {
         default: true,
         component: componentBase
     }, {
+        name: "folder",
+        component: componentBase,
+        guard: prop => !!prop.parentId && prop.parentId.isValid()
+    }, {
         name: "group",
         component: componentGroup
     }]
@@ -61,7 +65,7 @@ Widgets.PageLoader {
                 History.push([...root.pagePrefix, "group"], { parentId: model.id, title: model.title }, reason)
             }
 
-            onCurrentIndexChanged: History.viewProp.initialIndex = currentIndex
+            onCurrentIndexChanged: History.setViewProperty("initialIndex", currentIndex)
 
             displayMarginBeginning: root.displayMarginBeginning
             displayMarginEnd: root.displayMarginEnd
@@ -75,7 +79,7 @@ Widgets.PageLoader {
         id: componentGroup
 
         VideoGroupDisplay {
-            onCurrentIndexChanged: History.viewProp.initialIndex = currentIndex
+            onCurrentIndexChanged: History.setViewProperty("initialIndex", currentIndex)
 
             function isInfoExpandPanelAvailable(/* modelIndexData */) {
                 return true

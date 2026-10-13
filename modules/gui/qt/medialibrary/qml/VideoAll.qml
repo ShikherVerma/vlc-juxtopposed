@@ -53,6 +53,13 @@ MainViewLoader {
 
     property bool reuseItems: true
 
+    // Opt-in library folder browser geometry; other callers keep their defaults.
+    property int coverWidth: VLCStyle.gridCover_video_width
+    property int coverHeight: VLCStyle.gridCover_video_height
+    property bool showDuration: true
+    property bool libraryLayout: false
+    property SortCtx sortContext: null
+
     readonly property int currentIndex: currentItem?.currentIndex ?? -1
 
     readonly property int rowHeight: currentItem?.rowHeight ?? 0
@@ -81,7 +88,7 @@ MainViewLoader {
     // Settings
 
     isSearchable: true
-    list: list
+    list: libraryLayout ? compactList : list
     grid: grid
     emptyLabel: emptylabel
 
@@ -150,6 +157,10 @@ MainViewLoader {
             // Settings
 
             model: root.model
+            basePictureWidth: root.coverWidth
+            basePictureHeight: root.coverHeight
+            showDuration: root.showDuration
+            libraryLayout: root.libraryLayout
 
             selectionModel: root.selectionModel
 
@@ -187,6 +198,24 @@ MainViewLoader {
     }
 
     Component {
+        id: compactList
+        VideoCompactListDisplay {
+            model: root.model
+            selectionModel: root.selectionModel
+            contextMenu: root.contextMenu
+            dragItem: root.dragItem
+            headerDelegate: root.header
+            interactive: root.interactive
+            reuseItems: root.reuseItems
+            displayMarginBeginning: root.displayMarginBeginning
+            displayMarginEnd: root.displayMarginEnd
+            Navigation.parentItem: root
+            onActionAtIndex: root.onAction(selectionModel.selectedIndexes)
+            onItemDoubleClicked: model => root.onDoubleClick(model)
+        }
+    }
+
+    Component {
         id: list
 
         VideoListDisplay {
@@ -195,6 +224,7 @@ MainViewLoader {
             // Settings
 
             model: root.model
+            sortContext: root.sortContext
 
             selectionModel: root.selectionModel
 

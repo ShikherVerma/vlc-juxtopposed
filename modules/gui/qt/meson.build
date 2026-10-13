@@ -697,6 +697,7 @@ qml_modules += {
         'medialibrary/qml/VideoGridItem.qml',
         'medialibrary/qml/VideoInfoExpandPanel.qml',
         'medialibrary/qml/VideoListDisplay.qml',
+        'medialibrary/qml/VideoCompactListDisplay.qml',
         'medialibrary/qml/VideoGridDisplay.qml',
         'medialibrary/qml/MusicAlbumSectionDelegate.qml',
         'medialibrary/qml/MLGlobalShortcuts.qml',

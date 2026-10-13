@@ -35,6 +35,33 @@ Widgets.ExpandGridItemView {
     property MLDragItem dragItem
     property MLContextMenu contextMenu
     property var labels
+    property bool showDuration: true
+    property bool libraryLayout: false
+    subtitleHeight: showDuration ? VLCStyle.gridItemSubtitle_height : 0
+
+    leftMargin: libraryLayout ? VLCStyle.dp(20, VLCStyle.scale) - extraMargin : VLCStyle.layout_left_margin + leftPadding
+    rightMargin: libraryLayout ? VLCStyle.dp(20, VLCStyle.scale) - extraMargin : VLCStyle.layout_right_margin + rightPadding
+    topMargin: libraryLayout ? VLCStyle.dp(20, VLCStyle.scale) : 0
+    verticalSpacing: libraryLayout ? VLCStyle.dp(40, VLCStyle.scale) : VLCStyle.column_spacing
+
+    // Opt-in authored five-column 16:9 layout. Bindings restore the stock
+    // GridSizeHelper sizing for every caller that has not opted in.
+    Binding {
+        target: gridView; property: "horizontalSpacing"; when: gridView.libraryLayout
+        value: VLCStyle.dp(20, VLCStyle.scale)
+    }
+    Binding {
+        target: gridView; property: "nbItemPerRow"; when: gridView.libraryLayout
+        value: Math.max(1, Math.min(6, Math.floor((gridView._availableContentWidth + VLCStyle.dp(20, VLCStyle.scale)) / (gridView.basePictureWidth + VLCStyle.dp(20, VLCStyle.scale)))))
+    }
+    Binding {
+        target: gridView; property: "cellWidth"; when: gridView.libraryLayout
+        value: Math.floor((gridView._availableContentWidth + gridView.horizontalSpacing) / gridView.nbItemPerRow - gridView.horizontalSpacing)
+    }
+    Binding {
+        target: gridView; property: "cellHeight"; when: gridView.libraryLayout
+        value: Math.round(gridView.cellWidth * gridView.basePictureHeight / gridView.basePictureWidth) + VLCStyle.dp(39, VLCStyle.scale)
+    }
 
     // Signals
 
@@ -107,6 +134,19 @@ Widgets.ExpandGridItemView {
         dragItem: gridView.dragItem
 
         labels: gridView.labels(model)
+        subtitleVisible: gridView.showDuration
+        titleTopMargin: gridView.libraryLayout ? VLCStyle.dp(20, VLCStyle.scale) : VLCStyle.gridItemTitle_topMargin
+        titleFont.pixelSize: gridView.libraryLayout ? VLCStyle.dp(16, VLCStyle.scale) : VLCStyle.fontSize_normal
+        titleFont.weight: gridView.libraryLayout ? Font.Normal : Font.DemiBold
+
+        Widgets.IconLabel {
+            parent: gridItem.mediaCover
+            anchors { left: parent.left; top: parent.top; margins: VLCStyle.dp(8, VLCStyle.scale) }
+            visible: gridView.libraryLayout && !!model.id && model.id.hasParent()
+            text: VLCIcons.folder
+            font.pixelSize: VLCStyle.dp(24, VLCStyle.scale)
+            color: gridItem.colorContext.fg.primary
+        }
 
         // Events
 

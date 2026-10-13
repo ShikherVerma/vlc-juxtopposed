@@ -60,6 +60,8 @@ FocusScope {
     property bool enableBeginningFade: true
     property bool enableEndFade: true
 
+    property Component header: null
+
     property bool interactive: true
 
     property bool reuseItems: true
