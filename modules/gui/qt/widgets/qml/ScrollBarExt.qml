@@ -48,9 +48,8 @@ T.ScrollBar {
         // focused: control.activeFocus // irrelevant
         enabled: control.enabled
 
-        // Do not change the colors when pressed or hovered, similar to WinUI3:
-        pressed: false
-        hovered: true
+        pressed: control.pressed
+        hovered: control.hovered
     }
 
     background: Rectangle {
@@ -65,7 +64,7 @@ T.ScrollBar {
         implicitHeight: control.interacting ? VLCStyle.scrollBarInteractingSize : VLCStyle.scrollBarNonInteractingSize
 
         radius: (control.horizontal ? height : width) / 2
-        color: theme.fg.secondary
+        color: !control.enabled ? theme.fg.primary : (control.pressed ? theme.accent : (control.hovered ? theme.fg.primary : theme.fg.secondary))
 
         visible: control._shown
 

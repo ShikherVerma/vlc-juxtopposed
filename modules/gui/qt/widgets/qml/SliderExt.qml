@@ -37,15 +37,19 @@ T.Slider {
         enabled: control.enabled
         focused: control.visualFocus
         hovered: control.hovered
+        pressed: control.pressed
     }
 
     // colors based on different parts and states
-    property color color: theme.fg.primary
-    property color bgColor: theme.bg.primary
+    property color color: control.enabled ? (theme.palette?.accentDim ?? VLCStyle.palette.accentDim) : theme.fg.primary
+    property color fillColor: theme.bg.secondary
+    property color bgColor: control.enabled ? theme.bg.primary
+                                            : ((theme.palette?.isDark ?? VLCStyle.palette.isDark)
+                                               ? theme.bg.primary : "#dedede")
 
     property real handleWidth: VLCStyle.icon_xsmall
 
-    property real radius: VLCStyle.slider_radius
+    property real radius: VLCStyle.control_radius
 
     // when set the tooltip will follow the mouse when control is hoverred
     // else tooltip will always be shown at current value.
@@ -70,13 +74,14 @@ T.Slider {
     // find position under given x, can be used with Slider::valueAt()
     // x is coordinate in this control's coordinate space
     function positionAt(x) {
-        // taken from qt sources QQuickSlider.cpp
-        // TODO: support vertical slider
-        const hw = control.handle.width
-        const offset = control.leftPadding + hw / 2
-        const extend = control.availableWidth - hw
-        return (x - offset) / extend
+        const hw = control.horizontal ? control.handle.width : control.handle.height
+        const offset = (control.horizontal ? control.leftPadding : control.topPadding) + hw / 2
+        const extend = (control.horizontal ? control.availableWidth : control.availableHeight) - hw
+        const p = extend > 0 ? (x - offset) / extend : 0
+        return control.horizontal ? (control.mirrored ? 1 - p : p) : 1 - p
     }
+
+    padding: 0
 
     implicitWidth: Math.max(implicitBackgroundWidth + leftInset + rightInset,
                             implicitHandleWidth + leftPadding + rightPadding)
@@ -92,23 +97,20 @@ T.Slider {
                                  ? (control.availableHeight - height) / 2
                                  : control.visualPosition * (control.availableHeight - height))
 
-        implicitWidth: control.handleWidth
-        implicitHeight: implicitWidth
-
-        width: control.handleWidth
-        height: width
-        radius: width / 2
-
+        implicitWidth: control.horizontal ? control.handleWidth : VLCStyle.slider_thumbSize
+        implicitHeight: control.horizontal ? VLCStyle.slider_thumbSize : control.handleWidth
+        radius: VLCStyle.slider_radius
         color: control.color
-        visible: (control.visualFocus || control.pressed) && control.enabled
+        border.width: control.visualFocus ? VLCStyle.focus_border : 0
+        border.color: theme.accent
     }
 
     background: Rectangle {
         x: control.leftPadding + (control.horizontal ? 0 : (control.availableWidth - width) / 2)
         y: control.topPadding + (control.horizontal ? (control.availableHeight - height) / 2 : 0)
 
-        implicitWidth: control.horizontal ? VLCStyle.heightBar_xlarge : VLCStyle.heightBar_xxsmall
-        implicitHeight: control.horizontal ? VLCStyle.heightBar_xxsmall : VLCStyle.heightBar_xlarge
+        implicitWidth: control.horizontal ? VLCStyle.dp(320, VLCStyle.scale) : VLCStyle.slider_trackSize
+        implicitHeight: control.horizontal ? VLCStyle.slider_trackSize : VLCStyle.dp(320, VLCStyle.scale)
 
         width: control.horizontal ? control.availableWidth : implicitWidth
         height: control.horizontal ? implicitHeight : control.availableHeight
@@ -119,12 +121,12 @@ T.Slider {
         scale: control.horizontal && control.mirrored ? -1 : 1
 
         Rectangle {
-            y: control.horizontal ? 0 : control.visualPosition * parent.height
-            width: control.horizontal ? control.position * parent.width : parent.height
-            height: control.horizontal ? parent.height : control.position * parent.height
-
-            radius: control.radius
-            color: control.color
+            x: VLCStyle.margin_xxxsmall
+            y: control.horizontal ? VLCStyle.margin_xxxsmall : VLCStyle.margin_xxxsmall + (1 - control.position) * (parent.height - VLCStyle.margin_xxsmall)
+            width: control.horizontal ? control.position * (parent.width - VLCStyle.margin_xxsmall) : parent.width - VLCStyle.margin_xxsmall
+            height: control.horizontal ? parent.height - VLCStyle.margin_xxsmall : control.position * (parent.height - VLCStyle.margin_xxsmall)
+            radius: VLCStyle.slider_radius
+            color: control.fillColor
         }
     }
 
@@ -136,7 +138,10 @@ T.Slider {
         target: background
     }
 
-    Widgets.PointingToolTipAttached.pos: Qt.point(control._tooltipX, control.handle.height / 2)
+    Widgets.PointingToolTipAttached.pos: control.horizontal
+        ? Qt.point(control._tooltipX, control.handle.height / 2)
+        : Qt.point(control.handle.width / 2, toolTipFollowsMouse && hoverHandler.hovered
+                   ? hoverHandler.point.position.y : control.handle.y + control.handle.height / 2)
     Widgets.PointingToolTipAttached.visible: (hoverHandler.hovered || control.visualFocus || control.pressed)
     Widgets.PointingToolTipAttached.text: {
         if (!Widgets.PointingToolTipAttached.instance?.visible)
@@ -144,7 +149,8 @@ T.Slider {
 
         // position is only measured till half of handle width
         // pos.x may go beyond the position at the edges
-        const p = Helpers.clamp(control.positionAt(Widgets.PointingToolTipAttached.instance.pos.x), 0.0, 1.0)
+        const tip = Widgets.PointingToolTipAttached.instance.pos
+        const p = Helpers.clamp(control.positionAt(control.horizontal ? tip.x : tip.y), 0.0, 1.0)
         const v = control.valueAt(p)
         return control.toolTipTextProvider(v)
     }

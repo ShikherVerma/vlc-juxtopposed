@@ -32,7 +32,11 @@ T.ItemDelegate {
 
     checkable: true
 
-    font.pixelSize: VLCStyle.fontSize_large
+    font.family: VLCStyle.fontFamily
+    font.pixelSize: VLCStyle.fontSize_normal
+    implicitHeight: VLCStyle.option_height
+    topPadding: VLCStyle.margin_xxxsmall
+    bottomPadding: topPadding
 
     // Childs
 
@@ -46,9 +50,17 @@ T.ItemDelegate {
         enabled: control.enabled
     }
 
+    readonly property ColorContext labelColorContext: ColorContext {
+        id: labelTheme
+        palette: theme.palette
+        colorSet: ColorContext.ComboBox
+        enabled: control.enabled
+    }
+
     background: Widgets.AnimatedBackground {
         enabled: theme.initialized
-        color: control.checked ? theme.bg.highlight : theme.bg.primary
+        radius: VLCStyle.control_radius
+        color: control.checked ? labelTheme.bg.secondary : theme.bg.primary
         border.color: visualFocus ? theme.visualFocus : Qt.alpha(theme.visualFocus, 0.0)
     }
 
@@ -64,7 +76,7 @@ T.ItemDelegate {
 
             text: VLCIcons.check
 
-            color: theme.fg.primary
+            color: control.enabled ? theme.accent : theme.fg.primary
 
             font.pixelSize: VLCStyle.icon_track
         }
@@ -84,7 +96,7 @@ T.ItemDelegate {
             text: control.text
             font: control.font
 
-            color: theme.fg.primary
+            color: labelTheme.fg.primary
         }
     }
 }

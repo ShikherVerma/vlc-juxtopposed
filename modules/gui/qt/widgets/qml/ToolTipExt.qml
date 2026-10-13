@@ -37,7 +37,8 @@ T.ToolTip {
     margins: VLCStyle.margin_xsmall
     padding: VLCStyle.margin_xsmall
 
-    font.pixelSize: VLCStyle.fontSize_normal
+    font.family: VLCStyle.fontFamily
+    font.pixelSize: VLCStyle.fontSize_secondary
 
     closePolicy: T.Popup.CloseOnEscape | T.Popup.CloseOnPressOutsideParent | T.Popup.CloseOnReleaseOutsideParent
 

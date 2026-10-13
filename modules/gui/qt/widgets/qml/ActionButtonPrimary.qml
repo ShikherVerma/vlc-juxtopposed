@@ -26,5 +26,7 @@ ButtonExt {
     id: control
 
     colorContext.colorSet: ColorContext.ButtonAccent
-    iconSize: VLCStyle.icon_actionButton
+    iconSize: VLCStyle.button_iconSize
+    // Accent-on-accent cannot communicate keyboard focus on a filled action.
+    colorFocus: colorContext.fg.primary
 }

@@ -77,20 +77,6 @@ Widgets.GridItem {
         implicitWidth: root.pictureWidth
         implicitHeight: root.pictureHeight
 
-        Widgets.ScaledImage {
-            id: image
-
-            anchors.right: parent.right
-            anchors.top: parent.top
-
-            width: VLCStyle.gridItem_newIndicator
-            height: width
-
-            visible: root.showNewIndicator
-
-            source: VLCStyle.newIndicator
-        }
-
         Widgets.VideoQualityLabels {
             anchors {
                 top: parent.top

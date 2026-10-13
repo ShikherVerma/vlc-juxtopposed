@@ -39,8 +39,7 @@ T.Switch {
                                           : theme.fg.primary
 
 
-    property color colorBorder:  (checked) ? "transparent"
-                                           : theme.border
+    property color colorBorder: root.visualFocus ? theme.accent : "transparent"
 
     // Private
 
@@ -157,7 +156,10 @@ T.Switch {
 
     background: AnimatedBackground {
         enabled: theme.initialized
-        border.color: root.visualFocus ? theme.visualFocus : Qt.alpha(theme.visualFocus, 0.0)
+        radius: VLCStyle.control_radius
+        color: wellTheme.bg.secondary
+        border.color: root.visualFocus ? theme.accent : "transparent"
+        ColorContext { id: wellTheme; colorSet: ColorContext.View }
     }
 
     indicator: Rectangle {
@@ -165,11 +167,30 @@ T.Switch {
 
         anchors.margins: VLCStyle.checkButton_margins
 
-        radius: height / 2
+        radius: VLCStyle.dp(3, VLCStyle.scale)
 
-        color: root.color
+        color: "transparent"
 
-        border.color: root.colorBorder
+        border.color: "transparent"
+
+        Rectangle {
+            x: root.checked ? 0 : parent.width - width
+            width: VLCStyle.dp(33, VLCStyle.scale)
+            height: parent.height
+            radius: VLCStyle.dp(3, VLCStyle.scale)
+            color: root.color
+            Text {
+                anchors.centerIn: parent
+                text: root.checked ? qsTr("ON") : qsTr("OFF")
+                font.family: VLCStyle.fontFamily
+                font.pixelSize: VLCStyle.fontSize_secondary
+                color: !root.enabled ? theme.fg.primary
+                                     : (root.checked
+                                        ? ((theme.palette?.isDark ?? VLCStyle.palette.isDark) ? theme.accent : "#3b3b3b")
+                                        : wellTheme.fg.secondary)
+                Accessible.ignored: true
+            }
+        }
         border.width: VLCStyle.border
         border.pixelAligned: (radius < Number.EPSILON)
 
@@ -195,7 +216,7 @@ T.Switch {
 
                 anchors.margins: VLCStyle.checkButton_handle_margins
 
-                radius: height / 2
+                radius: VLCStyle.dp(3, VLCStyle.scale)
 
                 color: root.colorHandle
             }

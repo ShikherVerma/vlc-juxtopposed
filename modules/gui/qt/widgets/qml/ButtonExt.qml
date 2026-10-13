@@ -40,9 +40,11 @@ T.Button {
 
     property string iconTxt: ""
 
-    property int iconSize: VLCStyle.icon_normal
+    property int iconSize: VLCStyle.button_iconSize
 
-    property color color: theme.fg.primary
+    property color color: checked && enabled && theme.colorSet === ColorContext.ButtonStandard
+                          ? ((theme.palette?.isDark ?? VLCStyle.palette.isDark) ? theme.accent : "#161616")
+                          : theme.fg.primary
     property color colorFocus: theme.visualFocus
 
     property int radius: VLCStyle.button_radius
@@ -60,8 +62,10 @@ T.Button {
     implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset,
                              implicitContentHeight + topPadding + bottomPadding)
 
-    padding: VLCStyle.margin_xsmall
-    spacing: VLCStyle.margin_xsmall
+    padding: VLCStyle.margin_xxsmall
+    leftPadding: VLCStyle.margin_xsmall
+    rightPadding: leftPadding
+    spacing: VLCStyle.dp(6, VLCStyle.scale)
 
     font.pixelSize: VLCStyle.fontSize_normal
 
@@ -100,7 +104,9 @@ T.Button {
     background: Widgets.AnimatedBackground {
         enabled: theme.initialized && !control.extBackgroundAnimation
 
-        color: theme.bg.primary
+        implicitHeight: VLCStyle.button_height
+        color: control.checked && control.enabled && theme.colorSet === ColorContext.ButtonStandard
+               ? theme.bg.secondary : theme.bg.primary
         border.color: control.visualFocus ? control.colorFocus
                                           : (theme.border.a > 0.0 ? theme.border : color)
 
@@ -120,7 +126,7 @@ T.Button {
 
             radius: parent.radius
 
-            visible: (width > 0 && control.checked)
+            visible: false // Checked buttons use the segmented-control fill.
         }
     }
 
@@ -177,7 +183,7 @@ T.Button {
             elide: Text.ElideRight
 
             font.pixelSize: VLCStyle.fontSize_normal
-            font.weight: Font.DemiBold
+            font.weight: Font.Normal
 
             textFormat: Text.PlainText
 
@@ -187,7 +193,7 @@ T.Button {
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.maximumWidth: implicitWidth + 1
-            Layout.leftMargin: iconLabel.visible ? VLCStyle.margin_xsmall : 0
+            Layout.leftMargin: iconLabel.visible ? control.spacing : 0
         }
 
         Item {

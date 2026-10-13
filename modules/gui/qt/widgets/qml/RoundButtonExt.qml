@@ -69,6 +69,6 @@ T.RoundButton {
         enabled: control.enabled
         visible: !control.flat || control.down || control.checked || control.highlighted
         color: control.backgroundColor
-        border.color: theme.border
+        border.color: control.visualFocus ? theme.accent : theme.border
     }
 }

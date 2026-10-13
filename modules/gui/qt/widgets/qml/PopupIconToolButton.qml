@@ -93,17 +93,9 @@ Widgets.IconToolButton {
             control.menuOpened(null)
         }
 
-        background: Rectangle {
-            ColorContext {
-                id: popupTheme
-                palette: control.colorContext.palette
-                colorSet: ColorContext.Window
-            }
-
+        background: Widgets.PopupBackground {
+            colorContext.palette: control.colorContext.palette
             radius: VLCStyle.contextMenu_radius
-
-            // NOTE: The opacity should be stronger on a light background for readability.
-            color: popupTheme.bg.primary.alpha(popupTheme.palette.isDark ? 0.8 : 0.96)
         }
     }
 

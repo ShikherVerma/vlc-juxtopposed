@@ -39,17 +39,21 @@ TextField {
     color : theme.fg.primary
     placeholderTextColor: theme.fg.secondary
 
+    font.family: VLCStyle.fontFamily
     font.pixelSize: VLCStyle.fontSize_normal
+    padding: VLCStyle.margin_xsmall
+    selectByMouse: true
 
     verticalAlignment: Text.AlignVCenter
 
     property real radius: VLCStyle.control_radius
+    property color bgColor: theme.bg.primary
 
     background: Rectangle {
-        implicitWidth: 200
-        implicitHeight: 40
-        border.width: control.enabled ? VLCStyle.dp(2, VLCStyle.scale) : 0
-        color: theme.bg.primary
+        implicitWidth: VLCStyle.widthSearchInput
+        implicitHeight: VLCStyle.control_height
+        border.width: VLCStyle.border
+        color: control.bgColor
         border.color: theme.border
         border.pixelAligned: (radius < Number.EPSILON)
         radius: control.radius

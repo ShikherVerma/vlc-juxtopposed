@@ -34,7 +34,7 @@ T.ToolButton {
 
     required property string description
 
-    property color color: (control.checked) ? theme.accent : theme.fg.primary
+    property color color: (control.checked && control.enabled) ? theme.accent : theme.fg.primary
 
     property color backgroundColor: theme.bg.primary
 
@@ -42,7 +42,9 @@ T.ToolButton {
 
     // Settings
 
-    padding: 0
+    padding: VLCStyle.margin_xxsmall
+    leftPadding: VLCStyle.dp(3, VLCStyle.scale)
+    rightPadding: leftPadding
 
     enabled: !paintOnly
 
@@ -93,8 +95,8 @@ T.ToolButton {
     }
 
     background: Widgets.AnimatedBackground {
-        implicitWidth: control.font.pixelSize
-        implicitHeight: control.font.pixelSize
+        implicitWidth: VLCStyle.iconButton_width
+        implicitHeight: VLCStyle.button_height
 
         enabled: theme.initialized
 

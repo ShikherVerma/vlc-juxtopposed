@@ -87,7 +87,8 @@ T.TabButton {
 
         animationDuration: VLCStyle.duration_short
 
-        color: theme.bg.primary
+        radius: VLCStyle.button_radius
+        color: control.selected ? theme.bg.secondary : theme.bg.primary
         border.color: visualFocus ? theme.visualFocus : Qt.alpha(theme.visualFocus, 0.0)
 
         Widgets.CurrentIndicator {
@@ -145,10 +146,7 @@ T.TabButton {
 
             font.pixelSize: VLCStyle.fontSize_normal
 
-            font.weight: (control.activeFocus ||
-                          control.hovered     ||
-                          control.selected) ? Font.DemiBold
-                                            : Font.Normal
+            font.weight: Font.Normal
 
             //button text is already exposed
             Accessible.ignored: true

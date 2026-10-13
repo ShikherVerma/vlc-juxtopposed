@@ -567,6 +567,8 @@ void SystemPalette::makeLightPalette()
         setColor(CS, C::Fg, C::Primary, C::Hovered, QColor("#2e2e2e")); // Light/FG/A2
         setColor(CS, C::Fg, C::Primary, C::Disabled, QColor("#6b6b6b")); // Light/FG/A3
         setColor(CS, C::Fg, C::Secondary, C::Normal, QColor("#161616")); // Light/FG/B1
+        setColor(CS, C::Bg, C::Secondary, C::Normal, bgAccentBright); // 804:1208 checked segment
+        setColor(CS, C::Bg, C::Primary, C::Pressed, QColor("#d5d5d5")); // D-control-pressed
     }
 
     //tool button
@@ -582,9 +584,11 @@ void SystemPalette::makeLightPalette()
         setColor(CS, C::Fg, C::Secondary, C::Normal, QColor("#161616")); // Light/FG/B1
 
         setColor(CS, C::Decoration, C::Border, C::Normal, setColorAlpha(QColor("#d5d5d5"), 0.0)); // Light/BG/A3 × alpha 0
-        setColor(CS, C::Decoration, C::Border, C::Focused, setColorAlpha(QColor("#d5d5d5"), 0.0)); // Light/BG/A3 × alpha 0
+        setColor(CS, C::Decoration, C::Border, C::Focused, accentMain); // D-control-focus; accessible keyboard outline
         setColor(CS, C::Decoration, C::Border, C::Hovered, setColorAlpha(QColor("#d5d5d5"), 0.0)); // Light/BG/A3 × alpha 0
         setColor(CS, C::Decoration, C::Border, C::Disabled, setColorAlpha(QColor("#d5d5d5"), 0.0)); // Light/BG/A3 × alpha 0
+        setColor(CS, C::Bg, C::Primary, C::Hovered, setColorAlpha(Qt::black, 0.06)); // 177:99 white 6%; Light analogue / D-control-pressed
+        setColor(CS, C::Bg, C::Primary, C::Pressed, setColorAlpha(Qt::black, 0.12)); // 177:99 white 6%; Light analogue / D-control-pressed
     }
 
     //menubar
@@ -604,16 +608,18 @@ void SystemPalette::makeLightPalette()
         setColor(CS, C::Bg, C::Primary, C::Focused, QColor("#dddddd")); // Light/BG/A2
         setColor(CS, C::Bg, C::Primary, C::Hovered, QColor("#dddddd")); // Light/BG/A2
 
-        setColor(CS, C::Bg, C::Highlight, C::Normal, QColor("#dddddd")); // Light/BG/A2
-        setColor(CS, C::Bg, C::Highlight, C::Focused, QColor("#dddddd")); // Light/BG/A2
-        setColor(CS, C::Bg, C::Highlight, C::Hovered, QColor("#dddddd")); // Light/BG/A2
-        setColor(CS, C::Fg, C::Highlight, C::Normal, QColor("#3c3c3c")); // Light/FG/A1
+        setColor(CS, C::Bg, C::Highlight, C::Normal, QColor("#d5d5d5")); // Light/BG/A3; D-control-selection
+        setColor(CS, C::Bg, C::Highlight, C::Focused, QColor("#d5d5d5")); // Light/BG/A3; D-control-selection
+        setColor(CS, C::Bg, C::Highlight, C::Hovered, QColor("#d5d5d5")); // Light/BG/A3; D-control-selection
+        setColor(CS, C::Fg, C::Highlight, C::Normal, QColor("#161616")); // Light/FG/B1; 3021:9838
 
         setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#3c3c3c")); // Light/FG/A1
         setColor(CS, C::Fg, C::Secondary, C::Normal, QColor("#6b6b6b")); // Light/FG/A3
+        setColor(CS, C::Fg, C::Primary, C::Disabled, QColor("#6b6b6b")); // D-control-disabled
 
         setColor(CS, C::Decoration, C::Indicator, C::Normal, accentLogo); // Light/Accent/Logo
 
+        setColor(CS, C::Bg, C::Primary, C::Pressed, QColor("#d5d5d5")); // D-control-pressed
     }
 
     //Accent Buttons
@@ -628,7 +634,7 @@ void SystemPalette::makeLightPalette()
         setColor(CS, C::Fg, C::Primary, C::Disabled, QColor("#6b6b6b")); // Light/FG/A3
 
         setColor(CS, C::Decoration, C::Border, C::Normal, setColorAlpha(QColor("#d5d5d5"), 0.0)); // Light/BG/A3 × alpha 0
-        setColor(CS, C::Decoration, C::Border, C::Focused, setColorAlpha(QColor("#d5d5d5"), 0.0)); // Light/BG/A3 × alpha 0
+        setColor(CS, C::Decoration, C::Border, C::Focused, accentMain); // D-control-focus; accessible keyboard outline
         setColor(CS, C::Decoration, C::Border, C::Hovered, setColorAlpha(QColor("#d5d5d5"), 0.0)); // Light/BG/A3 × alpha 0
         setColor(CS, C::Decoration, C::Border, C::Disabled, setColorAlpha(QColor("#d5d5d5"), 0.0)); // Light/BG/A3 × alpha 0
     }
@@ -636,23 +642,29 @@ void SystemPalette::makeLightPalette()
     //Standard Buttons
     {
         C::ColorSet CS = C::ButtonStandard;
-        setColor(CS, C::Bg, C::Primary, C::Normal, setColorAlpha(QColor("#d5d5d5"), 0.0)); // Light/BG/A3 × alpha 0
+        setColor(CS, C::Bg, C::Primary, C::Normal, QColor("#dedede")); // 500:3063 / D-control-states
 
-        setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#2e2e2e")); // Light/FG/A2
+        setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#6b6b6b")); // 500:3061 normal label
         setColor(CS, C::Fg, C::Primary, C::Focused, QColor("#2e2e2e")); // Light/FG/A2
-        setColor(CS, C::Fg, C::Primary, C::Hovered, QColor("#2e2e2e")); // Light/FG/A2
+        setColor(CS, C::Fg, C::Primary, C::Pressed, QColor("#2e2e2e")); // D-control-pressed: hover foreground
+        setColor(CS, C::Fg, C::Primary, C::Hovered, QColor("#2e2e2e")); // 500:3065 hover label
         setColor(CS, C::Fg, C::Primary, C::Disabled, QColor("#6b6b6b")); // Light/FG/A3
 
         setColor(CS, C::Decoration, C::Border, C::Normal, setColorAlpha(QColor("#d5d5d5"), 0.0)); // Light/BG/A3 × alpha 0
-        setColor(CS, C::Decoration, C::Border, C::Focused, setColorAlpha(QColor("#d5d5d5"), 0.0)); // Light/BG/A3 × alpha 0
+        setColor(CS, C::Decoration, C::Border, C::Focused, accentMain); // D-control-focus; accessible keyboard outline
         setColor(CS, C::Decoration, C::Border, C::Hovered, setColorAlpha(QColor("#d5d5d5"), 0.0)); // Light/BG/A3 × alpha 0
         setColor(CS, C::Decoration, C::Border, C::Disabled, setColorAlpha(QColor("#d5d5d5"), 0.0)); // Light/BG/A3 × alpha 0
+        setColor(CS, C::Bg, C::Primary, C::Hovered, QColor("#b3b3b3")); // 500:3063 / D-control-states
+        setColor(CS, C::Bg, C::Primary, C::Pressed, QColor("#dddddd")); // 500:3063 / D-control-states
+        setColor(CS, C::Bg, C::Primary, C::Focused, QColor("#dedede")); // 500:3063 / D-control-states
+        setColor(CS, C::Bg, C::Primary, C::Disabled, QColor("#dedede")); // 500:3063 / D-control-states
+        setColor(CS, C::Bg, C::Secondary, C::Normal, bgAccentBright); // 804:1208 checked segment
     }
 
     //tooltip
     {
         C::ColorSet CS = C::Tooltip;
-        setColor(CS, C::Bg, C::Primary, C::Normal, QColor("#b3b3b3")); // Light/BG/A4
+        setColor(CS, C::Bg, C::Primary, C::Normal, QColor("#b3b3b3")); // D-tooltip; popup panel analogue
         setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#3c3c3c")); // Light/FG/A1
     }
 
@@ -660,11 +672,14 @@ void SystemPalette::makeLightPalette()
     {
         C::ColorSet CS = C::Slider;
         setColor(CS, C::Bg, C::Primary, C::Normal, QColor("#dedede")); // Light/BG/B2
-        setColor(CS, C::Bg, C::Secondary, C::Normal, QColor("#b3b3b3")); // Light/BG/A4
+        setColor(CS, C::Bg, C::Secondary, C::Normal, bgAccentBright); // 3056:10877 slider fill
+        setColor(CS, C::Bg, C::Secondary, C::Disabled, QColor("#b3b3b3")); // Light/BG/A4 disabled fill
         setColor(CS, C::Fg, C::Primary, C::Normal, accentMain); // Light/Accent/Main
         setColor(CS, C::Fg, C::Positive, C::Normal, QColor("#127124")); // D-status-Light-Fg-Positive
         setColor(CS, C::Fg, C::Neutral, C::Normal, accentMain); // Light/Accent/Main
         setColor(CS, C::Fg, C::Negative, C::Normal, QColor("#9e3823")); // D-status-Light-Fg-Negative
+        setColor(CS, C::Fg, C::Primary, C::Disabled, QColor("#6b6b6b")); // D-control-disabled
+        setColor(CS, C::Bg, C::Primary, C::Disabled, QColor("#b3b3b3")); // D-control-disabled
     }
 
     //Combo box
@@ -673,18 +688,26 @@ void SystemPalette::makeLightPalette()
         setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#2e2e2e")); // Light/FG/A2
         setColor(CS, C::Bg, C::Primary, C::Normal, QColor("#b3b3b3")); // Light/BG/A4
         setColor(CS, C::Bg, C::Secondary, C::Normal, QColor("#dddddd")); // Light/BG/A2
+        setColor(CS, C::Decoration, C::Border, C::Normal, QColor("#dedede")); // 2372:8300 2px B2 well
+        setColor(CS, C::Decoration, C::Border, C::Focused, accentMain); // D-control-focus
+        setColor(CS, C::Bg, C::Primary, C::Hovered, QColor("#dddddd")); // D-control-hover
+        setColor(CS, C::Bg, C::Primary, C::Pressed, QColor("#d5d5d5")); // D-control-pressed
+        setColor(CS, C::Fg, C::Primary, C::Disabled, QColor("#6b6b6b")); // D-control-disabled
     }
 
     //TextField
     {
         C::ColorSet CS = C::TextField;
-        setColor(CS, C::Decoration, C::Border, C::Normal, QColor("#acacac")); // Light/Divider/Dim
+        setColor(CS, C::Decoration, C::Border, C::Normal, QColor("#b3b3b3")); // 3062:10959 input rim
         setColor(CS, C::Decoration, C::Border, C::Focused, accentMain); // Light/Accent/Main
         setColor(CS, C::Decoration, C::Border, C::Hovered, QColor("#9b9b9b")); // Light/Divider/Bright
         setColor(CS, C::Decoration, C::Border, C::Disabled, setColorAlpha(QColor("#d5d5d5"), 0.0)); // Light/BG/A3 × alpha 0
 
         setColor(CS, C::Bg, C::Highlight, C::Normal, QColor("#dddddd")); // Light/BG/A2
         setColor(CS, C::Fg, C::Highlight, C::Normal, QColor("#3c3c3c")); // Light/FG/A1
+        setColor(CS, C::Bg, C::Primary, C::Normal, QColor("#dedede")); // 3062:10959 / 3176:16553 input well
+        setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#2e2e2e")); // 3176:16554 input label
+        setColor(CS, C::Fg, C::Primary, C::Disabled, QColor("#6b6b6b")); // D-control-disabled
     }
 
     //Switch
@@ -696,18 +719,29 @@ void SystemPalette::makeLightPalette()
 
         setColor(CS, C::Bg, C::Secondary, C::Normal, bgAccentBright); // Light/BG/Accent Bright
         setColor(CS, C::Fg, C::Secondary, C::Normal, accentDim); // Light/Accent/DIm
+        setColor(CS, C::Bg, C::Primary, C::Disabled, QColor("#b3b3b3")); // D-control-disabled
+        setColor(CS, C::Bg, C::Secondary, C::Disabled, QColor("#b3b3b3")); // D-control-disabled
+        setColor(CS, C::Fg, C::Primary, C::Disabled, QColor("#6b6b6b")); // D-control-disabled
+        setColor(CS, C::Fg, C::Secondary, C::Disabled, QColor("#6b6b6b")); // D-control-disabled
+        setColor(CS, C::Fg, C::Secondary, C::Hovered, accentMain); // D-control-hover
+        setColor(CS, C::Fg, C::Secondary, C::Pressed, accentBright); // D-control-pressed
+        setColor(CS, C::Fg, C::Primary, C::Hovered, QColor("#6b6b6b")); // D-control-hover
+        setColor(CS, C::Fg, C::Primary, C::Pressed, QColor("#2e2e2e")); // D-control-pressed
     }
 
     //SpinBox
     {
         C::ColorSet CS = C::SpinBox;
-        setColor(CS, C::Decoration, C::Border, C::Normal, QColor("#acacac")); // Light/Divider/Dim
+        setColor(CS, C::Decoration, C::Border, C::Normal, QColor("#b3b3b3")); // 3062:10959 input rim
         setColor(CS, C::Decoration, C::Border, C::Focused, accentMain); // Light/Accent/Main
         setColor(CS, C::Decoration, C::Border, C::Hovered, QColor("#9b9b9b")); // Light/Divider/Bright
         setColor(CS, C::Decoration, C::Border, C::Disabled, setColorAlpha(QColor("#d5d5d5"), 0.0)); // Light/BG/A3 × alpha 0
 
         setColor(CS, C::Bg, C::Highlight, C::Normal, QColor("#dddddd")); // Light/BG/A2
         setColor(CS, C::Fg, C::Highlight, C::Normal, QColor("#3c3c3c")); // Light/FG/A1
+        setColor(CS, C::Bg, C::Primary, C::Normal, QColor("#dedede")); // 3062:10959 / 3176:16553 input well
+        setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#2e2e2e")); // 3176:16554 input label
+        setColor(CS, C::Fg, C::Primary, C::Disabled, QColor("#6b6b6b")); // D-control-disabled
     }
 }
 
@@ -783,6 +817,8 @@ void SystemPalette::makeDarkPalette()
         setColor(CS, C::Fg, C::Primary, C::Hovered, QColor("#969696")); // Dark/FG/A1
         setColor(CS, C::Fg, C::Primary, C::Disabled, QColor("#404040")); // Dark/FG/A4
         setColor(CS, C::Fg, C::Secondary, C::Normal, QColor("#c6c6c6")); // Dark/FG/2
+        setColor(CS, C::Bg, C::Secondary, C::Normal, bgAccentBright); // 804:1208 checked segment
+        setColor(CS, C::Bg, C::Primary, C::Pressed, QColor("#222222")); // D-control-pressed
     }
 
     //tool button
@@ -798,9 +834,11 @@ void SystemPalette::makeDarkPalette()
         setColor(CS, C::Fg, C::Secondary, C::Normal, QColor("#c6c6c6")); // Dark/FG/2
 
         setColor(CS, C::Decoration, C::Border, C::Normal, setColorAlpha(QColor("#1b1b1b"), 0.0)); // Dark/BG/A3 × alpha 0
-        setColor(CS, C::Decoration, C::Border, C::Focused, setColorAlpha(QColor("#1b1b1b"), 0.0)); // Dark/BG/A3 × alpha 0
+        setColor(CS, C::Decoration, C::Border, C::Focused, accentMain); // D-control-focus; accessible keyboard outline
         setColor(CS, C::Decoration, C::Border, C::Hovered, setColorAlpha(QColor("#1b1b1b"), 0.0)); // Dark/BG/A3 × alpha 0
         setColor(CS, C::Decoration, C::Border, C::Disabled, setColorAlpha(QColor("#1b1b1b"), 0.0)); // Dark/BG/A3 × alpha 0
+        setColor(CS, C::Bg, C::Primary, C::Hovered, setColorAlpha(Qt::white, 0.06)); // 177:99 white 6%; Light analogue / D-control-pressed
+        setColor(CS, C::Bg, C::Primary, C::Pressed, setColorAlpha(Qt::white, 0.12)); // 177:99 white 6%; Light analogue / D-control-pressed
     }
 
     //menubar
@@ -820,15 +858,17 @@ void SystemPalette::makeDarkPalette()
         setColor(CS, C::Bg, C::Primary, C::Focused, QColor("#1f1f1f")); // Dark/BG/A2
         setColor(CS, C::Bg, C::Primary, C::Hovered, QColor("#1f1f1f")); // Dark/BG/A2
 
-        setColor(CS, C::Bg, C::Highlight, C::Normal, QColor("#222222")); // Dark/BG/A1
-        setColor(CS, C::Bg, C::Highlight, C::Focused, QColor("#222222")); // Dark/BG/A1
-        setColor(CS, C::Bg, C::Highlight, C::Hovered, QColor("#222222")); // Dark/BG/A1
-        setColor(CS, C::Fg, C::Highlight, C::Normal, QColor("#969696")); // Dark/FG/A1
+        setColor(CS, C::Bg, C::Highlight, C::Normal, QColor("#222222")); // Dark/BG/A1; D-control-selection
+        setColor(CS, C::Bg, C::Highlight, C::Focused, QColor("#222222")); // Dark/BG/A1; D-control-selection
+        setColor(CS, C::Bg, C::Highlight, C::Hovered, QColor("#222222")); // Dark/BG/A1; D-control-selection
+        setColor(CS, C::Fg, C::Highlight, C::Normal, QColor("#eaeaea")); // Dark/FG/1; 3021:9838
 
         setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#969696")); // Dark/FG/A1
         setColor(CS, C::Fg, C::Secondary, C::Normal, QColor("#6b6b6b")); // Dark/FG/A3
+        setColor(CS, C::Fg, C::Primary, C::Disabled, QColor("#404040")); // D-control-disabled
 
         setColor(CS, C::Decoration, C::Indicator, C::Normal, accentLogo); // Dark/Accent/Logo
+        setColor(CS, C::Bg, C::Primary, C::Pressed, QColor("#222222")); // D-control-pressed
     }
 
     //Accent Buttons
@@ -843,7 +883,7 @@ void SystemPalette::makeDarkPalette()
         setColor(CS, C::Fg, C::Primary, C::Disabled, QColor("#404040")); // Dark/FG/A4
 
         setColor(CS, C::Decoration, C::Border, C::Normal, setColorAlpha(QColor("#1b1b1b"), 0.0)); // Dark/BG/A3 × alpha 0
-        setColor(CS, C::Decoration, C::Border, C::Focused, setColorAlpha(QColor("#1b1b1b"), 0.0)); // Dark/BG/A3 × alpha 0
+        setColor(CS, C::Decoration, C::Border, C::Focused, accentMain); // D-control-focus; accessible keyboard outline
         setColor(CS, C::Decoration, C::Border, C::Hovered, setColorAlpha(QColor("#1b1b1b"), 0.0)); // Dark/BG/A3 × alpha 0
         setColor(CS, C::Decoration, C::Border, C::Disabled, setColorAlpha(QColor("#1b1b1b"), 0.0)); // Dark/BG/A3 × alpha 0
     }
@@ -851,23 +891,29 @@ void SystemPalette::makeDarkPalette()
     //Standard Buttons
     {
         C::ColorSet CS = C::ButtonStandard;
-        setColor(CS, C::Bg, C::Primary, C::Normal, setColorAlpha(QColor("#1b1b1b"), 0.0)); // Dark/BG/A3 × alpha 0
+        setColor(CS, C::Bg, C::Primary, C::Normal, QColor("#090909")); // 500:3063 / D-control-states
 
-        setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#8f8f8f")); // Dark/FG/A2
+        setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#6b6b6b")); // 500:3061 normal label
         setColor(CS, C::Fg, C::Primary, C::Focused, QColor("#969696")); // Dark/FG/A1
-        setColor(CS, C::Fg, C::Primary, C::Hovered, QColor("#969696")); // Dark/FG/A1
+        setColor(CS, C::Fg, C::Primary, C::Pressed, QColor("#8f8f8f")); // D-control-pressed: hover foreground
+        setColor(CS, C::Fg, C::Primary, C::Hovered, QColor("#8f8f8f")); // 500:3065 hover label
         setColor(CS, C::Fg, C::Primary, C::Disabled, QColor("#404040")); // Dark/FG/A4
 
         setColor(CS, C::Decoration, C::Border, C::Normal, setColorAlpha(QColor("#1b1b1b"), 0.0)); // Dark/BG/A3 × alpha 0
-        setColor(CS, C::Decoration, C::Border, C::Focused, setColorAlpha(QColor("#1b1b1b"), 0.0)); // Dark/BG/A3 × alpha 0
+        setColor(CS, C::Decoration, C::Border, C::Focused, accentMain); // D-control-focus; accessible keyboard outline
         setColor(CS, C::Decoration, C::Border, C::Hovered, setColorAlpha(QColor("#1b1b1b"), 0.0)); // Dark/BG/A3 × alpha 0
         setColor(CS, C::Decoration, C::Border, C::Disabled, setColorAlpha(QColor("#1b1b1b"), 0.0)); // Dark/BG/A3 × alpha 0
+        setColor(CS, C::Bg, C::Primary, C::Hovered, QColor("#191919")); // 500:3063 / D-control-states
+        setColor(CS, C::Bg, C::Primary, C::Pressed, QColor("#1f1f1f")); // 500:3063 / D-control-states
+        setColor(CS, C::Bg, C::Primary, C::Focused, QColor("#090909")); // 500:3063 / D-control-states
+        setColor(CS, C::Bg, C::Primary, C::Disabled, QColor("#090909")); // 500:3063 / D-control-states
+        setColor(CS, C::Bg, C::Secondary, C::Normal, bgAccentBright); // 804:1208 checked segment
     }
 
     //tooltip
     {
         C::ColorSet CS = C::Tooltip;
-        setColor(CS, C::Bg, C::Primary, C::Normal, QColor("#191919")); // Dark/BG/A4
+        setColor(CS, C::Bg, C::Primary, C::Normal, QColor("#191919")); // D-tooltip; popup panel analogue
         setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#969696")); // Dark/FG/A1
     }
 
@@ -882,6 +928,10 @@ void SystemPalette::makeDarkPalette()
         setColor(CS, C::Fg, C::Positive, C::Normal, QColor("#19a234")); // D-status-Dark-Fg-Positive
         setColor(CS, C::Fg, C::Neutral, C::Normal, accentMain); // Dark/Accent/Main
         setColor(CS, C::Fg, C::Negative, C::Normal, QColor("#e15032")); // D-status-Dark-Fg-Negative
+        setColor(CS, C::Bg, C::Secondary, C::Normal, bgAccentBright); // 3056:10877 slider fill
+        setColor(CS, C::Bg, C::Secondary, C::Disabled, QColor("#151515")); // Dark/BG/A5 disabled fill
+        setColor(CS, C::Fg, C::Primary, C::Disabled, QColor("#404040")); // Dark/FG/A4 disabled thumb
+        setColor(CS, C::Bg, C::Primary, C::Disabled, QColor("#191919")); // D-control-disabled
     }
 
     //Combo box
@@ -890,18 +940,26 @@ void SystemPalette::makeDarkPalette()
         setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#8f8f8f")); // Dark/FG/A2
         setColor(CS, C::Bg, C::Primary, C::Normal, QColor("#191919")); // Dark/BG/A4
         setColor(CS, C::Bg, C::Secondary, C::Normal, QColor("#1f1f1f")); // Dark/BG/A2
+        setColor(CS, C::Decoration, C::Border, C::Normal, QColor("#090909")); // 2372:8300 2px B2 well
+        setColor(CS, C::Decoration, C::Border, C::Focused, accentMain); // D-control-focus
+        setColor(CS, C::Bg, C::Primary, C::Hovered, QColor("#1f1f1f")); // D-control-hover
+        setColor(CS, C::Bg, C::Primary, C::Pressed, QColor("#222222")); // D-control-pressed
+        setColor(CS, C::Fg, C::Primary, C::Disabled, QColor("#404040")); // D-control-disabled
     }
 
     //TextField
     {
         C::ColorSet CS = C::TextField;
-        setColor(CS, C::Decoration, C::Border, C::Normal, QColor("#222222")); // Dark/Divider/Dim
+        setColor(CS, C::Decoration, C::Border, C::Normal, QColor("#191919")); // 3062:10959 input rim
         setColor(CS, C::Decoration, C::Border, C::Focused, accentMain); // Dark/Accent/Main
         setColor(CS, C::Decoration, C::Border, C::Hovered, QColor("#373737")); // Dark/Divider/Bright
         setColor(CS, C::Decoration, C::Border, C::Disabled, setColorAlpha(QColor("#1b1b1b"), 0.0)); // Dark/BG/A3 × alpha 0
 
         setColor(CS, C::Bg, C::Highlight, C::Normal, QColor("#222222")); // Dark/BG/A1
         setColor(CS, C::Fg, C::Highlight, C::Normal, QColor("#969696")); // Dark/FG/A1
+        setColor(CS, C::Bg, C::Primary, C::Normal, QColor("#090909")); // 3062:10959 / 3176:16553 input well
+        setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#8f8f8f")); // 3176:16554 input label
+        setColor(CS, C::Fg, C::Primary, C::Disabled, QColor("#404040")); // D-control-disabled
     }
 
     //Switch
@@ -912,18 +970,29 @@ void SystemPalette::makeDarkPalette()
         setColor(CS, C::Decoration, C::Border, C::Normal, QColor("#222222")); // Dark/Divider/Dim
         setColor(CS, C::Bg, C::Secondary, C::Normal, bgAccentBright); // Dark/BG/Accent Bright
         setColor(CS, C::Fg, C::Secondary, C::Normal, accentDim); // Dark/Accent/DIm
+        setColor(CS, C::Bg, C::Primary, C::Disabled, QColor("#191919")); // D-control-disabled
+        setColor(CS, C::Bg, C::Secondary, C::Disabled, QColor("#191919")); // D-control-disabled
+        setColor(CS, C::Fg, C::Primary, C::Disabled, QColor("#404040")); // D-control-disabled
+        setColor(CS, C::Fg, C::Secondary, C::Disabled, QColor("#404040")); // D-control-disabled
+        setColor(CS, C::Fg, C::Secondary, C::Hovered, accentMain); // D-control-hover
+        setColor(CS, C::Fg, C::Secondary, C::Pressed, accentBright); // D-control-pressed
+        setColor(CS, C::Fg, C::Primary, C::Hovered, QColor("#6b6b6b")); // D-control-hover
+        setColor(CS, C::Fg, C::Primary, C::Pressed, QColor("#8f8f8f")); // D-control-pressed
     }
 
     //Spinbox
     {
         C::ColorSet CS = C::SpinBox;
-        setColor(CS, C::Decoration, C::Border, C::Normal, QColor("#222222")); // Dark/Divider/Dim
+        setColor(CS, C::Decoration, C::Border, C::Normal, QColor("#191919")); // 3062:10959 input rim
         setColor(CS, C::Decoration, C::Border, C::Focused, accentMain); // Dark/Accent/Main
         setColor(CS, C::Decoration, C::Border, C::Hovered, QColor("#373737")); // Dark/Divider/Bright
         setColor(CS, C::Decoration, C::Border, C::Disabled, setColorAlpha(QColor("#1b1b1b"), 0.0)); // Dark/BG/A3 × alpha 0
 
         setColor(CS, C::Bg, C::Highlight, C::Normal, QColor("#222222")); // Dark/BG/A1
         setColor(CS, C::Fg, C::Highlight, C::Normal, QColor("#969696")); // Dark/FG/A1
+        setColor(CS, C::Bg, C::Primary, C::Normal, QColor("#090909")); // 3062:10959 / 3176:16553 input well
+        setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#8f8f8f")); // 3176:16554 input label
+        setColor(CS, C::Fg, C::Primary, C::Disabled, QColor("#404040")); // D-control-disabled
     }
 }
 

@@ -168,7 +168,10 @@ FocusScope {
                 leftPadding: padding + VLCStyle.dp(4, VLCStyle.scale)
                 rightPadding: leftPadding + (insideRow.visible ? insideRow.width : 0.0)
 
-                radius: clearButton.radius
+                radius: VLCStyle.control_radius
+                bgColor: VLCStyle.searchInputColor(colorContext.palette?.isDark ?? VLCStyle.palette.isDark)
+                placeholderTextColor: (colorContext.palette?.isDark ?? VLCStyle.palette.isDark)
+                                        ? theme.fg.secondary : "#6b6b6b" // Light/FG/A3
 
                 selectByMouse: true
 

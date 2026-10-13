@@ -55,18 +55,9 @@ T.Popup {
         colorSet: ColorContext.Window
     }
 
-    background: Rectangle {
-        // NOTE: The opacity should be stronger on a light background for readability.
-        color: popupTheme.bg.primary.alpha(popupTheme.palette.isDark ? 0.8 : 0.96)
-
-        Rectangle {
-            anchors.left: parent.left
-            anchors.right: parent.right
-
-            height: VLCStyle.margin_xxxsmall
-
-            color: popupTheme.border
-        }
+    background: Widgets.PopupBackground {
+        colorContext.palette: popupTheme.palette
+        radius: VLCStyle.contextMenu_radius
     }
 
     contentItem: T.StackView {

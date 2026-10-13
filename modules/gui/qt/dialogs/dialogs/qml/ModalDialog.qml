@@ -88,14 +88,12 @@ Dialog {
         radius: VLCStyle.panel_radius
 
         Widgets.RoundedRectangleShadow {
-            yOffset: VLCStyle.dp(4, VLCStyle.scale)
-            blurRadius: VLCStyle.dp(3, VLCStyle.scale)
+            yOffset: VLCStyle.popup_shadowOffset
+            blurRadius: VLCStyle.popup_shadowRadius
 
             visible: (parent.color.a > 0.0)
 
-            opacity: 0.2
-
-            color: "black"
+            color: theme.shadow
         }
     }
 

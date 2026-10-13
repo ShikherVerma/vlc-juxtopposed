@@ -52,13 +52,14 @@ T.CheckBox {
 
     // keep in sync with CheckDelegate.qml (shared CheckIndicator.qml was removed for performance reasons)
     indicator: Rectangle {
-        implicitWidth: control.contentItem ? implicitHeight : VLCStyle.dp(28, VLCStyle.scale)
-        implicitHeight: control.contentItem ? control.contentItem.implicitHeight : VLCStyle.dp(28, VLCStyle.scale)
+        radius: VLCStyle.dp(2, VLCStyle.scale)
+        implicitWidth: VLCStyle.dp(22, VLCStyle.scale)
+        implicitHeight: implicitWidth
 
         x: control.text ? (control.mirrored ? control.width - width - control.rightPadding : control.leftPadding) : control.leftPadding + (control.availableWidth - width) / 2
         y: control.topPadding + (control.availableHeight - height) / 2
 
-        color: control.down ? Qt.lighter(theme.accent) : theme.bg.primary
+        color: theme.bg.primary
         border.width: control.visualFocus ? VLCStyle.dp(2, VLCStyle.scale) : VLCStyle.dp(1, VLCStyle.scale)
         border.color: control.visualFocus ? theme.accent : theme.fg.primary
         border.pixelAligned: (radius < Number.EPSILON)
@@ -70,7 +71,7 @@ T.CheckBox {
             width: Math.min(parent.width, parent.height) / 1.618 // golden ratio
             height: width
 
-            color: theme.accent
+            color: control.enabled ? theme.accent : theme.fg.primary
 
             visible: (control.checkState === Qt.PartiallyChecked)
         }
@@ -86,7 +87,7 @@ T.CheckBox {
             minimumPixelSize: 1
             fontSizeMode: Text.Fit
 
-            color: theme.accent
+            color: control.enabled ? theme.accent : theme.fg.primary
 
             text: VLCIcons.check
 

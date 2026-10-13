@@ -26,7 +26,7 @@ import VLC.Widgets as Widgets
 T.Button {
     id: control
 
-    property color color: "white"
+    property color color: control.checked && control.enabled ? theme.accent : theme.fg.primary
     property string description
 
     property int textStyle: Text.Normal
@@ -37,7 +37,17 @@ T.Button {
     implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset,
                              implicitContentHeight + topPadding + bottomPadding)
 
+    padding: VLCStyle.margin_xxsmall
+    font.pixelSize: VLCStyle.icon_normal
     font.family: VLCIcons.fontFamily
+    readonly property ColorContext colorContext: ColorContext {
+        id: theme
+        colorSet: ColorContext.ToolButton
+        enabled: control.enabled
+        hovered: control.hovered
+        pressed: control.down
+        focused: control.visualFocus
+    }
 
     Keys.priority: Keys.AfterItem
     Keys.onPressed: (event) => Navigation.defaultKeyAction(event)
@@ -59,8 +69,11 @@ T.Button {
         styleColor: control.textStyleColor
     }
 
-    background: Item {
-        implicitWidth: 10
-        implicitHeight: 10
+    background: Widgets.AnimatedBackground {
+        implicitWidth: VLCStyle.iconButton_width
+        implicitHeight: VLCStyle.button_height
+        radius: VLCStyle.button_radius
+        color: theme.bg.primary
+        border.color: control.visualFocus ? theme.visualFocus : "transparent"
     }
 }

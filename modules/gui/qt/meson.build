@@ -937,6 +937,7 @@ qml_modules += {
         'widgets/qml/FadingEdge.qml',
         'widgets/qml/FadingEdgeForItemView.qml',
         'widgets/qml/PopupIconToolButton.qml',
+        'widgets/qml/PopupBackground.qml',
         'widgets/qml/PartialEffect.qml',
         'widgets/qml/ViewHeader.qml',
         'widgets/qml/ProgressIndicator.qml',

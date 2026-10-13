@@ -41,7 +41,8 @@ T.SpinBox {
         hovered: control.hovered
     }
 
-    font.pixelSize: VLCStyle.fontSize_large
+    font.family: VLCStyle.fontFamily
+    font.pixelSize: VLCStyle.fontSize_normal
 
     implicitWidth: Math.max(implicitBackgroundWidth + leftInset + rightInset,
                               contentItem.implicitWidth + 2 * padding +
@@ -72,6 +73,7 @@ T.SpinBox {
     }
 
     background: Rectangle {
+        implicitHeight: VLCStyle.button_height
         radius: VLCStyle.control_radius
         border.color: control.borderColor
         border.width: control.borderWidth
@@ -88,7 +90,9 @@ T.SpinBox {
         text: control.textFromValue(control.value, control.locale)
 
         font: control.font
-        color: upTheme.fg.primary
+        color: control.textColor
+        selectionColor: theme.bg.highlight
+        selectedTextColor: theme.fg.highlight
 
         padding: 0
         horizontalAlignment: Qt.AlignRight

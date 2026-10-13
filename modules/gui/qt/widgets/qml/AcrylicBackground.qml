@@ -30,11 +30,16 @@ ViewBlockingRectangle {
 
     readonly property bool usingAcrylic: visible && enabled && AcrylicController.enabled
 
-    property color tintColor: "gray"
+    readonly property ColorContext colorContext: ColorContext {
+        id: theme
+        colorSet: ColorContext.Window
+    }
+
+    property color tintColor: theme.bg.primary
 
     property color alternativeColor: tintColor
 
-    readonly property color _actualTintColor: tintColor.alpha(0.7)
+    readonly property color _actualTintColor: tintColor.alpha((theme.palette?.isDark ?? VLCStyle.palette.isDark) ? 0.95 : 0.75)
 
     color: root._actualTintColor.tint(Qt.alpha(root.alternativeColor,
                                                1 - (usingAcrylic ? AcrylicController.uiTransluency : 0)))

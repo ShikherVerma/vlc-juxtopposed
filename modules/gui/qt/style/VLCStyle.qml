@@ -202,14 +202,31 @@ QtObject {
     readonly property real panel_radius: MainCtx.dp(14, scale)
     readonly property real badge_radius: MainCtx.dp(4, scale)
 
+    // Measured base-control metrics (COMPONENT-MAP.md).
+    readonly property int button_height: MainCtx.dp(32, scale)
+    readonly property int button_iconSize: MainCtx.dp(20, scale)
+    readonly property int iconButton_width: MainCtx.dp(30, scale)
+    readonly property int control_height: MainCtx.dp(34, scale)
+    readonly property int dropdown_height: MainCtx.dp(48, scale)
+    readonly property int option_height: MainCtx.dp(48, scale)
+    readonly property int option_padding: MainCtx.dp(14, scale)
+    readonly property int slider_trackSize: MainCtx.dp(16, scale)
+    readonly property int slider_thumbSize: MainCtx.dp(24, scale)
+    // Authored transparent popup and search fills (Light analogues are named tokens).
+    function popupTint(dark: bool): color { return dark ? "#191919" : "#d5d5d5" }
+    function searchInputColor(dark: bool): color { return dark ? "#151515" : "#dedede" }
+    readonly property int popup_blurRadius: MainCtx.dp(50, scale)
+    readonly property int popup_shadowRadius: MainCtx.dp(15, scale)
+    readonly property int popup_shadowOffset: MainCtx.dp(8, scale)
+
     readonly property int contextButton_width: icon_normal
     readonly property int contextButton_margin: margin_xxsmall
 
-    readonly property int checkButton_width: MainCtx.dp(56, scale)
+    readonly property int checkButton_width: MainCtx.dp(68, scale)
     readonly property int checkButton_height: MainCtx.dp(32, scale)
 
-    readonly property int checkButton_margins: MainCtx.dp(4, scale)
-    readonly property int checkButton_handle_margins: MainCtx.dp(2, scale)
+    readonly property int checkButton_margins: MainCtx.dp(3, scale)
+    readonly property int checkButton_handle_margins: MainCtx.dp(0, scale)
 
     readonly property int navBoxButton_radius: MainCtx.dp(8, scale)
 
@@ -353,8 +370,8 @@ QtObject {
     readonly property int controlLayoutHeightPinned: MainCtx.dp(32, scale)
 
     // Scroll bar (size means width or height, depending on the orientation):
-    readonly property real scrollBarInteractingSize: MainCtx.dp(8, scale)
-    readonly property real scrollBarNonInteractingSize: MainCtx.dp(2, scale)
+    readonly property real scrollBarInteractingSize: MainCtx.dp(6, scale)
+    readonly property real scrollBarNonInteractingSize: MainCtx.dp(6, scale)
 
     function dp(size: real, scale: real) : real {
         if (!scale)
