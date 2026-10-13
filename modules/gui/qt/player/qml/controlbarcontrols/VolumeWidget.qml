@@ -301,59 +301,13 @@ T.Pane {
                 implicitHeight: VLCStyle.dp(28, VLCStyle.scale)
             }
 
-            background: Canvas {
-                id: cone
+            background: Widgets.VolumeCone {
                 anchors.fill: parent
-                property real volume: root._displayVolume
-                property color well: volControl.enabled ? volControl.colorContext.bg.neutral : volControl.colorContext.bg.primary
-                property bool dark: volControl.colorContext.palette?.isDark ?? VLCStyle.palette.isDark
-                onDarkChanged: requestPaint()
-                onVolumeChanged: requestPaint()
-                onWellChanged: requestPaint()
-                onWidthChanged: requestPaint()
-                onHeightChanged: requestPaint()
-                onPaint: {
-                    const ctx = getContext("2d")
-                    ctx.reset()
-                    ctx.scale(width / 88, height / 28)
-                    ctx.beginPath()
-                    ctx.moveTo(0, 12.6159)
-                    ctx.bezierCurveTo(0,10.5626,1.5547,8.8428,3.5976,8.6362)
-                    ctx.lineTo(85.6982,.3339)
-                    ctx.bezierCurveTo(87.4654,.1552,89,1.5425,89,3.3187)
-                    ctx.lineTo(89,24.6813)
-                    ctx.bezierCurveTo(89,26.4575,87.4654,27.8448,85.6982,27.6661)
-                    ctx.lineTo(3.5976,19.3638)
-                    ctx.bezierCurveTo(1.5547,19.1572,0,17.4374,0,15.3841)
-                    ctx.closePath()
-                    ctx.fillStyle = well
-                    ctx.fill()
-                    ctx.save()
-                    ctx.beginPath()
-                    ctx.rect(0,0,root.levelWidth(volume),28)
-                    ctx.clip()
-                    ctx.beginPath()
-                    ctx.moveTo(1.5,15.6984)
-                    ctx.lineTo(1.5,12.3016)
-                    ctx.bezierCurveTo(1.5,11.2777,2.2734,10.4191,3.2918,10.3125)
-                    ctx.lineTo(85.2918,1.7311)
-                    ctx.bezierCurveTo(86.4723,1.6076,87.5,2.5334,87.5,3.7203)
-                    ctx.lineTo(87.5,24.2798)
-                    ctx.bezierCurveTo(87.5,25.4667,86.4723,26.3925,85.2918,26.2689)
-                    ctx.lineTo(3.2918,17.6875)
-                    ctx.bezierCurveTo(2.2734,17.581,1.5,16.7224,1.5,15.6984)
-                    ctx.closePath()
-                    const gradient = ctx.createLinearGradient(-1,14,89,14)
-                    gradient.addColorStop(0,"#95d318")
-                    gradient.addColorStop(.5788,"#b2a918")
-                    gradient.addColorStop(.7924,"#d37918")
-                    gradient.addColorStop(1,"#ff3737")
-                    ctx.fillStyle = volControl.enabled ? gradient : volControl.colorContext.bg.secondary
-                    ctx.fill()
-                    ctx.fillStyle = dark ? "#33000000" : "#33ffffff"
-                    ctx.fill()
-                    ctx.restore()
-                }
+                fillWidth: root.levelWidth(root._displayVolume)
+                wellColor: volControl.enabled ? volControl.colorContext.bg.neutral : volControl.colorContext.bg.primary
+                fillColor: volControl.colorContext.bg.secondary
+                useGradient: volControl.enabled
+                dark: volControl.colorContext.palette?.isDark ?? VLCStyle.palette.isDark
             }
 
             MouseArea {

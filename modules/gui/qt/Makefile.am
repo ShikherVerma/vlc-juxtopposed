@@ -390,6 +390,7 @@ libqt_plugin_la_SOURCES = \
 	widgets/native/qvlcframe.cpp \
 	widgets/native/qvlcframe.hpp \
 	widgets/native/searchlineedit.cpp widgets/native/searchlineedit.hpp \
+	widgets/native/volumecone.cpp widgets/native/volumecone.hpp \
 	widgets/native/viewblockingrectangle.cpp widgets/native/viewblockingrectangle.hpp \
 	widgets/native/doubleclickignoringitem.hpp
 
@@ -549,7 +550,8 @@ nodist_libqt_plugin_la_SOURCES = \
 	widgets/native/navigation_attached.moc.cpp \
 	widgets/native/mlfolderseditor.moc.cpp \
 	widgets/native/searchlineedit.moc.cpp \
-	widgets/native/viewblockingrectangle.moc.cpp
+	widgets/native/viewblockingrectangle.moc.cpp \
+	widgets/native/volumecone.moc.cpp
 
 nodist_libqt_plugin_la_SOURCES += \
 	dialogs/extended/ui_equalizer.h \

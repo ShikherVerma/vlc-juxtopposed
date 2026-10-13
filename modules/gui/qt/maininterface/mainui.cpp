@@ -78,6 +78,7 @@
 #include "widgets/native/csdthemeimage.hpp"
 #include "widgets/native/navigation_attached.hpp"
 #include "widgets/native/viewblockingrectangle.hpp"
+#include "widgets/native/volumecone.hpp"
 #if QT_VERSION < QT_VERSION_CHECK(6, 4, 0)
 #include "widgets/native/doubleclickignoringitem.hpp"
 #else
@@ -450,6 +451,7 @@ void MainUI::registerQMLTypes()
 
         // @uri VLC.Widgets
         qmlRegisterType<CSDThemeImage>(uri, versionMajor, versionMinor, "CSDThemeImage");
+        qmlRegisterType<VolumeCone>(uri, versionMajor, versionMinor, "VolumeCone");
         qmlRegisterType<ViewBlockingRectangle>( uri, versionMajor, versionMinor, "ViewBlockingRectangle" );
         qmlRegisterTypesAndRevisions<PointingToolTipAttached>( uri, versionMajor );
 

@@ -170,6 +170,7 @@ moc_headers = files(
     'widgets/native/mlfolderseditor.hpp',
     'widgets/native/searchlineedit.hpp',
     'widgets/native/viewblockingrectangle.hpp',
+    'widgets/native/volumecone.hpp',
 )
 
 if host_system == 'windows'
@@ -545,6 +546,8 @@ qt_plugin_sources = files(
     'widgets/native/qvlcframe.hpp',
     'widgets/native/searchlineedit.cpp',
     'widgets/native/searchlineedit.hpp',
+    'widgets/native/volumecone.cpp',
+    'widgets/native/volumecone.hpp',
     'widgets/native/viewblockingrectangle.cpp',
     'widgets/native/viewblockingrectangle.hpp',
     'widgets/native/doubleclickignoringitem.hpp',
@@ -1373,6 +1376,16 @@ if qt6_dep.found()
             'link_with': [libvlccore, libvlc],
             'link_args': qt_link_args,
             'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep],
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_volume_cone',
+            'sources': files('tests/test_volume_cone.cpp', 'widgets/native/volumecone.cpp'),
+            'moc_sources': files('tests/test_volume_cone.cpp'),
+            'moc_headers': files('widgets/native/volumecone.hpp'),
+            'suite': ['qt'],
+            'include_directories': qt_include_dir,
+            'dependencies': [qt6_dep, qtest_qt6_dep],
         }
 
         vlc_tests += {
