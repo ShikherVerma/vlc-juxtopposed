@@ -291,6 +291,12 @@ void PrefsDialog::setSimple()
     setWindowTitle( qtr( "Simple Preferences" ) );
 }
 
+void PrefsDialog::showHotkeys()
+{
+    setSimple();
+    simple_tree->selectCategory(SPrefsHotkeys);
+}
+
 /* Switching from on simple panel to another */
 void PrefsDialog::changeSimplePanel( int number )
 {

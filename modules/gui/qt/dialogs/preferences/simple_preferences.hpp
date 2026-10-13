@@ -83,6 +83,7 @@ class SPrefsCatList : public QWidget
 public:
     SPrefsCatList( qt_intf_t *, QWidget * );
     virtual ~SPrefsCatList() {}
+    void selectCategory(int category);
 private:
     qt_intf_t *p_intf;
 signals:

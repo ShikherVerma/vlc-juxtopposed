@@ -600,6 +600,17 @@ Item {
         source: "qrc:///qt/qml/VLC/Dialogs/ToolbarEditorDialog.qml"
 
         Connections {
+            target: toolbarEditorDialogLoader.item
+            function onUnload() {
+                // Tear down the modal window after its close/accept dispatch.
+                Qt.callLater(function() {
+                    toolbarEditorDialogLoader.active = false
+                    restoreFocus()
+                })
+            }
+        }
+
+        Connections {
             target: DialogsProvider
 
             function onShowToolbarEditorDialog() {

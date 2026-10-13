@@ -21,6 +21,9 @@
 #include <player/player_controller.hpp>
 #include <playlist/playlist_controller.hpp>
 #include "util/keyhelper.hpp"
+#include "menus/menus.hpp"
+#include "dialogs/dialogs_provider.hpp"
+#include <vlc_actions.h>
 #include "dialogs/systray/systray.hpp"
 #include "widgets/native/qvlcframe.hpp"
 #include "dialogs/dialogs/dialogmodel.hpp"
@@ -246,6 +249,16 @@ bool InterfaceWindowHandler::eventFilter(QObject*, QEvent* event)
     case QEvent::KeyPress:
     {
         QKeyEvent * keyEvent = static_cast<QKeyEvent *> (event);
+
+        // About has no default engine conflict. Preserve any user assignment
+        // instead of stealing it when the video has hotkey priority.
+        if (keyEvent->key() == Qt::Key_F1 && keyEvent->modifiers() == Qt::ShiftModifier &&
+            !VLCMenuBar::hasEngineHotkey(p_intf, KEY_MODIFIER_SHIFT | KEY_F1))
+        {
+            if (!keyEvent->isAutoRepeat())
+                THEDP->aboutDialog();
+            return true;
+        }
 
         // These UI actions must also work when the video has hotkey priority.
         if (keyEvent->key() == Qt::Key_Backslash && keyEvent->modifiers() == Qt::ControlModifier)

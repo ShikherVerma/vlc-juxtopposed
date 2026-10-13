@@ -45,6 +45,7 @@ class PrefsDialog : public QVLCDialog
 public:
     PrefsDialog( QWindow *, qt_intf_t * );
     virtual ~PrefsDialog();
+    void showHotkeys();
 
 private:
     size_t count;

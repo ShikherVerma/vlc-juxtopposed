@@ -98,10 +98,61 @@ ColorizedSvgIcon::ColorizedSvgIcon(const QString& filename, const QColor color1,
     }
 }
 
+namespace {
+// Retained and dynamically created menu actions may acquire a popup-local
+// palette after their icons were built. Keep the SVG source, not a raster tint:
+// only styled player menus opt in; native/legacy consumers keep their original
+// icon and Qt's mode/state handling unchanged.
+class WidgetSvgIconEngine final : public QIconEngine
+{
+public:
+    WidgetSvgIconEngine(const QString& fileName, const QWidget* widget)
+        : m_fileName(fileName), m_widget(widget)
+        , m_original(ColorizedSvgIcon(fileName, widget->palette().text().color()))
+    {}
+
+    QIconEngine* clone() const override { return new WidgetSvgIconEngine(*this); }
+
+    void paint(QPainter* painter, const QRect& rect, QIcon::Mode mode, QIcon::State state) override
+    {
+        icon().paint(painter, rect, Qt::AlignCenter, mode, state);
+    }
+
+    QPixmap pixmap(const QSize& size, QIcon::Mode mode, QIcon::State state) override
+    {
+        return icon().pixmap(size, mode, state);
+    }
+
+    QSize actualSize(const QSize& size, QIcon::Mode mode, QIcon::State state) override
+    {
+        return icon().actualSize(size, mode, state);
+    }
+
+private:
+    const QIcon& icon()
+    {
+        if (!m_widget || !m_widget->property("playerMenuWidth").isValid())
+            return m_original;
+        const QColor ink = m_widget->palette().text().color();
+        if (ink != m_ink) {
+            m_ink = ink;
+            m_styled = ColorizedSvgIcon(m_fileName, ink);
+        }
+        return m_styled;
+    }
+
+    QString m_fileName;
+    QPointer<const QWidget> m_widget;
+    QIcon m_original;
+    QIcon m_styled;
+    QColor m_ink;
+};
+}
+
 ColorizedSvgIcon ColorizedSvgIcon::colorizedIconForWidget(const QString &fileName, const QWidget *widget)
 {
     assert(widget);
-    return ColorizedSvgIcon(fileName, widget->palette().text().color());
+    return ColorizedSvgIcon(new WidgetSvgIconEngine(fileName, widget));
 }
 
 QIconEngine *ColorizedSvgIcon::svgIconEngine()

@@ -22,6 +22,8 @@
 
 class ColorizedSvgIcon : public QIcon
 {
+    explicit ColorizedSvgIcon(QIconEngine* engine) : QIcon(engine) {}
+
     static int hashKey(QIcon::Mode mode, QIcon::State state)
     {
         // From QSvgIconEnginePrivate:

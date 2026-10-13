@@ -59,6 +59,243 @@
 #include <QAction>
 #include <QActionGroup>
 #include <QSignalMapper>
+#include <QProxyStyle>
+#include <QStyleFactory>
+#include <QStyleOptionMenuItem>
+#include <QPainter>
+#include <QPainterPath>
+#include <vlc_actions.h>
+#include "style/systempalette.hpp"
+#include "util/vlchotkeyconverter.hpp"
+
+namespace {
+// Keep QMenu's action/model/keyboard APIs, but draw these two popups with the
+// authored menu metrics. The optional traditional/native menubar is untouched.
+class PlayerMenuStyle final : public QProxyStyle
+{
+public:
+    PlayerMenuStyle(qt_intf_t* intf, QMenu* menu)
+        : QProxyStyle(QStyleFactory::create(QStringLiteral("Fusion")))
+        , m_scale(intf->p_mi->getIntfScaleFactor())
+    {
+        setParent(menu);
+        m_palette.setCtx(intf->p_mi);
+        m_palette.setSource(intf->p_mi->getColorScheme()->currentScheme());
+        connect(intf->p_mi->getColorScheme(), &ColorSchemeModel::currentChanged,
+                this, [this, ctx = intf->p_mi]() {
+            m_palette.setSource(ctx->getColorScheme()->currentScheme());
+        });
+        connect(&m_palette, &SystemPalette::paletteChanged, menu, [this, menu]() {
+            applyPalette(menu);
+            menu->update();
+        });
+    }
+
+    int px(int value) const { return qRound(value * m_scale); }
+    bool dark() const { return m_palette.property("isDark").toBool(); }
+    QColor foreground() const { return dark() ? QColor("#8f8f8f") : QColor("#2e2e2e"); }
+    QColor quiet() const { return QColor("#6b6b6b"); }
+    QColor accent() const { return m_palette.get_accentMain(); }
+
+    void applyPalette(QMenu* menu) const
+    {
+        QPalette palette = menu->palette();
+        palette.setColor(QPalette::Text, foreground());
+        palette.setColor(QPalette::WindowText, foreground());
+        palette.setColor(QPalette::Window, dark() ? QColor("#191919") : QColor("#d5d5d5"));
+        menu->setPalette(palette);
+    }
+
+    int pixelMetric(PixelMetric metric, const QStyleOption* option, const QWidget* widget) const override
+    {
+        switch (metric) {
+        case PM_MenuPanelWidth: return 0;
+        case PM_MenuHMargin: case PM_MenuVMargin: return px(4);
+        case PM_SmallIconSize: return px(24);
+        default: return QProxyStyle::pixelMetric(metric, option, widget);
+        }
+    }
+
+    int styleHint(StyleHint hint, const QStyleOption* option, const QWidget* widget,
+                  QStyleHintReturn* data) const override
+    {
+        if (hint == SH_Menu_SubMenuPopupDelay) return 150;
+        if (hint == SH_Menu_Mask && widget) {
+            if (auto mask = qstyleoption_cast<QStyleHintReturnMask*>(data)) {
+                // A shape mask also clips corners on X11 without a compositing
+                // manager; alpha-only QWidget corners otherwise become black.
+                QPainterPath path;
+                path.addRoundedRect(widget->rect(), px(10), px(10));
+                mask->region = QRegion(path.toFillPolygon().toPolygon());
+                return 1;
+            }
+        }
+        return QProxyStyle::styleHint(hint, option, widget, data);
+    }
+
+    QSize sizeFromContents(ContentsType type, const QStyleOption* option,
+                           const QSize& size, const QWidget* widget) const override
+    {
+        if (type != CT_MenuItem)
+            return QProxyStyle::sizeFromContents(type, option, size, widget);
+        const auto item = qstyleoption_cast<const QStyleOptionMenuItem*>(option);
+        if (!item) return size;
+        if (item->menuItemType == QStyleOptionMenuItem::Separator) return QSize(px(1), px(1));
+        const auto parts = item->text.split('\t');
+        const int shortcut = parts.size() > 1 ? item->fontMetrics.horizontalAdvance(parts[1]) + px(24) : 0;
+        const int width = widget ? widget->property("playerMenuWidth").toInt() : 265;
+        // QMenu adds the widest shortcut column AFTER sizeFromContents().
+        // Account for that once, including display-only engine bindings.
+        int shortcutColumn = 0;
+        if (auto menu = qobject_cast<const QMenu*>(widget)) {
+            for (auto action : menu->actions()) {
+                QString label = action->text().section('\t', 1, 1);
+                if (label.isEmpty()) label = action->shortcut().toString(QKeySequence::NativeText);
+                shortcutColumn = qMax(shortcutColumn, item->fontMetrics.horizontalAdvance(label));
+            }
+        }
+        return QSize(qMax(px(width - 8), item->fontMetrics.horizontalAdvance(parts[0]) + shortcut + px(82)) - shortcutColumn, px(48));
+    }
+
+    void drawPrimitive(PrimitiveElement element, const QStyleOption* option,
+                       QPainter* painter, const QWidget* widget) const override
+    {
+        if (element != PE_PanelMenu) {
+            QProxyStyle::drawPrimitive(element, option, painter, widget);
+            return;
+        }
+        painter->save();
+        painter->setRenderHint(QPainter::Antialiasing);
+        painter->setPen(Qt::NoPen);
+        // Opaque fallback: QWidget popups cannot sample the native video child.
+        painter->setBrush(dark() ? QColor("#191919") : QColor("#d5d5d5"));
+        painter->drawRoundedRect(option->rect, px(10), px(10));
+        painter->restore();
+    }
+
+    void drawControl(ControlElement element, const QStyleOption* option,
+                     QPainter* painter, const QWidget* widget) const override
+    {
+        const auto item = qstyleoption_cast<const QStyleOptionMenuItem*>(option);
+        if (element != CE_MenuItem || !item) {
+            QProxyStyle::drawControl(element, option, painter, widget);
+            return;
+        }
+        painter->save();
+        painter->setRenderHint(QPainter::Antialiasing);
+        const QRect row = item->rect;
+        if (item->menuItemType == QStyleOptionMenuItem::Separator) {
+            painter->fillRect(row, dark() ? QColor("#222222") : QColor("#acacac"));
+            painter->restore();
+            return;
+        }
+        const bool enabled = item->state & State_Enabled;
+        if (item->state & State_Selected) {
+            painter->setPen(Qt::NoPen);
+            painter->setBrush(dark() ? QColor("#1f1f1f") : QColor("#dddddd"));
+            painter->drawRoundedRect(row, px(6), px(6));
+        }
+        painter->setFont(item->font);
+        painter->setPen(enabled ? foreground() : (dark() ? QColor("#404040") : quiet()));
+        const auto parts = item->text.split('\t');
+        QRect textRect = row.adjusted(px(48), 0, -px(14), 0);
+        const int trailing = parts.size() > 1 ? item->fontMetrics.horizontalAdvance(parts[1]) + px(24)
+                                             : (item->menuItemType == QStyleOptionMenuItem::SubMenu ? px(24) : 0);
+        painter->drawText(textRect.adjusted(0, 0, -trailing, 0), Qt::AlignVCenter | Qt::AlignLeft | Qt::TextHideMnemonic,
+                          item->fontMetrics.elidedText(parts[0], Qt::ElideRight, textRect.width() - trailing));
+        painter->setPen(quiet());
+        if (parts.size() > 1)
+            painter->drawText(textRect, Qt::AlignVCenter | Qt::AlignRight, parts[1]);
+        if (item->menuItemType == QStyleOptionMenuItem::SubMenu) {
+            const QPointF center(row.right() - px(22), row.center().y());
+            painter->setPen(QPen(enabled ? foreground() : quiet(), 1.5 * m_scale));
+            painter->drawLine(center + QPointF(-px(2), -px(5)), center + QPointF(px(3), 0));
+            painter->drawLine(center + QPointF(px(3), 0), center + QPointF(-px(2), px(5)));
+        }
+        const QRect iconRect(row.left() + px(14), row.top() + px(12), px(24), px(24));
+        if (item->checked) {
+            painter->setPen(QPen(accent(), 2 * m_scale));
+            painter->drawLine(iconRect.topLeft() + QPoint(px(5), px(12)), iconRect.topLeft() + QPoint(px(10), px(17)));
+            painter->drawLine(iconRect.topLeft() + QPoint(px(10), px(17)), iconRect.topLeft() + QPoint(px(20), px(7)));
+        } else if (!item->icon.isNull()) {
+            item->icon.paint(painter, iconRect, Qt::AlignCenter, enabled ? QIcon::Normal : QIcon::Disabled);
+        }
+        painter->restore();
+    }
+private:
+    SystemPalette m_palette;
+    qreal m_scale;
+};
+
+void menuIcon(QAction* action, const char* name)
+{
+    const QString path = QStringLiteral(":/menu/redesign/") + QString::fromLatin1(name) + QStringLiteral(".svg");
+    action->setProperty("playerMenuIcon", path);
+}
+
+// Display only: the engine already handles these bindings. Do not register a
+// second QAction shortcut, which would steal/duplicate the engine hotkey.
+void configuredShortcut(qt_intf_t* intf, QAction* action, const char* key)
+{
+    char* value = var_InheritString(intf, key);
+    const QString binding = QString::fromUtf8(value ? value : "").section('\t', 0, 0);
+    free(value);
+    if (binding.isEmpty()) return;
+    const auto code = vlc_str2keycode(qtu(binding));
+    if (!code) return;
+    QString label = VLCKeyToString(code, true);
+#ifndef __APPLE__
+    // NativeText supplies platform modifier spelling; VLC's locale conversion
+    // also covers media/mouse keys that QKeySequence cannot represent.
+    const auto sequence = QKeySequence::fromString(VLCKeyToString(code, false), QKeySequence::PortableText);
+    if (!sequence.isEmpty()) label = sequence.toString(QKeySequence::NativeText);
+#endif
+    action->setText(action->text() + '\t' + label);
+}
+}
+
+bool VLCMenuBar::hasEngineHotkey(qt_intf_t* intf, uint_fast32_t key)
+{
+    for (auto name = vlc_actions_get_key_names(intf); *name; ++name) {
+        uint_fast32_t* keys = nullptr;
+        const size_t count = vlc_actions_get_keycodes(intf, *name, false, &keys);
+        bool found = false;
+        for (size_t i = 0; i < count; ++i) found |= keys[i] == key;
+        free(keys);
+        if (found) return true;
+    }
+    return false;
+}
+
+void VLCMenuBar::styleMenu(qt_intf_t* intf, QMenu* menu, int width)
+{
+    if (!intf->p_mi) return;
+    auto style = dynamic_cast<PlayerMenuStyle*>(menu->style());
+    if (!style) {
+        style = new PlayerMenuStyle(intf, menu);
+        menu->setStyle(style);
+        menu->setAttribute(Qt::WA_TranslucentBackground);
+        menu->setWindowFlag(Qt::FramelessWindowHint);
+        connect(menu, &QMenu::aboutToShow, menu, [intf, menu, width]() {
+            styleMenu(intf, menu, width);
+        });
+    }
+    menu->setProperty("playerMenuWidth", width);
+    style->applyPalette(menu);
+    QFont font(QStringLiteral("Inter"));
+    font.setPixelSize(style->px(14));
+    menu->setFont(font);
+    for (auto action : menu->actions()) {
+        if (action->shortcut() == QKeySequence(QStringLiteral("Shift+F1")) &&
+            hasEngineHotkey(intf, KEY_MODIFIER_SHIFT | KEY_F1))
+            action->setShortcut(QKeySequence());
+        const auto icon = action->property("playerMenuIcon").toString();
+        if (!icon.isEmpty())
+            action->setIcon(ColorizedSvgIcon(icon, style->foreground(), style->quiet(), style->accent()));
+        if (auto submenu = action->menu())
+            styleMenu(intf, submenu, 265);
+    }
+}
 
 using namespace vlc::playlist;
 
@@ -233,6 +470,56 @@ void VLCMenuBar::FileMenu(qt_intf_t *p_intf, QMenu *menu)
 
     addDPStaticEntry( menu, qtr( "&Quit" ) ,
         ":/menu/exit.svg", &DialogsProvider::quit, "Ctrl+Q" );
+}
+
+void VLCMenuBar::MainMenu(qt_intf_t* p_intf, QMenu* menu)
+{
+    // Build the original command banks, then move only the authored promotions.
+    // QAction ownership stays in the banks, themselves owned by this root.
+    auto more = new QMenu(qtr("More"), menu);
+    auto media = more->addMenu(qtr("Media"));
+    FileMenu(p_intf, media);
+    const auto files = media->actions();
+    auto promote = [menu](QMenu* bank, QAction* action, const QString& title, const char* icon) {
+        bank->removeAction(action);
+        action->setText(title);
+        menuIcon(action, icon);
+        menu->addAction(action);
+    };
+    promote(media, files[0], qtr("Open File(s)"), "file");
+    promote(media, files[2], qtr("Open Folder"), "folder");
+    promote(media, files[4], qtr("Open Network Stream"), "network");
+    promote(media, files[3], qtr("Open Disc"), "disc");
+    promote(media, files[5], qtr("Open Capture Device"), "capture");
+    for (auto action : files) {
+        if (action->shortcut() == QKeySequence(QStringLiteral("Ctrl+R")))
+            promote(media, action, qtr("Convert"), "convert");
+    }
+    for (auto action : files) {
+        if (dynamic_cast<RecentMenu*>(action->menu()))
+            promote(media, action, qtr("Open Recent"), "recent");
+    }
+    menu->addSeparator();
+    auto profile = menu->addMenu(qtr("Profile"));
+    profile->menuAction()->setEnabled(false);
+    menuIcon(profile->menuAction(), "profile");
+    menuIcon(menu->addAction(qtr("Keyboard Shortcuts"), THEDP, &DialogsProvider::keyboardShortcutsDialog), "hotkeys");
+    auto tools = more->addMenu(qtr("Tools"));
+    ToolsMenu(p_intf, tools);
+    const auto toolActions = tools->actions();
+    if (!p_intf->b_isDialogProvider)
+        promote(tools, toolActions[toolActions.size() - 2], qtr("Customize Player"), "customize");
+    promote(tools, toolActions.last(), qtr("Settings"), "settings");
+    auto help = more->addMenu(qtr("Help"));
+    HelpMenu(p_intf, help);
+    promote(help, help->actions().last(), qtr("About VLC"), "info");
+    NavigMenu(p_intf, more->addMenu(qtr("Playback")));
+    VideoMenu(p_intf, more->addMenu(qtr("Video")));
+    AudioMenu(p_intf, more->addMenu(qtr("Audio")));
+    SubtitleMenu(p_intf, more->addMenu(qtr("Subtitle")));
+    ViewMenu(p_intf, more->addMenu(qtr("View")));
+    menu->addMenu(more);
+    styleMenu(p_intf, menu, 375);
 }
 
 /**
@@ -616,7 +903,24 @@ void VLCMenuBar::PopupMenuPlaylistEntries( QMenu *menu, qt_intf_t *p_intf )
     nextAction->setEnabled( !bPlaylistEmpty );
     connect( THEMPL, &PlaylistController::isEmptyChanged, nextAction, &QAction::setDisabled);
 
+    auto playAction = menu->actions()[menu->actions().size() - 4];
+    auto stopAction = menu->actions()[menu->actions().size() - 3];
+    menuIcon(playAction, THEMIM->getPlayingState() == PlayerController::PLAYING_STATE_PLAYING ? "pause" : "play");
+    menuIcon(stopAction, "stop");
+    menuIcon(previousAction, "previous");
+    menuIcon(nextAction, "next");
+    configuredShortcut(p_intf, playAction, "key-play-pause");
+    configuredShortcut(p_intf, stopAction, "key-stop");
+    previousAction->setText(qtr("Previous Item"));
+    nextAction->setText(qtr("Next Item"));
+    configuredShortcut(p_intf, previousAction, "key-prev");
+    configuredShortcut(p_intf, nextAction, "key-next");
+
     action = menu->addAction( qtr( "Record" ), THEMIM, &PlayerController::toggleRecord );
+    configuredShortcut(p_intf, action, "key-record");
+    menuIcon(action, "record");
+    action->setCheckable(true);
+    action->setChecked(THEMIM->isRecording());
     action->setIcon( QIcon( ":/menu/ic_fluent_record.svg" ) );
     if( !hasInput )
         action->setEnabled( false );
@@ -745,8 +1049,59 @@ QMenu* VLCMenuBar::MiscPopupMenu( qt_intf_t *p_intf, bool show )
 /* Main Menu that sticks everything together  */
 QMenu* VLCMenuBar::PopupMenu( qt_intf_t *p_intf, bool show )
 {
-    /* */
     QMenu* menu = new VLCMenu(p_intf);
+    if (!p_intf->b_isDialogProvider)
+    {
+        PopupMenuPlaylistEntries(menu, p_intf);
+        auto hide = menu->addAction(qtr("&Hide UI"));
+        hide->setShortcut(QKeySequence(QStringLiteral("Ctrl+\\")));
+        hide->setCheckable(true);
+        hide->setChecked(p_intf->p_mi->isMinimalView());
+        connect(hide, &QAction::triggered, p_intf->p_mi, &MainCtx::setMinimalView, Qt::QueuedConnection);
+        menuIcon(hide, "hide");
+        menu->addSeparator();
+        auto playback = menu->addMenu(qtr("Playback"));
+        NavigMenu(p_intf, playback);
+        menuIcon(playback->menuAction(), "playback");
+        auto video = menu->addMenu(qtr("Video"));
+        VideoMenu(p_intf, video);
+        menuIcon(video->menuAction(), "video");
+        auto audio = menu->addMenu(qtr("Audio"));
+        AudioMenu(p_intf, audio);
+        menuIcon(audio->menuAction(), "audio");
+        auto subtitle = menu->addMenu(qtr("Subtitle"));
+        SubtitleMenu(p_intf, subtitle);
+        menuIcon(subtitle->menuAction(), "subtitle");
+        menu->addSeparator();
+        auto settings = menu->addMenu(qtr("More Settings"));
+        ToolsMenu(p_intf, settings->addMenu(qtr("Tools")));
+        ViewMenu(p_intf, settings->addMenu(qtr("View")));
+        HelpMenu(p_intf, settings->addMenu(qtr("Help")));
+        menuIcon(settings->menuAction(), "settings");
+        auto playlist = menu->addMenu(qtr("Playlist"));
+        menuIcon(playlist->menuAction(), "playlist");
+        auto queue = playlist->addAction(qtr("Play Queue"));
+        queue->setCheckable(true);
+        queue->setChecked(p_intf->p_mi->getPlayqueuePanel()->isVisible());
+        queue->setShortcut(QKeySequence(QStringLiteral("Ctrl+L")));
+        connect(queue, &QAction::triggered, p_intf->p_mi->getPlayqueuePanel(), &SidePanelCtx::setVisible);
+        auto docked = playlist->addAction(qtr("Docked Play Queue"));
+        docked->setCheckable(true);
+        docked->setChecked(p_intf->p_mi->getPlayqueuePanel()->isDocked());
+        connect(docked, &QAction::triggered, p_intf->p_mi->getPlayqueuePanel(), &SidePanelCtx::setDocked);
+        addDPStaticEntry(playlist, qfut(I_PL_SAVE), "", &DialogsProvider::savePlayingToPlaylist, "Ctrl+Y");
+        playlist->addAction(qtr("Shuffle the play queue"), THEMPL, &PlaylistController::shuffle);
+        playlist->addAction(qtr("Clear the play queue"), THEMPL, &PlaylistController::clear);
+        auto open = menu->addMenu(qtr("Open Media"));
+        FileMenu(p_intf, open);
+        menuIcon(open->menuAction(), "file");
+        auto quit = addDPStaticEntry(menu, qtr("Quit VLC"), "", &DialogsProvider::quit, "Ctrl+Q", QAction::QuitRole);
+        menuIcon(quit, "quit");
+        styleMenu(p_intf, menu, 292);
+        if (show) menu->popup(QCursor::pos());
+        return menu;
+    }
+    // Legacy skins/dialog-provider menu remains available with skin commands.
     input_item_t* p_input = THEMIM->getInput();
     QAction *action;
     bool b_isFullscreen = false;

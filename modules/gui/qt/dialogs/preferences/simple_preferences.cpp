@@ -251,6 +251,7 @@ SPrefsCatList::SPrefsCatList( qt_intf_t *_p_intf, QWidget *_parent ) :
         button->setAutoExclusive( true );
         connect( button, &QToolButton::clicked, mapper, QOverload<>::of(&QSignalMapper::map) );
         mapper->setMapping( button, numb );
+        button->setProperty("preferencesCategory", numb);
         layout->addWidget( button );
     };
 
@@ -270,6 +271,18 @@ SPrefsCatList::SPrefsCatList( qt_intf_t *_p_intf, QWidget *_parent ) :
     setSizePolicy(QSizePolicy::MinimumExpanding,QSizePolicy::Preferred);
     setMinimumWidth( ICON_HEIGHT * 6 + 10 );
     setLayout( layout );
+}
+
+void SPrefsCatList::selectCategory(int category)
+{
+    for (auto button : findChildren<QToolButton*>())
+    {
+        if (button->property("preferencesCategory").toInt() == category)
+        {
+            button->click();
+            return;
+        }
+    }
 }
 
 void SPrefsCatList::switchPanel( int i )

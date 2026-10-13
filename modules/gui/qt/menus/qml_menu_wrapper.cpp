@@ -251,7 +251,6 @@ void QmlGlobalMenu::popup(QPoint pos)
         return;
 
     m_menu = std::make_unique<VLCMenu>(m_ctx->getIntf());
-    QMenu* submenu;
 
     connect( m_menu.get(), &QMenu::aboutToShow, this, [this]() {
         m_shown = true;
@@ -264,31 +263,7 @@ void QmlGlobalMenu::popup(QPoint pos)
         aboutToHide();
     });
 
-    submenu = m_menu->addMenu(qtr( "&Media" ));
-    FileMenu( p_intf, submenu );
-
-    /* Dynamic menus, rebuilt before being showed */
-    submenu = m_menu->addMenu(qtr( "P&layback" ));
-    NavigMenu( p_intf, submenu );
-
-    submenu = m_menu->addMenu(qtr( "&Audio" ));
-    AudioMenu( p_intf, submenu );
-
-    submenu = m_menu->addMenu(qtr( "&Video" ));
-    VideoMenu( p_intf, submenu );
-
-    submenu = m_menu->addMenu(qtr( "Subti&tle" ));
-    SubtitleMenu( p_intf, submenu );
-
-    submenu = m_menu->addMenu(qtr( "Tool&s" ));
-    ToolsMenu( p_intf, submenu );
-
-    /* View menu, a bit different */
-    submenu = m_menu->addMenu(qtr( "V&iew" ));
-    ViewMenu( p_intf, submenu );
-
-    submenu = m_menu->addMenu(qtr( "&Help" ));
-    HelpMenu( p_intf, submenu );
+    MainMenu(p_intf, m_menu.get());
 
     m_menu->popup(pos);
 }

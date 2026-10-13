@@ -302,6 +302,16 @@ void DialogsProvider::prefsDialog()
     }
 }
 
+void DialogsProvider::keyboardShortcutsDialog()
+{
+    if (!m_prefsDialog)
+        prefsDialog();
+    m_prefsDialog->showHotkeys();
+    m_prefsDialog->show();
+    m_prefsDialog->raise();
+    m_prefsDialog->activateWindow();
+}
+
 void DialogsProvider::firstRunDialog()
 {
     ensureDialog(m_firstRunDialog);

@@ -16,6 +16,33 @@
         <file alias="ic_fluent_arrow_sync_24_regular.svg">pixmaps/icons/ic_fluent_arrow_sync_24_regular.svg</file>
     </qresource>
     <qresource prefix="/menu">
+        <file alias="redesign/play.svg">pixmaps/menu/redesign/play.svg</file>
+        <file alias="redesign/pause.svg">pixmaps/menu/redesign/pause.svg</file>
+        <file alias="redesign/stop.svg">pixmaps/menu/redesign/stop.svg</file>
+        <file alias="redesign/previous.svg">pixmaps/menu/redesign/previous.svg</file>
+        <file alias="redesign/next.svg">pixmaps/menu/redesign/next.svg</file>
+        <file alias="redesign/record.svg">pixmaps/menu/redesign/record.svg</file>
+        <file alias="redesign/playlist.svg">pixmaps/menu/redesign/playlist.svg</file>
+
+        <file alias="redesign/file.svg">pixmaps/menu/redesign/file.svg</file>
+        <file alias="redesign/folder.svg">pixmaps/menu/redesign/folder.svg</file>
+        <file alias="redesign/network.svg">pixmaps/menu/redesign/network.svg</file>
+        <file alias="redesign/disc.svg">pixmaps/menu/redesign/disc.svg</file>
+        <file alias="redesign/capture.svg">pixmaps/menu/redesign/capture.svg</file>
+        <file alias="redesign/convert.svg">pixmaps/menu/redesign/convert.svg</file>
+        <file alias="redesign/recent.svg">pixmaps/menu/redesign/recent.svg</file>
+        <file alias="redesign/profile.svg">pixmaps/menu/redesign/profile.svg</file>
+        <file alias="redesign/hotkeys.svg">pixmaps/menu/redesign/hotkeys.svg</file>
+        <file alias="redesign/customize.svg">pixmaps/menu/redesign/customize.svg</file>
+        <file alias="redesign/settings.svg">pixmaps/menu/redesign/settings.svg</file>
+        <file alias="redesign/info.svg">pixmaps/menu/redesign/info.svg</file>
+        <file alias="redesign/hide.svg">pixmaps/menu/redesign/hide.svg</file>
+        <file alias="redesign/playback.svg">pixmaps/menu/redesign/playback.svg</file>
+        <file alias="redesign/video.svg">pixmaps/menu/redesign/video.svg</file>
+        <file alias="redesign/audio.svg">pixmaps/menu/redesign/audio.svg</file>
+        <file alias="redesign/subtitle.svg">pixmaps/menu/redesign/subtitle.svg</file>
+        <file alias="redesign/quit.svg">pixmaps/menu/redesign/quit.svg</file>
+
         <file alias="add.svg">pixmaps/menu/add.svg</file>
         <file alias="capture-card.svg">pixmaps/menu/capture-card.svg</file>
         <file alias="clear.svg">pixmaps/menu/clear.svg</file>

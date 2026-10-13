@@ -76,6 +76,9 @@ public:
 
     /* All main Menus */
     static void FileMenu( qt_intf_t *, QMenu * );
+    static void MainMenu( qt_intf_t *, QMenu * );
+    static void styleMenu( qt_intf_t *, QMenu *, int width );
+    static bool hasEngineHotkey( qt_intf_t *, uint_fast32_t key );
 
     static void ToolsMenu( qt_intf_t *, QMenu * );
 
