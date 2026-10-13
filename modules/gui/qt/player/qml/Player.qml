@@ -61,6 +61,7 @@ FocusScope {
     property bool _controlsUnderVideo: MainCtx.pinVideoControls && MainCtx.intfMainWindow.visibility !== Window.FullScreen
 
     property bool _keyPressed: false
+    property bool adjustmentsVisible: false
 
     // Settings
 
@@ -71,7 +72,7 @@ FocusScope {
     // Events
 
     // Sidebar lists/editors must receive keys even after mouse focus.
-    Component.onCompleted: MainCtx.preferHotkeys = Qt.binding(() => !playlistVisibility.isPlaylistVisible)
+    Component.onCompleted: MainCtx.preferHotkeys = Qt.binding(() => !playlistVisibility.isPlaylistVisible && !rootPlayer.adjustmentsVisible)
     Component.onDestruction: MainCtx.preferHotkeys = false
 
     Keys.priority: Keys.AfterItem
@@ -84,7 +85,7 @@ FocusScope {
         rootPlayer.Navigation.defaultKeyAction(event)
 
         //unhandled keys are forwarded as hotkeys
-        if (!event.accepted || controlBar.state !== "visible")
+        if (!event.accepted || (!rootPlayer.adjustmentsVisible && controlBar.state !== "visible"))
             MainCtx.sendHotkey(event.key, event.modifiers);
     }
 
@@ -148,12 +149,24 @@ FocusScope {
     PlayerPlaylistVisibilityFSM {
         id: playlistVisibility
 
-        onIsPlaylistVisibleChanged: lockUnlockAutoHide(isPlaylistVisible)
+        onIsPlaylistVisibleChanged: {
+            if (isPlaylistVisible) rootPlayer.adjustmentsVisible = false
+            lockUnlockAutoHide(isPlaylistVisible || rootPlayer.adjustmentsVisible)
+        }
     }
 
     Connections {
         target: MainCtx
 
+        function onToggleAdjustments() {
+            if (rootPlayer.adjustmentsVisible) rootPlayer.closeAdjustments()
+            else {
+                if (playlistVisibility.isPlaylistVisible) playlistVisibility.togglePlaylistVisibility()
+                rootPlayer.adjustmentsVisible = true
+                lockUnlockAutoHide(true)
+                Qt.callLater(() => adjustmentPanel.selectTab(adjustmentPanel.currentTab, true, Qt.OtherFocusReason))
+            }
+        }
         //playlist
         function onHasEmbededVideoChanged() {
             playlistVisibility.updateVideoEmbed()
@@ -1011,6 +1024,30 @@ FocusScope {
             duration: playerToolbarVisibilityFSM.fullscreen ? 0 : VLCStyle.duration_long
         }
 
+    }
+
+    function closeAdjustments() {
+        rootPlayer.adjustmentsVisible = false
+        lockUnlockAutoHide(playlistVisibility.isPlaylistVisible)
+        controlBar.forceActiveFocus(Qt.BacktabFocusReason)
+    }
+
+    AdjustmentSidebar {
+        id: adjustmentPanel
+        visible: rootPlayer.adjustmentsVisible
+        width: Math.min(VLCStyle.dp(400), Math.max(0, rootPlayer.width - VLCStyle.dp(40)))
+        anchors {
+            top: parent.top
+            topMargin: VLCStyle.dp(80)
+            right: parent.right
+            rightMargin: VLCStyle.dp(20)
+            bottom: parent.bottom
+            bottomMargin: parent.height - rootPlayer.positionSliderY
+        }
+        Navigation.parentItem: rootPlayer
+        Navigation.upItem: topBar
+        Navigation.downItem: controlBar
+        onCloseRequested: rootPlayer.closeAdjustments()
     }
 
     Loader {

@@ -20,6 +20,7 @@ import QtQuick
 
 import VLC.Widgets as Widgets
 import VLC.Style
+import VLC.MainInterface
 import VLC.Dialogs
 import VLC.Util
 
@@ -28,11 +29,14 @@ Widgets.IconToolButton {
 
     color: colorContext.fg.highlight
 
-    text: VLCIcons.effect_filter
+    text: VLCIcons.settings
 
-    description: qsTr("Extended settings")
+    description: qsTr("Playback and subtitle adjustments")
 
     AccessibleCompat.id: "extendedSettingsButton"
 
-    onClicked: DialogsProvider.extendedDialog()
+    onClicked: {
+        if (MainCtx.playerView) MainCtx.toggleAdjustments()
+        else DialogsProvider.extendedDialog()
+    }
 }

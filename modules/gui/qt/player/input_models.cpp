@@ -42,10 +42,12 @@ int TrackListModel::rowCount(const QModelIndex &) const
 QVariant TrackListModel::data(const QModelIndex &index, int role) const
 {
     int row = index.row();
-    if (row >= m_data.size())
+    if (!index.isValid() || row < 0 || row >= m_data.size())
         return QVariant{};
     if (role == Qt::DisplayRole)
         return m_data[row].m_title;
+    else if (role == LanguageRole)
+        return m_data[row].m_language;
     else if (role == Qt::CheckStateRole)
         return QVariant::fromValue<bool>(m_data[row].m_selected);
     return QVariant{};
@@ -54,7 +56,7 @@ QVariant TrackListModel::data(const QModelIndex &index, int role) const
 bool TrackListModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
     int row = index.row();
-    if (row >= m_data.size())
+    if (!index.isValid() || row < 0 || row >= m_data.size())
         return false;
     if ( role != Qt::CheckStateRole )
         return false;
@@ -120,7 +122,7 @@ void TrackListModel::updateTracks(vlc_player_list_action action, const vlc_playe
         if (!found)
             return;
         QModelIndex dataIndex = index(pos);
-        emit dataChanged(dataIndex, dataIndex, { Qt::DisplayRole, Qt::CheckStateRole });
+        emit dataChanged(dataIndex, dataIndex, { Qt::DisplayRole, Qt::CheckStateRole, LanguageRole });
         break;
     }
     }
@@ -153,6 +155,7 @@ QHash<int, QByteArray> TrackListModel::roleNames() const
 {
     QHash<int, QByteArray> roleNames = this->QAbstractListModel::roleNames();
     roleNames[Qt::CheckStateRole] = QByteArrayLiteral("checked");
+    roleNames[LanguageRole] = QByteArrayLiteral("language");
     return roleNames;
 }
 
@@ -184,6 +187,7 @@ void TrackListModel::setMultiSelect(bool multiSelect)
 
 TrackListModel::Data::Data(const vlc_player_track *track_info)
     : m_title( qfu(track_info->name) )
+    , m_language(qfu(track_info->fmt.psz_language))
     , m_id( track_info->es_id, true )
     , m_selected( track_info->selected )
 {
@@ -193,6 +197,7 @@ void TrackListModel::Data::update(const vlc_player_track *track_info)
 {
     m_id.reset(track_info->es_id, true);
     m_title = qfu(track_info->name);
+    m_language = qfu(track_info->fmt.psz_language);
     m_selected = track_info->selected;
 }
 

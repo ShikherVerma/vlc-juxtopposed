@@ -272,6 +272,8 @@ class SyncControls : public QWidget
     friend class ExtendedDialog;
 public:
     SyncControls( qt_intf_t *, QWidget * );
+    static void applySubtitleDuration(qt_intf_t *, double);
+    static double subtitleDuration(qt_intf_t *);
     virtual ~SyncControls();
 private:
     qt_intf_t *p_intf;
@@ -280,7 +282,6 @@ private:
     SyncWidget *secondarySubsSpin;
     QDoubleSpinBox *subSpeedSpin;
     QDoubleSpinBox *subDurationSpin;
-    QVLCFloat m_SubsDelayCfgFactor;
 
     bool b_userAction;
 
@@ -288,7 +289,6 @@ private:
 
     void initSubsDuration();
     void subsdelayClean();
-    void subsdelaySetFactor( double );
     void changeVFiltersString( const char *psz_name, bool b_add );
 public slots:
     void update();

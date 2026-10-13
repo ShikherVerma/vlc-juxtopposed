@@ -171,6 +171,11 @@ public:
     Q_PROPERTY(int audioDelayMS READ getAudioDelayMS WRITE setAudioDelayMS NOTIFY audioDelayChanged FINAL)
     Q_PROPERTY(int subtitleDelayMS READ getSubtitleDelayMS WRITE setSubtitleDelayMS NOTIFY subtitleDelayChanged FINAL)
     Q_PROPERTY(int secondarySubtitleDelayMS READ getSecondarySubtitleDelayMS WRITE setSecondarySubtitleDelayMS NOTIFY secondarySubtitleDelayChanged FINAL)
+    Q_PROPERTY(bool subtitleDurationAvailable READ subtitleDurationAvailable CONSTANT FINAL)
+    Q_PROPERTY(int subtitleDurationMode READ subtitleDurationMode CONSTANT FINAL)
+    Q_PROPERTY(double subtitleDurationFactor READ subtitleDurationFactor WRITE setSubtitleDurationFactor NOTIFY subtitleDurationFactorChanged FINAL)
+    Q_PROPERTY(bool statisticsAvailable READ statisticsAvailable CONSTANT FINAL)
+    Q_PROPERTY(QVariantMap statistics READ statistics NOTIFY statisticsChanged FINAL)
     Q_PROPERTY(float subtitleFPS READ getSubtitleFPS WRITE setSubtitleFPS NOTIFY subtitleFPSChanged FINAL)
     Q_PROPERTY(TimedText currentLyric READ getCurrentLyric NOTIFY currentLyricChanged FINAL)
     Q_PROPERTY(bool hasLyrics READ hasLyrics NOTIFY hasLyricsChanged FINAL)
@@ -233,6 +238,12 @@ public:
 
     /* exposed actions */
 public slots:
+    bool subtitleDurationAvailable() const;
+    int subtitleDurationMode() const;
+    double subtitleDurationFactor() const;
+    void setSubtitleDurationFactor(double factor);
+    bool statisticsAvailable() const;
+    QVariantMap statistics() const;
     void reverse();
     void slower();
     void faster();
@@ -469,6 +480,8 @@ signals:
     void subtitleDelayChanged(VLCDuration);
     void secondarySubtitleDelayChanged(VLCDuration);
     void subtitleFPSChanged(float);
+    void subtitleDurationFactorChanged();
+    void statisticsChanged();
 
     //title/chapters/menu
     void hasTitlesChanged( bool );

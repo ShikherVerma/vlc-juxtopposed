@@ -48,9 +48,27 @@ AudioDeviceModel::AudioDeviceModel(vlc_player_t *player, QObject *parent)
         m_player_aout_listener = vlc_player_aout_AddListener(m_player, &player_aout_cbs, this);
     }
 
+    refresh();
+}
+
+void AudioDeviceModel::refresh()
+{
+    beginResetModel();
+    for (int i = 0; i < m_inputs; ++i) { free(m_ids[i]); free(m_names[i]); }
+    free(m_ids);
+    free(m_names);
+    m_ids = m_names = nullptr;
+    m_inputs = 0;
+    if (m_aout) aout_Release(m_aout);
     m_aout = vlc_player_aout_Hold(m_player);
-    if (m_aout)
+    m_current.clear();
+    if (m_aout) {
         m_inputs = aout_DevicesList(m_aout, &m_ids, &m_names);
+        char *device = aout_DeviceGet(m_aout);
+        m_current = QString::fromUtf8(device);
+        free(device);
+    }
+    endResetModel();
 }
 
 AudioDeviceModel::~AudioDeviceModel()

@@ -1471,7 +1471,6 @@ void SyncWidget::setValue( double d )
 SyncControls::SyncControls( qt_intf_t *_p_intf, QWidget *_parent )
     : QWidget( _parent )
     , p_intf( _p_intf )
-    , m_SubsDelayCfgFactor(VLC_OBJECT(p_intf->intf), SUBSDELAY_CFG_FACTOR)
 {
     QGroupBox *AVBox, *subsBox;
     QToolButton *updateButton;
@@ -1573,7 +1572,11 @@ SyncControls::SyncControls( qt_intf_t *_p_intf, QWidget *_parent )
         b_userAction = true;
     });
     connect( THEMIM, &PlayerController::subtitleFPSChanged, subSpeedSpin, &QDoubleSpinBox::setValue );
-    connect( &m_SubsDelayCfgFactor, &QVLCFloat::valueChanged, subDurationSpin, &QDoubleSpinBox::setValue);
+    connect(THEMIM, &PlayerController::subtitleDurationFactorChanged, this, [this] {
+        b_userAction = false;
+        subDurationSpin->setValue(THEMIM->subtitleDurationFactor());
+        b_userAction = true;
+    });
 
     initSubsDuration();
 
@@ -1606,7 +1609,7 @@ void SyncControls::update()
         secondarySubsSpin->setValue(THEMIM->getSecondarySubtitleDelay().toSecf());
         AVSpin->setValue(THEMIM->getAudioDelay().toSecf());
         subSpeedSpin->setValue(THEMIM->getSubtitleFPS());
-        subDurationSpin->setValue(m_SubsDelayCfgFactor.getValue());
+        subDurationSpin->setValue(THEMIM->subtitleDurationFactor());
     }
     b_userAction = true;
 }
@@ -1648,8 +1651,7 @@ void SyncControls::adjustSubsDuration( double f_factor )
 {
     if( THEMIM->getInput() && b_userAction )
     {
-        subsdelaySetFactor( f_factor );
-        changeVFiltersString( "subsdelay", f_factor > 0 );
+        THEMIM->setSubtitleDurationFactor(f_factor);
     }
 }
 
@@ -1682,16 +1684,40 @@ void SyncControls::initSubsDuration()
 void SyncControls::subsdelayClean()
 {
     /* Remove subsdelay filter */
-    changeVFiltersString( "subsdelay", false );
+    applySubtitleDuration(p_intf, 0);
 }
 
-void SyncControls::subsdelaySetFactor( double f_factor )
+// Share the QWidget operation with QML. The factor command is on the filter:
+// initialize its inherited parent value before reloading the bare module. Do
+// not pass inline options: this pinned module registers option callbacks before
+// initializing its heap, so config_ChainParse callbacks there are unsafe.
+void SyncControls::applySubtitleDuration(qt_intf_t *p_intf, double factor)
 {
-    PlayerController::VOutThreadList p_vouts = THEMIM->getVouts();
-    for( auto p_vout: p_vouts )
+    for (const auto &vout : THEMIM->getVouts())
     {
-        var_SetFloat( p_vout.get(), SUBSDELAY_CFG_FACTOR, f_factor );
+        if (var_Type(vout.get(), SUBSDELAY_CFG_FACTOR) == 0)
+            var_Create(vout.get(), SUBSDELAY_CFG_FACTOR, VLC_VAR_FLOAT | VLC_VAR_DOINHERIT);
+        var_SetFloat(vout.get(), SUBSDELAY_CFG_FACTOR, factor);
+        char *value = var_GetString(vout.get(), "sub-filter");
+        QStringList filters = qfu(value).split(QLatin1Char(':'), Qt::SkipEmptyParts);
+        free(value);
+        filters.removeAll(QStringLiteral("subsdelay"));
+        if (factor > 0) filters << QStringLiteral("subsdelay");
+        // sub-filter is an ISCOMMAND variable: setting it also reloads an
+        // already enabled module, so the new inherited factor takes effect.
+        var_SetString(vout.get(), "sub-filter", qtu(filters.join(QLatin1Char(':'))));
     }
+}
+
+double SyncControls::subtitleDuration(qt_intf_t *p_intf)
+{
+    const auto vout = THEMIM->getVout();
+    if (!vout) return 0;
+    char *value = var_GetString(vout.get(), "sub-filter");
+    const QStringList filters = qfu(value).split(QLatin1Char(':'), Qt::SkipEmptyParts);
+    free(value);
+    return filters.contains(QStringLiteral("subsdelay"))
+        ? var_InheritFloat(vout.get(), SUBSDELAY_CFG_FACTOR) : 0;
 }
 
 void SyncControls::changeVFiltersString( const char *psz_name, bool b_add )

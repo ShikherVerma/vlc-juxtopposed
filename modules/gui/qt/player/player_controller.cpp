@@ -22,6 +22,8 @@
 
 #include "dialogs/extensions/extensions_manager.hpp"
 #include "player_controller.hpp"
+#include "dialogs/extended/extended_panels.hpp"
+#include <vlc_modules.h>
 #include "player_controller_p.hpp"
 #include "util/shared_input_item.hpp"
 
@@ -45,6 +47,7 @@
 #endif
 
 #include <cassert>
+#include <cmath>
 
 #define POSITION_MIN_UPDATE_INTERVAL VLC_TICK_FROM_MS(15)
 
@@ -150,7 +153,9 @@ void PlayerControllerPrivate::UpdateArt(input_item_t *p_item)
 void PlayerControllerPrivate::UpdateStats( const input_stats_t& stats )
 {
     Q_Q(PlayerController);
+    m_stats = stats;
     emit q->statisticsUpdated( stats );
+    emit q->statisticsChanged();
 }
 
 void PlayerControllerPrivate::UpdateProgram(enum vlc_player_list_action action, const struct vlc_player_program* prgm)
@@ -347,6 +352,9 @@ static  void on_player_current_media_changed(vlc_player_t *, input_item_t *new_m
                 that->m_currentItem.reset(nullptr);
             }
 
+            that->m_stats = {};
+            emit that->q_func()->statisticsChanged();
+            emit that->q_func()->subtitleDurationFactorChanged();
             that->m_syltRaw.reset();
             that->m_syltLyrics.reset();
             that->m_currentLyricIndex = -1;
@@ -363,6 +371,9 @@ static  void on_player_current_media_changed(vlc_player_t *, input_item_t *new_m
     that->callAsync([that,newMediaPtr] () {
         PlayerController* q = that->q_func();
 
+        that->m_stats = {};
+        emit q->statisticsChanged();
+        emit q->subtitleDurationFactorChanged();
         that->m_syltRaw.reset();
         that->m_syltLyrics.reset();
         that->m_currentLyricIndex = -1;
@@ -786,7 +797,7 @@ static void on_player_track_delay_changed(vlc_player_t *,
 static void on_player_associated_subs_fps_changed(vlc_player_t *, float subs_fps, void *data)
 {
     PlayerControllerPrivate* that = static_cast<PlayerControllerPrivate*>(data);
-    msg_Dbg( that->p_intf, "on_associated_subs_fps_changed");
+    msg_Dbg( that->p_intf, "on_associated_subs_fps_changed: %.3f fps", subs_fps);
     that->callAsync([that,subs_fps] (){
         that->m_subtitleFPS = subs_fps;
         emit that->q_func()->subtitleFPSChanged( subs_fps );
@@ -825,6 +836,7 @@ static void on_player_stats_changed(vlc_player_t *, const struct input_stats_t *
     that->callAsync([that,stats_tmp] () {
         that->m_stats = stats_tmp;
         emit that->q_func()->statisticsUpdated( that->m_stats );
+        emit that->q_func()->statisticsChanged();
     });
 }
 
@@ -1239,6 +1251,7 @@ PlayerControllerPrivate::PlayerControllerPrivate(PlayerController *playercontrol
 {
     {
         vlc_player_locker locker{m_player};
+        m_subtitleFPS = vlc_player_GetAssociatedSubsFPS(m_player);
         m_player_listener = vlc_player_AddListener( m_player, &player_cbs, this );
         m_player_aout_listener = vlc_player_aout_AddListener( m_player, &player_aout_cbs, this );
         m_player_vout_listener = vlc_player_vout_AddListener( m_player, &player_vout_cbs, this );
@@ -2369,3 +2382,44 @@ int PlayerController::getCurrentLyricIndex() const
 }
 
 #undef PRIMITIVETYPE_GETTER
+
+// QML adjustment adapter: share the existing extended-panel duration operation.
+bool PlayerController::subtitleDurationAvailable() const
+{
+    return module_exists("subsdelay");
+}
+int PlayerController::subtitleDurationMode() const
+{
+    if (!subtitleDurationAvailable()) return 0;
+    Q_D(const PlayerController);
+    return var_InheritInteger(d->p_intf, "subsdelay-mode");
+}
+double PlayerController::subtitleDurationFactor() const
+{
+    if (!subtitleDurationAvailable()) return 0;
+    Q_D(const PlayerController);
+    return SyncControls::subtitleDuration(d->p_intf);
+}
+void PlayerController::setSubtitleDurationFactor(double factor)
+{
+    Q_D(PlayerController);
+    if (!getInput() || !subtitleDurationAvailable() || !std::isfinite(factor) || factor < 0 || factor > 20)
+        return;
+    SyncControls::applySubtitleDuration(d->p_intf, factor);
+    emit subtitleDurationFactorChanged();
+}
+bool PlayerController::statisticsAvailable() const
+{
+    Q_D(const PlayerController);
+    return var_InheritBool(d->p_intf, "stats");
+}
+QVariantMap PlayerController::statistics() const
+{
+    Q_D(const PlayerController);
+    const auto &s = d->m_stats;
+    return {{QStringLiteral("decodedVideo"), qulonglong(s.i_decoded_video)},
+            {QStringLiteral("displayedPictures"), qulonglong(s.i_displayed_pictures)},
+            {QStringLiteral("lostPictures"), qulonglong(s.i_lost_pictures)},
+            {QStringLiteral("decodedAudio"), qulonglong(s.i_decoded_audio)},
+            {QStringLiteral("inputBitrate"), s.f_input_bitrate * 8000.0}};
+}

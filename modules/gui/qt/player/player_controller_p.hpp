@@ -195,7 +195,7 @@ public:
 
     //others
     QString         m_artUrl;
-    struct input_stats_t m_stats;
+    struct input_stats_t m_stats = {};
 
     RendererManager m_rendererManager;
 

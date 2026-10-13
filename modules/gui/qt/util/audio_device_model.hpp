@@ -47,6 +47,7 @@ public:
     bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override;
 
     void updateCurrent(QString current);
+    Q_INVOKABLE void refresh();
 
     QHash<int, QByteArray> roleNames() const override;
 
