@@ -19,6 +19,7 @@
  *****************************************************************************/
 
 import QtQuick
+import QtQuick.Controls.Basic
 
 
 import VLC.MainInterface
@@ -99,7 +100,7 @@ Widgets.IconToolButton {
                 colorSet: ColorContext.Window
             }
 
-            radius: VLCStyle.dp(8, VLCStyle.scale)
+            radius: VLCStyle.contextMenu_radius
 
             // NOTE: The opacity should be stronger on a light background for readability.
             color: popupTheme.bg.primary.alpha(popupTheme.palette.isDark ? 0.8 : 0.96)
@@ -107,6 +108,7 @@ Widgets.IconToolButton {
     }
 
     function forceUnlock () {
-        popup.close()
+        if (popup)
+            popup.close()
     }
 }

@@ -16,6 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  *****************************************************************************/
 import QtQuick
+import QtQuick.Controls.Basic
 import QtQuick.Templates as T
 
 
@@ -92,7 +93,7 @@ T.ComboBox {
         color: control.bgColor
         border.color: theme.border
         border.width: VLCStyle.dp(2, VLCStyle.scale)
-        radius: VLCStyle.dp(2, VLCStyle.scale)
+        radius: VLCStyle.control_radius
     }
 
     popup: Popup {
@@ -123,7 +124,7 @@ T.ComboBox {
             color: control.bgColor
             border.color: control.borderColor
             border.pixelAligned: (radius < Number.EPSILON)
-            radius: 2
+            radius: VLCStyle.dropdownPopup_radius
         }
     }
 }

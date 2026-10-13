@@ -147,8 +147,8 @@ T.Pane {
 
                     text: qsTr("Play Queue")
                     color: theme.fg.primary
-                    font.weight: Font.Bold
-                    font.pixelSize: VLCStyle.dp(24, VLCStyle.scale)
+                    font.weight: Font.Normal
+                    font.pixelSize: VLCStyle.fontSize_pageTitle
                 }
 
                 Widgets.SortControl {

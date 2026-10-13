@@ -83,6 +83,7 @@ extern "C" char **environ;
 #endif
 
 #include "qt.hpp"
+#include "style/vlcfonts.hpp"
 
 #include "player/player_controller.hpp"    /* THEMIM destruction */
 #include "playlist/playlist_controller.hpp" /* THEMPL creation */
@@ -910,6 +911,7 @@ static void *Thread( void *obj )
 
     /* Start the QApplication here */
     QApplication app( argc, argv );
+    initializeVLCFonts();
     app.setProperty("initialStyle", app.style()->name());
 
     {

@@ -88,6 +88,7 @@ T.Pane {
 
             Layout.fillWidth: true
 
+            font.pixelSize: VLCStyle.fontSize_sectionHeader
             color: theme.fg.primary
         }
 

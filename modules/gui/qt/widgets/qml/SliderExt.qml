@@ -45,7 +45,7 @@ T.Slider {
 
     property real handleWidth: VLCStyle.icon_xsmall
 
-    property real radius: VLCStyle.dp(3, VLCStyle.scale)
+    property real radius: VLCStyle.slider_radius
 
     // when set the tooltip will follow the mouse when control is hoverred
     // else tooltip will always be shown at current value.

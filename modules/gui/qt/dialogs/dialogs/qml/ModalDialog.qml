@@ -85,6 +85,7 @@ Dialog {
 
     background: Rectangle {
         color: theme.bg.primary
+        radius: VLCStyle.panel_radius
 
         Widgets.RoundedRectangleShadow {
             yOffset: VLCStyle.dp(4, VLCStyle.scale)

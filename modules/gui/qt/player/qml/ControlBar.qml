@@ -101,8 +101,12 @@ T.Pane {
 
     TextMetrics {
         id: timeTextMetrics
-        font.pixelSize: (textPosition === ControlBar.TimeTextPosition.LeftRightSlider) ? VLCStyle.fontSize_small
-                                                                                       : VLCStyle.fontSize_normal
+        font.family: VLCStyle.fontFamily
+        font.weight: Font.Normal
+        font.pixelSize: (textPosition === ControlBar.TimeTextPosition.LeftRightSlider)
+                        ? VLCStyle.fontSize_timecodeCompact
+                        : VLCStyle.fontSize_timecode
+        font.features: { "tnum": 1 }
         text: {
             // This text metrics is used for both the time and length, as we want them to have the same width.
             // Length might not be reported in some cases, for that reason we should check both and use the bigger one.

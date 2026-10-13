@@ -182,6 +182,8 @@ T.Page {
 
                 Layout.fillWidth: true
 
+                font.pixelSize: VLCStyle.fontSize_pageTitle
+                font.weight: Font.Normal
                 color: theme.fg.primary
             }
 

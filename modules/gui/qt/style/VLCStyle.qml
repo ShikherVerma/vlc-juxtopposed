@@ -27,14 +27,22 @@ QtObject {
 
     readonly property real scale: MainCtx.intfScaleFactor
 
-    readonly property FontMetrics fontMetrics_xxsmall  : FontMetrics { font.pixelSize: MainCtx.dp(6, scale);  }
-    readonly property FontMetrics fontMetrics_xsmall   : FontMetrics { font.pixelSize: MainCtx.dp(8, scale);  }
-    readonly property FontMetrics fontMetrics_small    : FontMetrics { font.pixelSize: MainCtx.dp(10, scale); }
-    readonly property FontMetrics fontMetrics_normal   : FontMetrics { font.pixelSize: MainCtx.dp(12, scale); }
-    readonly property FontMetrics fontMetrics_large    : FontMetrics { font.pixelSize: MainCtx.dp(14, scale); }
-    readonly property FontMetrics fontMetrics_xlarge   : FontMetrics { font.pixelSize: MainCtx.dp(16, scale); }
-    readonly property FontMetrics fontMetrics_xxlarge  : FontMetrics { font.pixelSize: MainCtx.dp(20, scale); }
-    readonly property FontMetrics fontMetrics_xxxlarge : FontMetrics { font.pixelSize: MainCtx.dp(24, scale); }
+    // Application fonts are registered before the QML engine is initialized.
+    // Keep the family explicit so grouped Windows font families resolve each
+    // requested weight to the bundled static face rather than a system fallback.
+    readonly property string fontFamily: "Inter"
+    // DM Mono is limited to keyboard keycaps, not playback timecodes.
+    readonly property string keycapFontFamily: "DM Mono"
+
+    readonly property FontMetrics fontMetrics_xxsmall  : FontMetrics { font.family: vlc_style.fontFamily; font.pixelSize: MainCtx.dp(6, scale);  }
+    readonly property FontMetrics fontMetrics_xsmall   : FontMetrics { font.family: vlc_style.fontFamily; font.pixelSize: MainCtx.dp(8, scale);  }
+    readonly property FontMetrics fontMetrics_small    : FontMetrics { font.family: vlc_style.fontFamily; font.pixelSize: MainCtx.dp(10, scale); }
+    readonly property FontMetrics fontMetrics_secondary: FontMetrics { font.family: vlc_style.fontFamily; font.pixelSize: MainCtx.dp(12, scale); }
+    readonly property FontMetrics fontMetrics_normal   : FontMetrics { font.family: vlc_style.fontFamily; font.pixelSize: MainCtx.dp(14, scale); }
+    readonly property FontMetrics fontMetrics_large    : FontMetrics { font.family: vlc_style.fontFamily; font.pixelSize: MainCtx.dp(16, scale); }
+    readonly property FontMetrics fontMetrics_xlarge   : FontMetrics { font.family: vlc_style.fontFamily; font.pixelSize: MainCtx.dp(20, scale); }
+    readonly property FontMetrics fontMetrics_xxlarge  : FontMetrics { font.family: vlc_style.fontFamily; font.pixelSize: MainCtx.dp(24, scale); }
+    readonly property FontMetrics fontMetrics_xxxlarge : FontMetrics { font.family: vlc_style.fontFamily; font.pixelSize: MainCtx.dp(32, scale); }
 
     readonly property SystemPalette palette:  SystemPalette {
         objectName: "themePalette"
@@ -69,15 +77,23 @@ QtObject {
     readonly property int focus_border: border
 
     readonly property int fontSize_xsmall: fontMetrics_xsmall.font.pixelSize
+    readonly property int fontSize_badge: fontMetrics_small.font.pixelSize
     readonly property int fontSize_small:  fontMetrics_small.font.pixelSize
+    readonly property int fontSize_secondary: fontMetrics_secondary.font.pixelSize
     readonly property int fontSize_normal: fontMetrics_normal.font.pixelSize
     readonly property int fontSize_large:  fontMetrics_large.font.pixelSize
     readonly property int fontSize_xlarge: fontMetrics_xlarge.font.pixelSize
     readonly property int fontSize_xxlarge: fontMetrics_xxlarge.font.pixelSize
     readonly property int fontSize_xxxlarge: fontMetrics_xxxlarge.font.pixelSize
+    readonly property int fontSize_pageTitle: fontMetrics_large.font.pixelSize
+    readonly property int fontSize_sectionHeader: fontMetrics_xlarge.font.pixelSize
+    readonly property int fontSize_timecode: MainCtx.dp(15, scale)
+    readonly property int fontSize_timecodeCompact: MainCtx.dp(14, scale)
+    readonly property int fontSize_onboardingTitle: MainCtx.dp(32, scale)
 
     readonly property int fontHeight_xsmall: Math.ceil(fontMetrics_xsmall.lineSpacing)
     readonly property int fontHeight_small:  Math.ceil(fontMetrics_small.lineSpacing)
+    readonly property int fontHeight_secondary: Math.ceil(fontMetrics_secondary.lineSpacing)
     readonly property int fontHeight_normal: Math.ceil(fontMetrics_normal.lineSpacing)
     readonly property int fontHeight_large:  Math.ceil(fontMetrics_large.lineSpacing)
     readonly property int fontHeight_xlarge: Math.ceil(fontMetrics_xlarge.lineSpacing)
@@ -176,7 +192,15 @@ QtObject {
     readonly property int button_width_normal: MainCtx.dp(96, scale)
     readonly property int button_width_large: MainCtx.dp(128, scale)
 
+    // Shared shape roles: controls/dropdowns 4/6 px, context menus 10 px,
+    // media cards 12 px and dialog panels 14 px.
     readonly property real button_radius: MainCtx.dp(4, scale)
+    readonly property real control_radius: MainCtx.dp(6, scale)
+    readonly property real slider_radius: MainCtx.dp(4, scale)
+    readonly property real dropdownPopup_radius: MainCtx.dp(6, scale)
+    readonly property real contextMenu_radius: MainCtx.dp(10, scale)
+    readonly property real panel_radius: MainCtx.dp(14, scale)
+    readonly property real badge_radius: MainCtx.dp(4, scale)
 
     readonly property int contextButton_width: icon_normal
     readonly property int contextButton_margin: margin_xxsmall
@@ -204,7 +228,7 @@ QtObject {
     readonly property int gridCover_video_height: ( gridCover_video_width * 10.0 ) / 16
     readonly property int gridCover_video_border: MainCtx.dp(4, scale)
 
-    readonly property int gridCover_radius: MainCtx.dp(4, scale)
+    readonly property int gridCover_radius: MainCtx.dp(12, scale)
 
     readonly property int expandCover_music_height: MainCtx.dp(171, scale)
     readonly property int expandCover_music_width: MainCtx.dp(171, scale)

@@ -43,7 +43,7 @@ TextField {
 
     verticalAlignment: Text.AlignVCenter
 
-    property real radius
+    property real radius: VLCStyle.control_radius
 
     background: Rectangle {
         implicitWidth: 200

@@ -50,7 +50,8 @@ Row {
             visible: index < root.labels.length
             text: index >= root.labels.length ? "" :  root.labels[index]
 
-            font.pixelSize: VLCStyle.fontSize_normal
+            font.pixelSize: VLCStyle.fontSize_badge
+            font.weight: Font.Medium
 
             horizontalAlignment: Text.AlignRight
 
@@ -60,7 +61,7 @@ Row {
                 anchors.fill: label
                 color: theme.bg.primary
                 opacity: 0.5
-                radius: VLCStyle.dp(3, VLCStyle.scale)
+                radius: VLCStyle.badge_radius
             }
 
             Accessible.ignored: true
