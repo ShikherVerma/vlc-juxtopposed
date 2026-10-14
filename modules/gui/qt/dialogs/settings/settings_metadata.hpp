@@ -19,7 +19,7 @@ struct SettingsOptionMetadata
     QString description;
     QString module;
     QString subcategory;
-    enum class Kind { ModuleConfig, QtSettings };
+    enum class Kind { ModuleConfig, QtSettings, AudioOutputAPI };
     Kind kind = Kind::ModuleConfig;
     int accentSwatch = -1; // alias destination, not a sampled setting value
 };

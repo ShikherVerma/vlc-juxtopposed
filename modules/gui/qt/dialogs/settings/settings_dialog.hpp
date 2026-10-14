@@ -22,12 +22,14 @@ class QMouseEvent;
 class SystemPalette;
 class QComboBox;
 class QVBoxLayout;
+struct audio_output;
 
 class SettingsDialog : public QVLCDialog
 {
     Q_OBJECT
 public:
     SettingsDialog(QWindow *, qt_intf_t *);
+    ~SettingsDialog() override;
 
 signals:
     void allSettingsRequested(const QString &key);
@@ -49,6 +51,7 @@ private:
     void setEditorValue(QWidget *, const QVariant &);
     struct Editor
     {
+        int category;
         QString key;
         int type;
         QWidget *widget;
@@ -56,8 +59,11 @@ private:
         QVariant defaults;
     };
     QVector<Editor> m_editors;
-    std::array<QWidget *, 2> m_simpleForms{};
-    std::array<QWidget *, 2> m_advancedForms{};
+    std::array<QWidget *, 13> m_simpleForms{};
+    std::array<QWidget *, 13> m_advancedForms{};
+    QComboBox *m_device = nullptr;
+    audio_output *m_aout = nullptr;
+    QString m_savedDevice;
     QComboBox *m_theme;
     int m_savedTheme = 0;
     void openAllSettings(const QString &key = QString());

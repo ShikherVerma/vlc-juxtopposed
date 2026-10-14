@@ -22,6 +22,11 @@
 #include <QScreen>
 #include <QSettings>
 #include <vlc_modules.h>
+#include <vlc_aout.h>
+#include <vlc_player.h>
+#include <QCompleter>
+#include <QColorDialog>
+#include <QStandardItemModel>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QKeyEvent>
@@ -323,7 +328,7 @@ SettingsDialog::SettingsDialog(QWindow *parent, qt_intf_t *intf)
     m_accentRow->setEnabled(accent && !m_defaultAccent.isEmpty());
     panel->addWidget(m_accentRow);
     const auto specs = settingsControlSpecs();
-    for (int category = 0; category < 2; ++category)
+    for (int category = 0; category < 13; ++category)
     {
         for (bool advanced : {false, true})
         {
@@ -343,12 +348,56 @@ SettingsDialog::SettingsDialog(QWindow *parent, qt_intf_t *intf)
                     section = QString::fromUtf8(spec.section);
                     auto *heading = label(qfut(spec.section));
                     heading->setObjectName("settingsSection");
-                    const bool firstSection = formLayout->count() == 0 && category == 1 && !advanced;
+                    const bool firstSection = formLayout->count() == 0 && category != 0 && !advanced;
                     heading->setFixedHeight(firstSection ? 39 : 63);
                     heading->setContentsMargins(0, firstSection ? 0 : 24, 0, 0);
                     formLayout->addWidget(heading);
                 }
                 addControl(spec, formLayout);
+                if (QString::fromLatin1(spec.key) == "aout")
+                {
+                    auto *deviceRow = new QWidget;
+                    auto *deviceLayout = new QHBoxLayout(deviceRow);
+                    deviceLayout->setContentsMargins(0, 5, 0, 5);
+                    const QString caption = qtr("Output device (current session)");
+                    auto *deviceLabel = label(caption);
+                    deviceLayout->addWidget(deviceLabel, 1);
+                    m_device = new QComboBox;
+                    m_device->setObjectName("settingsAudioDevice");
+                    m_device->setAccessibleName(caption);
+                    m_device->setFixedSize(320, 36);
+                    m_aout = vlc_player_aout_Hold(p_intf->p_player);
+                    if (m_aout)
+                    {
+                        char *current = aout_DeviceGet(m_aout);
+                        m_savedDevice = QString::fromUtf8(current ? current : "");
+                        free(current);
+                        char **ids = nullptr, **names = nullptr;
+                        const int count = aout_DevicesList(m_aout, &ids, &names);
+                        for (int i = 0; i < count; ++i)
+                        {
+                            m_device->addItem(QString::fromUtf8(names[i]), QString::fromUtf8(ids[i]));
+                            free(ids[i]);
+                            free(names[i]);
+                        }
+                        free(ids);
+                        free(names);
+                    }
+                    m_device->setEnabled(m_device->count() > 0);
+                    if (m_device->isEnabled()) setEditorValue(m_device, m_savedDevice);
+                    else m_device->addItem(qtr("No device enumeration from current output"), m_savedDevice);
+                    m_device->setToolTip(qtr("aout_DeviceSet — current output only. Staged until Save; not stored in vlcrc. Restart-needed output module changes do not alter this list. Reopen Settings after starting audio to refresh devices."));
+                    deviceLabel->setBuddy(m_device);
+                    deviceLayout->addWidget(m_device);
+                    deviceRow->setFixedHeight(46);
+                    formLayout->addWidget(deviceRow);
+                }
+            }
+            if (category == 7 && advanced)
+            {
+                auto *duration = label(qtr("Subtitle Duration factor — unavailable: subsdelay asserts in this engine."));
+                duration->setObjectName("settingsSubtitleDurationUnavailable");
+                formLayout->addWidget(duration);
             }
             (advanced ? m_advancedForms : m_simpleForms)[category] = form;
             if (!advanced)
@@ -363,7 +412,7 @@ SettingsDialog::SettingsDialog(QWindow *parent, qt_intf_t *intf)
     m_advancedButton->setFixedHeight(38);
     panel->addWidget(m_advancedButton);
     for (auto *form : m_advancedForms)
-        panel->addWidget(form);
+        if (form) panel->addWidget(form);
     panel->addStretch();
     connect(m_advancedButton, &QPushButton::clicked, this, [this] {
         m_advanced[m_category] = !m_advanced[m_category];
@@ -476,6 +525,11 @@ SettingsDialog::SettingsDialog(QWindow *parent, qt_intf_t *intf)
                                      (available.height() - height()) / 2));
 }
 
+SettingsDialog::~SettingsDialog()
+{
+    if (m_aout) aout_Release(m_aout);
+}
+
 void SettingsDialog::selectCategory(int category)
 {
     if (category != m_category)
@@ -491,14 +545,18 @@ void SettingsDialog::selectCategory(int category)
     }
     m_title->setText(qfut(categoryTitles[category]));
     m_accentRow->setVisible(category == 0);
-    m_pending->setVisible(category > 1);
-    for (int i = 0; i < 2; ++i)
+    const bool migrated = category == 0 || category == 1 || category == 4 || category == 6 || category == 7;
+    m_pending->setVisible(!migrated);
+    for (int i = 0; i < 13; ++i)
     {
         m_simpleForms[i]->setVisible(i == category);
         m_advancedForms[i]->setVisible(i == category && m_advanced[category]);
     }
     m_pending->setText(qtr("%1 — %2 panel pending.\nNo category controls have been migrated yet. All existing options remain available in All settings.")
         .arg(qfut(categoryNames[category]), m_advanced[category] ? qtr("Advanced") : qtr("Simple")));
+    findChild<QPushButton *>(QStringLiteral("settingsReset"))->setText(category <= 1
+        ? qtr("Reset General / Interface") : qtr("Reset %1").arg(qfut(categoryNames[category])));
+    findChild<QPushButton *>(QStringLiteral("settingsReset"))->setEnabled(migrated);
     m_advancedButton->setText(m_advanced[category] ? qtr("Simple Options  ‹") : qtr("Advanced Options  ›"));
 }
 
@@ -537,6 +595,16 @@ void SettingsDialog::search(const QString &text)
         ++options;
     }
     m_resultCount->setText(qtr("%1 options · %2 categories — labels and real configuration keys").arg(options).arg(categories));
+    // A tall category can leave the shared scroll owner far below its top.
+    // Search must expose its result header/rows for mouse activation as well
+    // as Enter. Settle the stack's layout before resetting its scroll model.
+    QTimer::singleShot(0, this, [this] {
+        if (m_pages->currentIndex() == 1)
+        {
+            m_pages->layout()->activate();
+            m_pageScroll->verticalScrollBar()->setValue(0);
+        }
+    });
 }
 
 void SettingsDialog::activateResult(QTreeWidgetItem *item)
@@ -559,6 +627,11 @@ void SettingsDialog::activateResult(QTreeWidgetItem *item)
     bool advanced = false;
     if (key == QStringLiteral("MainWindow/color-scheme-index"))
         target = m_theme;
+    else if (key == QStringLiteral("aout_DeviceSet"))
+    {
+        target = m_device;
+        page = 6;
+    }
     else if (key == QStringLiteral("qt-accent-color"))
         target = m_swatches[swatch >= 0 && swatch < 9 ? swatch : 0];
     else
@@ -592,12 +665,13 @@ void SettingsDialog::updateAccent()
     for (int i = 0; i < 9; ++i)
         m_swatches[i]->setChecked(m_accent.compare(i == 0 ? m_defaultAccent : QString::fromLatin1(swatchColors[i]), Qt::CaseInsensitive) == 0);
     m_accentValue->setText(qtr("qt-accent-color: %1 · Restart needed after saving").arg(m_accent));
-    m_restart->setText(qtr("General / Interface config changes require restarting VLC. Theme applies on Save."));
+    m_restart->setText(qtr("Config changes require restarting VLC. Theme / current audio device apply on Save."));
 }
 
 bool SettingsDialog::hasChanges() const
 {
-    if (m_accent != m_savedAccent || m_theme->currentData().toInt() != m_savedTheme)
+    if ((m_device && m_device->currentData().toString() != m_savedDevice) ||
+        m_accent != m_savedAccent || m_theme->currentData().toInt() != m_savedTheme)
         return true;
     return std::any_of(m_editors.cbegin(), m_editors.cend(), [this](const Editor &editor) {
         return editorValue(editor.widget) != editor.saved;
@@ -615,7 +689,7 @@ bool SettingsDialog::saveChanges()
     {
         auto value = editorValue(editor.widget);
         const auto *metadata = config_FindConfig(qtu(editor.key));
-        if (editor.type == CONFIG_ITEM_INTEGER)
+        if (editor.type == CONFIG_ITEM_INTEGER || editor.type == CONFIG_ITEM_RGB)
         {
             bool ok;
             const auto number = value.toString().toLongLong(&ok);
@@ -649,6 +723,21 @@ bool SettingsDialog::saveChanges()
         else
             config_PutInt(qtu(editor.key), value.toLongLong());
     };
+    const bool deviceChanged = m_device && m_device->currentData().toString() != m_savedDevice;
+    if (deviceChanged)
+    {
+        audio_output_t *current = vlc_player_aout_Hold(p_intf->p_player);
+        const bool same = current == m_aout;
+        if (current) aout_Release(current);
+        // aout_DeviceSet() selects the default device with NULL, not "".
+        const QByteArray device = m_device->currentData().toString().toUtf8();
+        if (!same || aout_DeviceSet(m_aout, device.isEmpty() ? nullptr : device.constData()) != 0)
+        {
+            QMessageBox::warning(this, qtr("Cannot select audio device"),
+                qtr("The audio output changed or rejected the device. Reopen Settings to refresh available devices. No preferences were written."));
+            return false;
+        }
+    }
     const QString previousAccent = configAccent();
     for (int i = 0; i < m_editors.size(); ++i)
         if (values[i] != m_editors[i].saved)
@@ -661,6 +750,7 @@ bool SettingsDialog::saveChanges()
             if (values[i] != m_editors[i].saved)
                 put(m_editors[i], previous[i]);
         config_PutPsz("qt-accent-color", qtu(previousAccent));
+        if (deviceChanged) aout_DeviceSet(m_aout, qtu(m_savedDevice));
         QMessageBox::warning(this, qtr("Cannot save Configuration"), qtr("Preferences file could not be saved. Changes were not applied."));
         return false;
     }
@@ -679,6 +769,7 @@ bool SettingsDialog::saveChanges()
             for (int i = 0; i < m_editors.size(); ++i)
                 if (values[i] != m_editors[i].saved) put(m_editors[i], previous[i]);
             config_PutPsz("qt-accent-color", qtu(previousAccent));
+            if (deviceChanged) aout_DeviceSet(m_aout, qtu(m_savedDevice));
             const int rollback = configChanged ? config_SaveConfigFile(p_intf) : 0;
             QMessageBox::warning(this, qtr("Cannot save Configuration"), rollback == 0
                 ? qtr("Qt theme preferences could not be saved. Changes were rolled back.")
@@ -689,6 +780,7 @@ bool SettingsDialog::saveChanges()
     }
     for (int i = 0; i < m_editors.size(); ++i)
         m_editors[i].saved = editorValue(m_editors[i].widget);
+    if (m_device) m_savedDevice = m_device->currentData().toString();
     m_savedAccent = m_accent;
     m_savedTheme = m_theme->currentData().toInt();
     updateAccent();
@@ -697,14 +789,22 @@ bool SettingsDialog::saveChanges()
 
 void SettingsDialog::resetEditors()
 {
-    if (QMessageBox::question(this, qtr("Reset General / Interface"),
-        qtr("Restore only the controls in General and Interface to their declared defaults? Press Save to persist them; Cancel discards this reset. Other VLC preferences are not reset."),
+    const QString scope = m_category <= 1 ? qtr("General / Interface") : qfut(categoryNames[m_category]);
+    if (QMessageBox::question(this, qtr("Reset %1").arg(scope),
+        qtr("Restore only the controls in %1 to their declared defaults? Press Save to persist them; Cancel discards this reset. Other VLC preferences are not reset.").arg(scope),
         QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Cancel) != QMessageBox::Ok)
         return;
     for (const auto &editor : m_editors)
-        setEditorValue(editor.widget, editor.defaults);
-    m_accent = m_defaultAccent;
-    m_theme->setCurrentIndex(m_theme->findData(0)); // existing MainCtx QSettings default
+        if (m_category <= 1 ? editor.category <= 1 : editor.category == m_category)
+            setEditorValue(editor.widget, editor.defaults);
+    if (m_category <= 1)
+    {
+        m_accent = m_defaultAccent;
+        m_theme->setCurrentIndex(m_theme->findData(0)); // existing MainCtx QSettings default
+    }
+    // The output device is a live, session-only selection (not a vlcrc key) and
+    // not every output can move back to an unnamed default (PulseAudio rejects
+    // it), so a category Reset leaves the current device untouched.
     updateAccent();
 }
 
@@ -730,6 +830,13 @@ QVariant SettingsDialog::editorValue(QWidget *widget) const
     if (auto *number = qobject_cast<QDoubleSpinBox *>(widget))
         return number->value();
     const QString text = qobject_cast<QLineEdit *>(widget)->text();
+    if (widget->property("rgb").toBool())
+    {
+        const QColor color(text);
+        if (color.isValid() && color.alpha() == 255)
+            return QVariant::fromValue<qlonglong>(color.rgb() & 0xFFFFFF);
+        return text; // invalid text is rejected before any config write
+    }
     if (widget->property("integer").toBool())
     {
         bool ok;
@@ -759,7 +866,8 @@ void SettingsDialog::setEditorValue(QWidget *widget, const QVariant &value)
     else if (auto *number = qobject_cast<QDoubleSpinBox *>(widget))
         number->setValue(value.toDouble());
     else
-        qobject_cast<QLineEdit *>(widget)->setText(value.toString());
+        qobject_cast<QLineEdit *>(widget)->setText(widget->property("rgb").toBool()
+            ? QColor::fromRgb(value.toUInt()).name() : value.toString());
 }
 
 void SettingsDialog::addControl(const SettingsControlSpec &spec, QVBoxLayout *layout)
@@ -801,13 +909,32 @@ void SettingsDialog::addControl(const SettingsControlSpec &spec, QVBoxLayout *la
         connect(toggle, &QPushButton::toggled, toggle, [toggle](bool on) { toggle->setText(on ? qtr("ON") : qtr("OFF")); });
         widget = toggle;
     }
-    else if (metadata->list_count || QString::fromLatin1(spec.key) == "qt-fullscreen-screennumber" || QString::fromLatin1(spec.key) == "intf")
+    else if (type != CONFIG_ITEM_RGB && (type == CONFIG_ITEM_MODULE || metadata->list_count || QString::fromLatin1(spec.key) == "qt-fullscreen-screennumber" || QString::fromLatin1(spec.key) == "intf"))
     {
         auto *combo = new QComboBox;
         for (unsigned i = 0; i < metadata->list_count; ++i)
+        {
+            // The core declaration survives builds without the provider;
+            // mirror aout's real capability gate rather than offer a no-op.
+            if (QString::fromLatin1(spec.key) == "mix-mode" &&
+                metadata->list.i[i] == AOUT_MIX_MODE_BINAURAL && !module_exists("spatialaudio"))
+                continue;
             combo->addItem(qfut(metadata->list_text[i]), IsConfigStringType(type)
                 ? QVariant(QString::fromUtf8(metadata->list.psz[i]))
                 : QVariant::fromValue<qlonglong>(metadata->list.i[i]));
+        }
+        if (type == CONFIG_ITEM_MODULE)
+        {
+            combo->addItem(qtr("Automatic"), QStringLiteral("any"));
+            if (QString::fromLatin1(spec.key) == "audio-visual")
+                combo->addItem(qtr("Disabled"), QStringLiteral("none"));
+            size_t count = 0;
+            module_t **modules = module_list_get(&count);
+            for (size_t i = 0; i < count; ++i)
+                if (module_provides(modules[i], metadata->psz_type))
+                    combo->addItem(qfut(module_GetLongName(modules[i])), QString::fromUtf8(module_get_object(modules[i])));
+            module_list_free(modules);
+        }
         if (QString::fromLatin1(spec.key) == "qt-fullscreen-screennumber")
         {
             combo->addItem(qtr("Current screen"), QVariant::fromValue<qlonglong>(-1));
@@ -837,7 +964,24 @@ void SettingsDialog::addControl(const SettingsControlSpec &spec, QVBoxLayout *la
     {
         auto *text = new QLineEdit;
         text->setProperty("integer", type == CONFIG_ITEM_INTEGER);
+        text->setProperty("rgb", type == CONFIG_ITEM_RGB);
         text->setFixedSize(320, 36);
+        if (type == CONFIG_ITEM_MODULE_LIST)
+        {
+            QStringList modules;
+            size_t count = 0;
+            module_t **installed = module_list_get(&count);
+            for (size_t i = 0; i < count; ++i)
+                if (module_provides(installed[i], metadata->psz_type))
+                    modules.push_back(QString::fromUtf8(module_get_object(installed[i])));
+            module_list_free(installed);
+            auto *completion = new QCompleter(modules, text);
+            completion->setCaseSensitivity(Qt::CaseInsensitive);
+            text->setCompleter(completion);
+            text->setPlaceholderText(qtr("Colon-separated module chain"));
+            caption->setToolTip(qtr("Installed modules: %1").arg(modules.join(", ")));
+            text->setProperty("installedModules", modules.join(", "));
+        }
         widget = text;
     }
     widget->setObjectName(QStringLiteral("settingsKey_%1").arg(QString::fromLatin1(spec.key)));
@@ -849,12 +993,22 @@ void SettingsDialog::addControl(const SettingsControlSpec &spec, QVBoxLayout *la
         tooltip += "\n" + qtr("Declaration range: %1 to %2").arg(metadata->min.i).arg(metadata->max.i);
     if (type == CONFIG_ITEM_FLOAT)
         tooltip += "\n" + qtr("Declaration range: %1 to %2").arg(metadata->min.f).arg(metadata->max.f);
+    if (widget->property("installedModules").isValid())
+        tooltip += "\n" + qtr("Installed modules: %1").arg(widget->property("installedModules").toString());
     caption->setToolTip(tooltip);
     widget->setToolTip(tooltip);
     caption->setBuddy(widget);
     setEditorValue(widget, current);
+    if (QString::fromLatin1(spec.key) == "mix-mode" && !module_exists("spatialaudio"))
+    {
+        auto *combo = qobject_cast<QComboBox *>(widget);
+        const int unavailable = combo->findData(QVariant::fromValue<qlonglong>(AOUT_MIX_MODE_BINAURAL));
+        if (unavailable >= 0) // Preserve an existing value, but do not offer it.
+            qobject_cast<QStandardItemModel *>(combo->model())->item(unavailable)->setEnabled(false);
+        widget->setToolTip(tooltip + "\n" + qtr("Binaural mixing is unavailable: spatialaudio is not installed."));
+    }
     rowLayout->addWidget(widget);
-    if (type == CONFIG_ITEM_SAVEFILE || QString::fromLatin1(spec.key) == "skins2-last")
+    if (type == CONFIG_ITEM_SAVEFILE || type == CONFIG_ITEM_DIRECTORY || QString::fromLatin1(spec.key) == "skins2-last")
     {
         widget->setFixedWidth(210);
         auto *browse = new QPushButton(qtr("Browse"));
@@ -863,14 +1017,28 @@ void SettingsDialog::addControl(const SettingsControlSpec &spec, QVBoxLayout *la
         connect(browse, &QPushButton::clicked, this, [this, widget, type] {
             const QString file = type == CONFIG_ITEM_SAVEFILE
                 ? QFileDialog::getSaveFileName(this, qtr("Log file"), editorValue(widget).toString())
-                : QFileDialog::getOpenFileName(this, qtr("Skin file"), editorValue(widget).toString());
+                : type == CONFIG_ITEM_DIRECTORY
+                    ? QFileDialog::getExistingDirectory(this, qtr("Select folder"), editorValue(widget).toString())
+                    : QFileDialog::getOpenFileName(this, qtr("Skin file"), editorValue(widget).toString());
             if (!file.isEmpty()) setEditorValue(widget, file);
         });
         rowLayout->addWidget(browse);
     }
+    if (type == CONFIG_ITEM_RGB)
+    {
+        widget->setFixedWidth(210);
+        auto *choose = new QPushButton(qtr("Color"));
+        choose->setFixedSize(100, 36);
+        choose->setAccessibleName(qtr("Choose %1").arg(title));
+        connect(choose, &QPushButton::clicked, this, [this, widget, title] {
+            const auto color = QColorDialog::getColor(QColor::fromRgb(editorValue(widget).toUInt()), this, title);
+            if (color.isValid()) setEditorValue(widget, color.rgb() & 0xFFFFFF);
+        });
+        rowLayout->addWidget(choose);
+    }
     row->setFixedHeight(type == CONFIG_ITEM_BOOL ? 42 : 46);
     layout->addWidget(row);
-    m_editors.push_back({QString::fromLatin1(spec.key), type, widget, editorValue(widget), defaults});
+    m_editors.push_back({spec.category, QString::fromLatin1(spec.key), type, widget, editorValue(widget), defaults});
 }
 
 void SettingsDialog::applyTheme()
