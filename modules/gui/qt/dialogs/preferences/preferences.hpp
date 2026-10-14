@@ -46,6 +46,7 @@ public:
     PrefsDialog( QWindow *, qt_intf_t * );
     virtual ~PrefsDialog();
     void showHotkeys();
+    void showOption(const QString &key);
     void showMediaLibrary();
 
 private:

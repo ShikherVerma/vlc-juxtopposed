@@ -99,6 +99,7 @@ public:
     SPrefsPanel( qt_intf_t *, QWidget *, int );
     virtual ~SPrefsPanel();
     void apply();
+    void showHotkey(const QString &key);
 #ifdef _WIN32
     void cleanLang();
 #endif

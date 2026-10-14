@@ -254,6 +254,17 @@ void ExpertPrefsEditDialog::setControl( ConfigControl *control_, ExpertPrefsTabl
     QVBoxLayout *control_layout = new QVBoxLayout( control_widget );
     control->insertInto( control_layout );
     layout->insertWidget( 0, control_widget );
+    // The reusable dialog's buttons were created before this control. Explicitly
+    // focus its first editor, rather than accepting the default OK-button focus
+    // when a settings search result opens this dialog.
+    for( auto *editor : control_widget->findChildren<QWidget *>() )
+    {
+        if( editor->focusPolicy() & Qt::TabFocus )
+        {
+            editor->setFocus( Qt::OtherFocusReason );
+            break;
+        }
+    }
 }
 
 void ExpertPrefsEditDialog::clearControl()

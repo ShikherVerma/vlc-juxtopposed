@@ -325,12 +325,15 @@ void DialogsProvider::prefsDialog()
         // Queue the transition so the emitting shell is no longer processing
         // its button event when we destroy it. Ignore stale queued requests.
         connect(shell, &SettingsDialog::allSettingsRequested, this,
-                [this, shell = QPointer<SettingsDialog>(shell)] {
+                [this, shell = QPointer<SettingsDialog>(shell)](const QString &key) {
             if (!shell || m_prefsDialog != shell)
                 return;
             auto *legacy = legacyPrefsDialog();
-            QMetaObject::invokeMethod(legacy, "setAdvanced", Qt::DirectConnection);
+            if (key.isEmpty())
+                QMetaObject::invokeMethod(legacy, "setAdvanced", Qt::DirectConnection);
             legacy->open();
+            if (!key.isEmpty())
+                legacy->showOption(key);
         }, Qt::QueuedConnection);
         m_prefsDialog->setAttribute(Qt::WA_DeleteOnClose);
         m_prefsDialog->installEventFilter(this);

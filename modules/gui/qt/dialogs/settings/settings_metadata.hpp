@@ -19,8 +19,23 @@ struct SettingsOptionMetadata
     QString description;
     QString module;
     QString subcategory;
+    enum class Kind { ModuleConfig, QtSettings };
+    Kind kind = Kind::ModuleConfig;
+    int accentSwatch = -1; // alias destination, not a sampled setting value
 };
 
+// Audited category allowlist. Bounds, defaults and enum entries are always
+// obtained from the installed module_config_t, not from the reference frame.
+struct SettingsControlSpec
+{
+    int category;
+    bool advanced;
+    const char *section;
+    const char *label;
+    const char *key;
+    const char *units;
+};
+QVector<SettingsControlSpec> settingsControlSpecs();
 QVector<SettingsOptionMetadata> settingsOptionMetadata();
 bool settingsOptionMatches(const SettingsOptionMetadata &, const QString &);
 

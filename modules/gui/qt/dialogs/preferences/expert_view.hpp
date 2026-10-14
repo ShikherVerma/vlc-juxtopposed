@@ -53,6 +53,8 @@ public:
     }
     void applyAll();
     void filter( const QString &text, bool );
+    // Search navigation opens an editor without the double-click boolean toggle.
+    void editOption( const QModelIndex &index ) { modifyItemPrivate( index ); }
 
 protected:
 #ifndef QT_NO_CONTEXTMENU

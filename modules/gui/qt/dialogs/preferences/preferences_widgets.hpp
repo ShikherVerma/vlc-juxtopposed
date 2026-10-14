@@ -421,6 +421,7 @@ class KeySelectorControl : public ConfigControl
 
 public:
     KeySelectorControl( QWidget * );
+    void showKey(const QString &key);
     void insertInto( QGridLayout*, int row = 0 ) override;
     void doApply() override;
     void storeValue() override {}

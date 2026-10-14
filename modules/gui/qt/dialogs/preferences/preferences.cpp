@@ -190,6 +190,34 @@ PrefsDialog::~PrefsDialog()
     module_list_free( p_list );
 }
 
+void PrefsDialog::showOption(const QString &key)
+{
+    // Expert deliberately excludes CONFIG_ITEM_KEY: use the dedicated editor
+    // and highlight the exact normal/global mapping instead.
+    const auto *metadata = config_FindConfig(qtu(key));
+    if (metadata && metadata->i_type == CONFIG_ITEM_KEY)
+    {
+        showHotkeys();
+        simple_panels[SPrefsHotkeys]->showHotkey(key);
+        return;
+    }
+    setExpert();
+    expert_table_filter_modified->setChecked(false);
+    expert_table_filter->setText(key);
+    auto *model = expert_table->myModel();
+    for (int row = 0; row < model->rowCount(); ++row)
+    {
+        if (QString::fromUtf8(model->itemAt(row)->getConfig()->psz_name) != key)
+            continue;
+        const auto index = model->index(row, ExpertPrefsTableModel::NameField);
+        expert_table->setCurrentIndex(index);
+        expert_table->scrollTo(index, QAbstractItemView::PositionAtCenter);
+        expert_table->setFocus(Qt::OtherFocusReason);
+        expert_table->editOption(index);
+        break;
+    }
+}
+
 void PrefsDialog::setExpert()
 {
     /* Lazy creation */

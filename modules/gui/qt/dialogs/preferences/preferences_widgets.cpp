@@ -1422,6 +1422,25 @@ void KeySelectorControl::finish()
              this, QOverload<QTreeWidgetItem *, int>::of(&KeySelectorControl::selectKey) );
 }
 
+void KeySelectorControl::showKey(const QString &key)
+{
+    actionSearch->clear();
+    for (QTreeWidgetItemIterator it(table); *it; ++it)
+    {
+        auto *item = static_cast<KeyTableItem *>(*it);
+        for (auto column : {HOTKEY_COL, GLOBAL_HOTKEY_COL})
+        {
+            const char *name = column == HOTKEY_COL ? item->normal.config_name : item->global.config_name;
+            if (!name || key != QString::fromUtf8(name))
+                continue;
+            table->setCurrentItem(item, column);
+            table->scrollToItem(item, QAbstractItemView::PositionAtCenter);
+            table->setFocus(Qt::OtherFocusReason);
+            return;
+        }
+    }
+}
+
 void KeySelectorControl::changeVisibility( bool visible )
 {
     table->setVisible( visible );

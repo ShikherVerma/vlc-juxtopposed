@@ -1,5 +1,5 @@
 /*****************************************************************************
- * settings_dialog.cpp : Authored settings shell (category panels pending)
+ * settings_dialog.cpp : Authored settings shell and General / Interface editors
  * Copyright (C) 2026 VLC authors and VideoLAN
  * SPDX-License-Identifier: GPL-2.0-or-later
  *****************************************************************************/
@@ -12,7 +12,16 @@
 #include "style/vlcicons.hpp"
 #include "style/systempalette.hpp"
 #include <vlc_configuration.h>
+#include <vlc_plugin.h>
 #include <QApplication>
+#include <QComboBox>
+#include <QDoubleSpinBox>
+#include <QFileDialog>
+#include <QScrollArea>
+#include <QScrollBar>
+#include <QScreen>
+#include <QSettings>
+#include <vlc_modules.h>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QKeyEvent>
@@ -22,8 +31,7 @@
 #include <QPainter>
 #include <QPushButton>
 #include <QShortcut>
-#include <QScrollArea>
-#include <QScreen>
+#include <QTimer>
 #include <QStackedWidget>
 #include <QTreeWidget>
 #include <QWindow>
@@ -31,6 +39,36 @@
 #include <cmath>
 
 namespace {
+// Retain QPushButton keyboard / accessibility semantics while drawing the
+// authored 68x32 switch, rather than borrowing a platform checkbox image.
+class SettingsToggle : public QPushButton
+{
+public:
+    using QPushButton::QPushButton;
+protected:
+    void paintEvent(QPaintEvent *) override
+    {
+        QPainter painter(this);
+        painter.setRenderHint(QPainter::Antialiasing);
+        const bool light = property("light").toBool();
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(isChecked() ? property("accentWell").value<QColor>() : QColor(light ? "#dedede" : "#181818"));
+        painter.drawRoundedRect(rect(), 4, 4);
+        painter.setBrush(isChecked() ? property("accentDim").value<QColor>() : QColor(light ? "#b3b3b3" : "#404040"));
+        painter.drawRoundedRect(QRectF(isChecked() ? 39 : 3, 3, 26, 26), 3, 3);
+        painter.setPen(isChecked() ? (light ? QColor("#3b3b3b") : property("accentMain").value<QColor>()) : QColor("#6b6b6b"));
+        QFont font = this->font();
+        font.setPixelSize(12);
+        painter.setFont(font);
+        painter.drawText(QRect(isChecked() ? 0 : 29, 0, 39, 32), Qt::AlignCenter, text());
+        if (hasFocus())
+        {
+            painter.setBrush(Qt::NoBrush);
+            painter.setPen(property("accentMain").value<QColor>());
+            painter.drawRoundedRect(QRectF(rect()).adjusted(.5, .5, -.5, -.5), 4, 4);
+        }
+    }
+};
 const char *const categoryNames[] = {
     N_("General"), N_("Interface"), N_("Privacy"), N_("Controls"),
     N_("Playback"), N_("Video"), N_("Audio"), N_("Subtitles"), N_("Library"),
@@ -160,7 +198,7 @@ SettingsDialog::SettingsDialog(QWindow *parent, qt_intf_t *intf)
     connect(close, &QPushButton::clicked, this, &QDialog::reject);
 
     auto *body = new QHBoxLayout;
-    body->setContentsMargins(8, 8, 24, 8);
+    body->setContentsMargins(8, 8, 8, 8);
     body->setSpacing(32);
     auto *navigation = new QWidget;
     navigation->setObjectName("settingsNavigation");
@@ -207,7 +245,7 @@ SettingsDialog::SettingsDialog(QWindow *parent, qt_intf_t *intf)
     all->setObjectName("settingsAll");
     all->setToolTip(qtr("Open the original VLC preferences. Simple, All and Expert views remain available."));
     nav->addWidget(all);
-    connect(all, &QPushButton::clicked, this, &SettingsDialog::openAllSettings);
+    connect(all, &QPushButton::clicked, this, [this] { openAllSettings(); });
     body->addWidget(navigationScroll);
 
     auto *content = new QVBoxLayout;
@@ -217,7 +255,7 @@ SettingsDialog::SettingsDialog(QWindow *parent, qt_intf_t *intf)
     auto *categoryPage = new QWidget;
     auto *panel = new QVBoxLayout(categoryPage);
     panel->setContentsMargins(0, 0, 0, 0);
-    panel->setSpacing(24);
+    panel->setSpacing(0);
     m_accentRow = new QWidget;
     auto *accentLayout = new QVBoxLayout(m_accentRow);
     accentLayout->setContentsMargins(0, 0, 0, 0);
@@ -226,9 +264,31 @@ SettingsDialog::SettingsDialog(QWindow *parent, qt_intf_t *intf)
     appearance->setObjectName("settingsSection");
     appearance->setFixedHeight(39);
     accentLayout->addWidget(appearance);
-    auto *appearancePending = label(qtr("Language and theme controls are pending the General panel.\nThe shell follows VLC’s current theme."));
-    appearancePending->setFixedHeight(92);
-    accentLayout->addWidget(appearancePending);
+    // VLC has no cross-platform config key for the translation language.
+    // Preserve the frame's row as explanatory text, not a fictional editor.
+#ifdef _WIN32
+    auto *language = label(qtr("Interface language — set in All settings"));
+#else
+    auto *language = label(qtr("Interface language — system locale"));
+#endif
+    language->setFixedHeight(46);
+    language->setToolTip(qtr("Translation language follows the system locale on Linux and macOS. The Windows language selector remains in All settings."));
+    accentLayout->addWidget(language);
+    auto *themeRow = new QHBoxLayout;
+    themeRow->setContentsMargins(0, 5, 0, 5);
+    themeRow->addWidget(label(qtr("Theme")), 1);
+    m_theme = new QComboBox;
+    m_theme->setObjectName("settingsTheme");
+    m_theme->setAccessibleName(qtr("Theme"));
+    m_theme->addItem(qtr("Dark"), 2);
+    m_theme->addItem(qtr("Light"), 1);
+    m_theme->addItem(qtr("System"), 0);
+    m_theme->setFixedSize(320, 36);
+    m_savedTheme = p_intf->p_mi ? p_intf->p_mi->getColorScheme()->currentIndex() : 0;
+    m_theme->setCurrentIndex(m_theme->findData(m_savedTheme));
+    m_theme->setEnabled(p_intf->p_mi != nullptr);
+    themeRow->addWidget(m_theme);
+    accentLayout->addLayout(themeRow);
     auto *row = new QHBoxLayout;
     row->setSpacing(16);
     auto *accentLabel = label(qtr("Accent color"));
@@ -258,9 +318,43 @@ SettingsDialog::SettingsDialog(QWindow *parent, qt_intf_t *intf)
     row->setContentsMargins(0, 5, 0, 5);
     accentLayout->addLayout(row);
     m_accentValue = label(QString());
+    m_accentValue->hide(); // canonical key and restart status are in the tooltip/footer
     accentLayout->addWidget(m_accentValue);
     m_accentRow->setEnabled(accent && !m_defaultAccent.isEmpty());
     panel->addWidget(m_accentRow);
+    const auto specs = settingsControlSpecs();
+    for (int category = 0; category < 2; ++category)
+    {
+        for (bool advanced : {false, true})
+        {
+            auto *form = new QWidget;
+            auto *formLayout = new QVBoxLayout(form);
+            formLayout->setContentsMargins(0, 0, 0, 0);
+            formLayout->setSpacing(0);
+            QString section;
+            for (const auto &spec : specs)
+            {
+                if (spec.category != category || spec.advanced != advanced || !config_FindConfig(spec.key))
+                    continue;
+                if (QString::fromLatin1(spec.section) == "Skin" && !module_exists("skins2"))
+                    continue;
+                if (section != QString::fromUtf8(spec.section))
+                {
+                    section = QString::fromUtf8(spec.section);
+                    auto *heading = label(qfut(spec.section));
+                    heading->setObjectName("settingsSection");
+                    const bool firstSection = formLayout->count() == 0 && category == 1 && !advanced;
+                    heading->setFixedHeight(firstSection ? 39 : 63);
+                    heading->setContentsMargins(0, firstSection ? 0 : 24, 0, 0);
+                    formLayout->addWidget(heading);
+                }
+                addControl(spec, formLayout);
+            }
+            (advanced ? m_advancedForms : m_simpleForms)[category] = form;
+            if (!advanced)
+                panel->addWidget(form);
+        }
+    }
     m_pending = label(QString());
     m_pending->setObjectName("settingsPending");
     panel->addWidget(m_pending);
@@ -268,6 +362,8 @@ SettingsDialog::SettingsDialog(QWindow *parent, qt_intf_t *intf)
     m_advancedButton->setObjectName("settingsAdvanced");
     m_advancedButton->setFixedHeight(38);
     panel->addWidget(m_advancedButton);
+    for (auto *form : m_advancedForms)
+        panel->addWidget(form);
     panel->addStretch();
     connect(m_advancedButton, &QPushButton::clicked, this, [this] {
         m_advanced[m_category] = !m_advanced[m_category];
@@ -288,27 +384,58 @@ SettingsDialog::SettingsDialog(QWindow *parent, qt_intf_t *intf)
     m_results->setWordWrap(true);
     m_results->setAlternatingRowColors(false);
     searchLayout->addWidget(m_results, 1);
-    auto *searchHelp = label(qtr("Read-only metadata from installed VLC modules. Category panels are pending; use All settings to edit these options."));
+    auto *searchHelp = label(qtr("Select a result to open its control. Options not yet migrated open in the original preferences."));
     searchLayout->addWidget(searchHelp);
     auto *legacy = new QPushButton(qtr("Open All settings"));
     searchLayout->addWidget(legacy);
-    connect(legacy, &QPushButton::clicked, this, &SettingsDialog::openAllSettings);
+    connect(legacy, &QPushButton::clicked, this, [this] { openAllSettings(); });
     m_pages->addWidget(searchPage);
     m_search->installEventFilter(this);
     m_results->installEventFilter(this);
-    auto *pageScroll = new QScrollArea;
-    pageScroll->setObjectName("settingsPageScroll");
-    pageScroll->setFrameShape(QFrame::NoFrame);
-    pageScroll->setWidgetResizable(true);
-    pageScroll->setWidget(m_pages);
-    pageScroll->viewport()->setAutoFillBackground(false);
+    connect(m_results, &QTreeWidget::itemClicked, this, &SettingsDialog::activateResult);
+    connect(m_results, &QTreeWidget::itemActivated, this, &SettingsDialog::activateResult);
+    // One scroll area owns the stack. Its native bar remains the scroll model
+    // (wheel, keyboard focus and ensureWidgetVisible all use it), but its visible
+    // rail lives in the shell gutter, not on top of or inside the native column.
+    m_pageScroll = new QScrollArea;
+    m_pageScroll->setObjectName("settingsPageScroll");
+    m_pageScroll->setFrameShape(QFrame::NoFrame);
+    m_pageScroll->setWidgetResizable(true);
+    m_pageScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    m_pageScroll->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    m_pageScroll->setWidget(m_pages);
+    m_pageScroll->viewport()->setAutoFillBackground(false);
     m_pages->setAutoFillBackground(false);
-    content->addWidget(pageScroll, 1);
+    auto *scrollRow = new QHBoxLayout;
+    scrollRow->setContentsMargins(0, 0, 0, 0);
+    scrollRow->setSpacing(0);
+    scrollRow->addWidget(m_pageScroll, 1);
+    auto *gutter = new QWidget;
+    gutter->setFixedWidth(16);
+    auto *gutterLayout = new QHBoxLayout(gutter);
+    gutterLayout->setContentsMargins(6, 0, 4, 0);
+    auto *pageBar = new QScrollBar(Qt::Vertical);
+    pageBar->setObjectName("settingsPageScrollBar");
+    pageBar->setFixedWidth(6);
+    pageBar->setFocusPolicy(Qt::NoFocus);
+    pageBar->hide();
+    gutterLayout->addWidget(pageBar);
+    scrollRow->addWidget(gutter);
+    auto *pageVertical = m_pageScroll->verticalScrollBar();
+    connect(pageVertical, &QScrollBar::rangeChanged, pageBar, [pageVertical, pageBar](int min, int max) {
+        pageBar->setRange(min, max);
+        pageBar->setPageStep(pageVertical->pageStep());
+        pageBar->setVisible(max > min);
+    });
+    connect(pageVertical, &QScrollBar::valueChanged, pageBar, &QScrollBar::setValue);
+    connect(pageBar, &QScrollBar::valueChanged, pageVertical, &QScrollBar::setValue);
+    content->addLayout(scrollRow, 1);
     m_restart = label(QString());
     m_restart->setObjectName("settingsRestart");
     content->addWidget(m_restart);
     auto *actions = new QHBoxLayout;
-    auto *reset = new QPushButton(qtr("Reset accent"));
+    actions->setContentsMargins(0, 0, 16, 0);
+    auto *reset = new QPushButton(qtr("Reset General / Interface"));
     reset->setObjectName("settingsReset");
     reset->setEnabled(m_accentRow->isEnabled());
     actions->addWidget(reset);
@@ -323,8 +450,8 @@ SettingsDialog::SettingsDialog(QWindow *parent, qt_intf_t *intf)
     body->addLayout(content, 1);
     layout->addLayout(body, 1);
     connect(cancel, &QPushButton::clicked, this, &QDialog::reject);
-    connect(save, &QPushButton::clicked, this, [this] { if (saveAccent()) accept(); });
-    connect(reset, &QPushButton::clicked, this, &SettingsDialog::resetAccent);
+    connect(save, &QPushButton::clicked, this, [this] { if (saveChanges()) accept(); });
+    connect(reset, &QPushButton::clicked, this, &SettingsDialog::resetEditors);
     connect(m_search, &QLineEdit::textChanged, this, &SettingsDialog::search);
     auto *find = new QShortcut(QKeySequence::Find, this);
     connect(find, &QShortcut::activated, m_search, [this] { m_search->setFocus(); m_search->selectAll(); });
@@ -351,6 +478,8 @@ SettingsDialog::SettingsDialog(QWindow *parent, qt_intf_t *intf)
 
 void SettingsDialog::selectCategory(int category)
 {
+    if (category != m_category)
+        m_pageScroll->verticalScrollBar()->setValue(0);
     m_category = category;
     m_pages->setCurrentIndex(0);
     const bool light = !m_palette->property("isDark").toBool();
@@ -362,6 +491,12 @@ void SettingsDialog::selectCategory(int category)
     }
     m_title->setText(qfut(categoryTitles[category]));
     m_accentRow->setVisible(category == 0);
+    m_pending->setVisible(category > 1);
+    for (int i = 0; i < 2; ++i)
+    {
+        m_simpleForms[i]->setVisible(i == category);
+        m_advancedForms[i]->setVisible(i == category && m_advanced[category]);
+    }
     m_pending->setText(qtr("%1 — %2 panel pending.\nNo category controls have been migrated yet. All existing options remain available in All settings.")
         .arg(qfut(categoryNames[category]), m_advanced[category] ? qtr("Advanced") : qtr("Simple")));
     m_advancedButton->setText(m_advanced[category] ? qtr("Simple Options  ‹") : qtr("Advanced Options  ›"));
@@ -387,7 +522,7 @@ void SettingsDialog::search(const QString &text)
             !qfut(categoryTitles[i]).contains(query, Qt::CaseInsensitive) &&
             !group.contains(query, Qt::CaseInsensitive))
             continue;
-        auto *item = new QTreeWidgetItem(m_results, {qtr("%1 — category panel pending").arg(qfut(categoryNames[i])), qtr("Category")});
+        auto *item = new QTreeWidgetItem(m_results, {qfut(categoryNames[i]), qtr("Category")});
         item->setData(0, Qt::UserRole, i);
         ++categories;
     }
@@ -397,22 +532,59 @@ void SettingsDialog::search(const QString &text)
             continue;
         auto *item = new QTreeWidgetItem(m_results, {option.label + "\n" + option.key, option.module + "\n" + option.subcategory});
         item->setToolTip(0, option.description);
+        item->setData(0, Qt::UserRole + 1, option.key);
+        item->setData(0, Qt::UserRole + 2, option.accentSwatch);
         ++options;
     }
     m_resultCount->setText(qtr("%1 options · %2 categories — labels and real configuration keys").arg(options).arg(categories));
-    // Categories are navigation results; options remain read-only until mapped.
-    if (!m_results->property("navigationConnected").toBool())
+}
+
+void SettingsDialog::activateResult(QTreeWidgetItem *item)
+{
+    if (!item || m_pages->currentIndex() != 1)
+        return;
+    // Copy the result before clear() synchronously deletes its tree item.
+    const QVariant category = item->data(0, Qt::UserRole);
+    const QString key = item->data(0, Qt::UserRole + 1).toString();
+    const int swatch = item->data(0, Qt::UserRole + 2).toInt();
+    if (category.isValid())
     {
-        connect(m_results, &QTreeWidget::itemActivated, this, [this](QTreeWidgetItem *item) {
-            const QVariant category = item->data(0, Qt::UserRole);
-            if (category.isValid())
-            {
-                m_search->clear();
-                selectCategory(category.toInt());
-            }
-        });
-        m_results->setProperty("navigationConnected", true);
+        m_search->clear();
+        selectCategory(category.toInt());
+        m_categories[category.toInt()]->setFocus(Qt::OtherFocusReason);
+        return;
     }
+    QWidget *target = nullptr;
+    int page = 0;
+    bool advanced = false;
+    if (key == QStringLiteral("MainWindow/color-scheme-index"))
+        target = m_theme;
+    else if (key == QStringLiteral("qt-accent-color"))
+        target = m_swatches[swatch >= 0 && swatch < 9 ? swatch : 0];
+    else
+        for (const auto &spec : settingsControlSpecs())
+            if (key == QString::fromLatin1(spec.key))
+                for (const auto &editor : m_editors)
+                    if (editor.key == key)
+                    {
+                        target = editor.widget;
+                        page = spec.category;
+                        advanced = spec.advanced;
+                    }
+    if (!target)
+    {
+        openAllSettings(key);
+        return;
+    }
+    m_advanced[page] |= advanced;
+    m_search->clear();
+    selectCategory(page);
+    // Layout requests from showing the Advanced form must settle before scroll.
+    QTimer::singleShot(0, this, [this, target] {
+        m_pages->layout()->activate();
+        m_pageScroll->ensureWidgetVisible(target, 8, 24);
+        target->setFocus(Qt::OtherFocusReason);
+    });
 }
 
 void SettingsDialog::updateAccent()
@@ -420,48 +592,285 @@ void SettingsDialog::updateAccent()
     for (int i = 0; i < 9; ++i)
         m_swatches[i]->setChecked(m_accent.compare(i == 0 ? m_defaultAccent : QString::fromLatin1(swatchColors[i]), Qt::CaseInsensitive) == 0);
     m_accentValue->setText(qtr("qt-accent-color: %1 · Restart needed after saving").arg(m_accent));
-    m_restart->setText(m_accent == m_savedAccent ? qtr("Accent changes require restarting VLC.") : qtr("Unsaved accent change — restart VLC after saving."));
+    m_restart->setText(qtr("General / Interface config changes require restarting VLC. Theme applies on Save."));
 }
 
-bool SettingsDialog::saveAccent()
+bool SettingsDialog::hasChanges() const
 {
-    if (m_accent == m_savedAccent)
+    if (m_accent != m_savedAccent || m_theme->currentData().toInt() != m_savedTheme)
         return true;
-    const QString previous = configAccent();
-    config_PutPsz("qt-accent-color", qtu(m_accent));
-    if (config_SaveConfigFile(p_intf) != 0)
+    return std::any_of(m_editors.cbegin(), m_editors.cend(), [this](const Editor &editor) {
+        return editorValue(editor.widget) != editor.saved;
+    });
+}
+
+bool SettingsDialog::saveChanges()
+{
+    if (!hasChanges())
+        return true;
+    QVector<QVariant> values;
+    QVector<QVariant> previous;
+    bool configChanged = m_accent != m_savedAccent;
+    for (const auto &editor : m_editors)
     {
-        config_PutPsz("qt-accent-color", qtu(previous));
-        QMessageBox::warning(this, qtr("Cannot save Configuration"), qtr("Preferences file could not be saved. The accent change was not applied."));
+        auto value = editorValue(editor.widget);
+        const auto *metadata = config_FindConfig(qtu(editor.key));
+        if (editor.type == CONFIG_ITEM_INTEGER)
+        {
+            bool ok;
+            const auto number = value.toString().toLongLong(&ok);
+            if (!ok || number < metadata->min.i || number > metadata->max.i)
+            {
+                QMessageBox::warning(this, qtr("Invalid setting"), qtr("%1 must be an integer between %2 and %3.")
+                    .arg(editor.key).arg(metadata->min.i).arg(metadata->max.i));
+                editor.widget->setFocus();
+                return false;
+            }
+            value = QVariant::fromValue<qlonglong>(number);
+        }
+        values.push_back(value);
+        configChanged |= value != editor.saved;
+        if (IsConfigStringType(editor.type))
+        {
+            char *text = config_GetPsz(qtu(editor.key));
+            previous.push_back(QString::fromUtf8(text ? text : ""));
+            free(text);
+        }
+        else if (editor.type == CONFIG_ITEM_FLOAT)
+            previous.push_back(config_GetFloat(qtu(editor.key)));
+        else
+            previous.push_back(QVariant::fromValue<qlonglong>(config_GetInt(qtu(editor.key))));
+    }
+    auto put = [](const Editor &editor, const QVariant &value) {
+        if (IsConfigStringType(editor.type))
+            config_PutPsz(qtu(editor.key), qtu(value.toString()));
+        else if (editor.type == CONFIG_ITEM_FLOAT)
+            config_PutFloat(qtu(editor.key), value.toFloat());
+        else
+            config_PutInt(qtu(editor.key), value.toLongLong());
+    };
+    const QString previousAccent = configAccent();
+    for (int i = 0; i < m_editors.size(); ++i)
+        if (values[i] != m_editors[i].saved)
+            put(m_editors[i], values[i]);
+    if (m_accent != m_savedAccent)
+        config_PutPsz("qt-accent-color", qtu(m_accent));
+    if (configChanged && config_SaveConfigFile(p_intf) != 0)
+    {
+        for (int i = 0; i < m_editors.size(); ++i)
+            if (values[i] != m_editors[i].saved)
+                put(m_editors[i], previous[i]);
+        config_PutPsz("qt-accent-color", qtu(previousAccent));
+        QMessageBox::warning(this, qtr("Cannot save Configuration"), qtr("Preferences file could not be saved. Changes were not applied."));
         return false;
     }
+    // Theme is an existing Qt settings API, not a made-up vlcrc option.
+    if (m_theme->currentData().toInt() != m_savedTheme && p_intf->p_mi)
+    {
+        auto *settings = getSettings();
+        const QString key = QStringLiteral("MainWindow/color-scheme-index");
+        const QVariant previousTheme = settings->value(key);
+        settings->setValue(key, m_theme->currentData());
+        settings->sync();
+        if (settings->status() != QSettings::NoError)
+        {
+            if (previousTheme.isValid()) settings->setValue(key, previousTheme);
+            else settings->remove(key);
+            for (int i = 0; i < m_editors.size(); ++i)
+                if (values[i] != m_editors[i].saved) put(m_editors[i], previous[i]);
+            config_PutPsz("qt-accent-color", qtu(previousAccent));
+            const int rollback = configChanged ? config_SaveConfigFile(p_intf) : 0;
+            QMessageBox::warning(this, qtr("Cannot save Configuration"), rollback == 0
+                ? qtr("Qt theme preferences could not be saved. Changes were rolled back.")
+                : qtr("Qt theme preferences could not be saved, and the VLC configuration rollback also failed. Check file permissions before retrying."));
+            return false;
+        }
+        p_intf->p_mi->getColorScheme()->setCurrentIndex(m_theme->currentData().toInt());
+    }
+    for (int i = 0; i < m_editors.size(); ++i)
+        m_editors[i].saved = editorValue(m_editors[i].widget);
     m_savedAccent = m_accent;
+    m_savedTheme = m_theme->currentData().toInt();
     updateAccent();
     return true;
 }
 
-void SettingsDialog::resetAccent()
+void SettingsDialog::resetEditors()
 {
-    if (QMessageBox::question(this, qtr("Reset accent"),
-        qtr("Reset only qt-accent-color to its module default and save it now? Other VLC preferences will not be reset. This cannot be undone by Cancel."),
+    if (QMessageBox::question(this, qtr("Reset General / Interface"),
+        qtr("Restore only the controls in General and Interface to their declared defaults? Press Save to persist them; Cancel discards this reset. Other VLC preferences are not reset."),
         QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Cancel) != QMessageBox::Ok)
         return;
+    for (const auto &editor : m_editors)
+        setEditorValue(editor.widget, editor.defaults);
     m_accent = m_defaultAccent;
-    saveAccent();
+    m_theme->setCurrentIndex(m_theme->findData(0)); // existing MainCtx QSettings default
     updateAccent();
 }
 
-void SettingsDialog::openAllSettings()
+void SettingsDialog::openAllSettings(const QString &key)
 {
-    if (m_accent != m_savedAccent)
+    if (hasChanges())
     {
-        const auto response = QMessageBox::question(this, qtr("Unsaved accent change"),
-            qtr("Save the accent before opening the original VLC preferences?"),
+        const auto response = QMessageBox::question(this, qtr("Unsaved settings"),
+            qtr("Save changes before opening the original VLC preferences?"),
             QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Cancel);
-        if (response == QMessageBox::Cancel || (response == QMessageBox::Save && !saveAccent()))
+        if (response == QMessageBox::Cancel || (response == QMessageBox::Save && !saveChanges()))
             return;
     }
-    emit allSettingsRequested();
+    emit allSettingsRequested(key);
+}
+
+QVariant SettingsDialog::editorValue(QWidget *widget) const
+{
+    if (auto *combo = qobject_cast<QComboBox *>(widget))
+        return combo->currentData();
+    if (auto *toggle = qobject_cast<QPushButton *>(widget))
+        return QVariant::fromValue<qlonglong>(toggle->isChecked());
+    if (auto *number = qobject_cast<QDoubleSpinBox *>(widget))
+        return number->value();
+    const QString text = qobject_cast<QLineEdit *>(widget)->text();
+    if (widget->property("integer").toBool())
+    {
+        bool ok;
+        const auto number = text.toLongLong(&ok);
+        if (ok) return QVariant::fromValue<qlonglong>(number);
+    }
+    return text;
+}
+
+void SettingsDialog::setEditorValue(QWidget *widget, const QVariant &value)
+{
+    if (auto *combo = qobject_cast<QComboBox *>(widget))
+    {
+        int index = combo->findData(value);
+        if (index < 0)
+        {
+            combo->addItem(qtr("Current value: %1").arg(value.toString()), value);
+            index = combo->count() - 1;
+        }
+        combo->setCurrentIndex(index);
+    }
+    else if (auto *toggle = qobject_cast<QPushButton *>(widget))
+    {
+        toggle->setChecked(value.toBool());
+        toggle->setText(value.toBool() ? qtr("ON") : qtr("OFF"));
+    }
+    else if (auto *number = qobject_cast<QDoubleSpinBox *>(widget))
+        number->setValue(value.toDouble());
+    else
+        qobject_cast<QLineEdit *>(widget)->setText(value.toString());
+}
+
+void SettingsDialog::addControl(const SettingsControlSpec &spec, QVBoxLayout *layout)
+{
+    const auto *metadata = config_FindConfig(spec.key);
+    auto *row = new QWidget;
+    auto *rowLayout = new QHBoxLayout(row);
+    rowLayout->setContentsMargins(0, 5, 0, 5);
+    rowLayout->setSpacing(10);
+    const QString title = *spec.units ? qtr("%1 (%2)").arg(qfut(spec.label), qfut(spec.units)) : qfut(spec.label);
+    auto *caption = label(title);
+    rowLayout->addWidget(caption, 1);
+    const int type = metadata->i_type;
+    QVariant current, defaults;
+    if (IsConfigStringType(type))
+    {
+        char *value = config_GetPsz(spec.key);
+        current = QString::fromUtf8(value ? value : "");
+        free(value);
+        defaults = QString::fromUtf8(metadata->orig.psz ? metadata->orig.psz : "");
+    }
+    else if (type == CONFIG_ITEM_FLOAT)
+    {
+        current = config_GetFloat(spec.key);
+        defaults = metadata->orig.f;
+    }
+    else
+    {
+        current = QVariant::fromValue<qlonglong>(config_GetInt(spec.key));
+        defaults = QVariant::fromValue<qlonglong>(metadata->orig.i);
+    }
+    QWidget *widget;
+    if (type == CONFIG_ITEM_BOOL)
+    {
+        auto *toggle = new SettingsToggle;
+        toggle->setProperty("settingsToggle", true);
+        toggle->setCheckable(true);
+        toggle->setFixedSize(68, 32);
+        connect(toggle, &QPushButton::toggled, toggle, [toggle](bool on) { toggle->setText(on ? qtr("ON") : qtr("OFF")); });
+        widget = toggle;
+    }
+    else if (metadata->list_count || QString::fromLatin1(spec.key) == "qt-fullscreen-screennumber" || QString::fromLatin1(spec.key) == "intf")
+    {
+        auto *combo = new QComboBox;
+        for (unsigned i = 0; i < metadata->list_count; ++i)
+            combo->addItem(qfut(metadata->list_text[i]), IsConfigStringType(type)
+                ? QVariant(QString::fromUtf8(metadata->list.psz[i]))
+                : QVariant::fromValue<qlonglong>(metadata->list.i[i]));
+        if (QString::fromLatin1(spec.key) == "qt-fullscreen-screennumber")
+        {
+            combo->addItem(qtr("Current screen"), QVariant::fromValue<qlonglong>(-1));
+            const auto screens = QGuiApplication::screens();
+            for (int i = 0; i < screens.size(); ++i)
+                combo->addItem(screens[i]->name(), QVariant::fromValue<qlonglong>(i));
+        }
+        if (QString::fromLatin1(spec.key) == "intf")
+        {
+            combo->addItem(qtr("Default interface"), QString());
+            combo->addItem(qtr("Qt"), QStringLiteral("qt"));
+            combo->addItem(qtr("Custom skin (separate interface)"), QStringLiteral("skins2"));
+        }
+        combo->setFixedSize(320, 36);
+        widget = combo;
+    }
+    else if (type == CONFIG_ITEM_FLOAT)
+    {
+        auto *number = new QDoubleSpinBox;
+        number->setDecimals(3);
+        number->setRange(metadata->min.f, metadata->max.f);
+        number->setSingleStep(.05);
+        number->setFixedSize(320, 36);
+        widget = number;
+    }
+    else
+    {
+        auto *text = new QLineEdit;
+        text->setProperty("integer", type == CONFIG_ITEM_INTEGER);
+        text->setFixedSize(320, 36);
+        widget = text;
+    }
+    widget->setObjectName(QStringLiteral("settingsKey_%1").arg(QString::fromLatin1(spec.key)));
+    widget->setAccessibleName(title);
+    QString tooltip = QString::fromLatin1(spec.key) + qtr(" — restart needed after saving") + "\n" + qfut(metadata->psz_longtext ? metadata->psz_longtext : "");
+    if (*spec.units)
+        tooltip += "\n" + qtr("Units: %1").arg(qfut(spec.units));
+    if (type == CONFIG_ITEM_INTEGER && !metadata->list_count)
+        tooltip += "\n" + qtr("Declaration range: %1 to %2").arg(metadata->min.i).arg(metadata->max.i);
+    if (type == CONFIG_ITEM_FLOAT)
+        tooltip += "\n" + qtr("Declaration range: %1 to %2").arg(metadata->min.f).arg(metadata->max.f);
+    caption->setToolTip(tooltip);
+    widget->setToolTip(tooltip);
+    caption->setBuddy(widget);
+    setEditorValue(widget, current);
+    rowLayout->addWidget(widget);
+    if (type == CONFIG_ITEM_SAVEFILE || QString::fromLatin1(spec.key) == "skins2-last")
+    {
+        widget->setFixedWidth(210);
+        auto *browse = new QPushButton(qtr("Browse"));
+        browse->setFixedSize(100, 36);
+        browse->setAccessibleName(qtr("Browse for %1").arg(qfut(spec.label)));
+        connect(browse, &QPushButton::clicked, this, [this, widget, type] {
+            const QString file = type == CONFIG_ITEM_SAVEFILE
+                ? QFileDialog::getSaveFileName(this, qtr("Log file"), editorValue(widget).toString())
+                : QFileDialog::getOpenFileName(this, qtr("Skin file"), editorValue(widget).toString());
+            if (!file.isEmpty()) setEditorValue(widget, file);
+        });
+        rowLayout->addWidget(browse);
+    }
+    row->setFixedHeight(type == CONFIG_ITEM_BOOL ? 42 : 46);
+    layout->addWidget(row);
+    m_editors.push_back({QString::fromLatin1(spec.key), type, widget, editorValue(widget), defaults});
 }
 
 void SettingsDialog::applyTheme()
@@ -474,6 +883,15 @@ void SettingsDialog::applyTheme()
     const QString primary = light ? "#161616" : "#c6c6c6";
     const QString selected = light ? "#dddddd" : "#222222";
     const QString focus = m_palette->get_accentMain().name();
+    for (const auto &editor : m_editors)
+    {
+        if (editor.type != CONFIG_ITEM_BOOL) continue;
+        editor.widget->setProperty("light", light);
+        editor.widget->setProperty("accentMain", m_palette->get_accentMain());
+        editor.widget->setProperty("accentDim", m_palette->get_accentDim());
+        editor.widget->setProperty("accentWell", selectedAccentWell(m_palette->get_accentMain(), light));
+        editor.widget->update();
+    }
     setStyleSheet(QStringLiteral(
         "QWidget { color:%1; font-family:Inter; font-size:14px; }"
         "QWidget#settingsSurface { background:%2; border-radius:14px; }"
@@ -481,6 +899,17 @@ void SettingsDialog::applyTheme()
         "QWidget#settingsNavigation { background:%4; border-radius:6px; }"
         "QWidget#settingsSwatches { background:%3; border-radius:6px; }"
         "QLabel { background:transparent; }"
+        "QScrollArea, QScrollArea > QWidget > QWidget { background:%2; border:0; }"
+        "QComboBox, QDoubleSpinBox { background:%4; border:1px solid %3; border-radius:4px; padding:4px 12px; }"
+        "QDoubleSpinBox { background:%3; }"
+        "QComboBox:focus, QDoubleSpinBox:focus { border:1px solid %7; }"
+        "QScrollBar:vertical { background:%2; width:6px; margin:0; }"
+        "QScrollBar::handle:vertical { background:%1; min-height:32px; border-radius:3px; }"
+        "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height:0; border:0; background:transparent; }"
+        "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background:transparent; }"
+        "QComboBox QAbstractItemView { background:%4; color:%1; selection-background-color:%6; }"
+        "QPushButton[settingsToggle=true] { background:%3; padding:0; }"
+        "QPushButton[settingsToggle=true]:checked { background:%7; color:%2; }"
         "QLabel#settingsTitle, QLabel#settingsSection { font-size:16px; }"
         "QLabel#settingsSection { color:%5; }"
         "QPushButton { background:%4; border:1px solid transparent; border-radius:4px; padding:8px 12px; }"
@@ -488,7 +917,7 @@ void SettingsDialog::applyTheme()
         "QPushButton:focus { border:1px solid %7; }"
         "QPushButton[category=true] { text-align:left; padding:0px 8px; }"
         "QPushButton#settingsClose { background:transparent; padding:0; }"
-        "QLineEdit { background:%4; border:1px solid transparent; border-radius:6px; padding:6px 10px; }"
+        "QLineEdit { background:%3; border:1px solid transparent; border-radius:6px; padding:6px 10px; }"
         "QLineEdit:focus { border:1px solid %7; }"
         "QTreeWidget { background:%2; border:0; }"
         "QTreeWidget::item { padding:8px 4px; }"
@@ -532,17 +961,7 @@ bool SettingsDialog::eventFilter(QObject *watched, QEvent *event)
                 auto *item = watched == m_results ? m_results->currentItem() : m_results->topLevelItem(0);
                 if (item)
                 {
-                    const QVariant category = item->data(0, Qt::UserRole);
-                    if (category.isValid())
-                    {
-                        m_search->clear();
-                        selectCategory(category.toInt());
-                    }
-                    else
-                    {
-                        m_results->setCurrentItem(item);
-                        m_results->setFocus();
-                    }
+                    activateResult(item);
                 }
             }
             return true;

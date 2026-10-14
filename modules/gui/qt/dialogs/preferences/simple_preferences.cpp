@@ -1129,6 +1129,16 @@ void SPrefsPanel::updateAudioOptions( int number )
 }
 
 
+void SPrefsPanel::showHotkey(const QString &key)
+{
+    for (auto *control : controls)
+        if (auto *selector = qobject_cast<KeySelectorControl *>(control))
+        {
+            selector->showKey(key);
+            return;
+        }
+}
+
 SPrefsPanel::~SPrefsPanel()
 {
     if (!m_isApplied)
