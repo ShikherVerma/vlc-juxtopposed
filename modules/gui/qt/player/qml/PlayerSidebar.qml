@@ -207,7 +207,9 @@ FocusScope {
             padding: 0
             Layout.preferredWidth: VLCStyle.dp(24)
             text: VLCIcons.add
-            description: qsTr("Add bookmark at current time (Ctrl+B)")
+            description: Qt.platform.os === "osx"
+                         ? qsTr("Add bookmark at current time (%1)").arg(KeyHelper.nativeShortcutText("Ctrl+B"))
+                         : qsTr("Add bookmark at current time (Ctrl+B)")
             enabled: root.bookmarksAvailable && Player.isStarted && Player.time.valid() && Player.seekable
             onClicked: root.bookmarkModel.add()
             Navigation.parentItem: root

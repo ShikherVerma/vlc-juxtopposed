@@ -45,6 +45,11 @@ public:
         return QVariant::fromValue(item->getId());
     }
 
+    std::unique_ptr<MLListCacheLoader> loaderForTest() const
+    {
+        return createMLLoader();
+    }
+
     void appendRange(int64_t min, int64_t max)
     {
         for (int64_t i = min; i <= max; ++i)
@@ -137,6 +142,60 @@ private slots:
     void cleanup() {
         m_model.reset();
         m_medialib.reset();
+    }
+
+    void testMediaLibraryDeletedBeforeQueuedLoad()
+    {
+        // A cache loader can be retained by an already-posted model event
+        // after the GUI's MediaLib has been destroyed (Mac RC quit path).
+        m_model->appendRange(1, 20);
+        m_model->componentComplete();
+        QVERIFY(QTest::qWaitFor([this] { return !m_model->loading(); }));
+        auto loader = m_model->loaderForTest();
+        bool dispatched = false;
+        bool callback = false;
+        QMetaObject::invokeMethod(loader.get(), [&] {
+            dispatched = true;
+            QCOMPARE(loader->countAndLoadTask(0, 10,
+                [&](size_t, size_t, std::vector<MLListCacheLoader::ItemType>&) { callback = true; }), size_t(0));
+        }, Qt::QueuedConnection);
+        m_medialib.reset();
+        QVERIFY(!m_model->ml());
+        // Reclaim the detached runner before dispatching the surviving loader
+        // event. Checking only before DeferredDelete hid the old stale pointer.
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        QCoreApplication::sendPostedEvents(loader.get(), QEvent::MetaCall);
+        QVERIFY(dispatched);
+        QCOMPARE(loader->countTask([&](size_t, size_t) { callback = true; }), size_t(0));
+        QCOMPARE(loader->loadTask(0, 10, [&](size_t, auto&) { callback = true; }), size_t(0));
+        QCOMPARE(loader->loadItemsTask(0, {0}, [&](size_t, auto&) { callback = true; }), quint64(0));
+        QCOMPARE(loader->loadItemByIdTask({1, VLC_ML_PARENT_UNKNOWN},
+            [&](size_t, auto&&) { callback = true; }), size_t(0));
+        loader->cancelTask(0);
+        loader->cancelTask(42);
+        QVERIFY(!callback);
+    }
+
+    void testRejectDuringMediaLibraryDestruction()
+    {
+        auto lib = m_medialib.get();
+        bool shuttingDown = false;
+        connect(lib, &MediaLib::aboutToDestroy, this, [&] {
+            shuttingDown = true;
+            struct Empty {};
+            auto work = [](vlc_medialibrary_t*, Empty&) { QFAIL("Work submitted during destruction"); };
+            auto ui = [](quint64, Empty&) { QFAIL("UI callback during destruction"); };
+            QCOMPARE(lib->runOnMLThread<Empty>(this, work, ui), quint64(0));
+            auto noContextWork = [](vlc_medialibrary_t*) { QFAIL("Work submitted during destruction"); };
+            QCOMPARE(lib->runOnMLThread(this, noContextWork), quint64(0));
+            QCOMPARE(lib->runOnMLThread(this, noContextWork, std::function<void()>([] {})), quint64(0));
+            QCOMPARE(lib->runOnMLThread(this, noContextWork, std::function<void(quint64)>([](quint64) {})), quint64(0));
+            lib->cancelMLTask(this, 0);
+            lib->cancelMLTask(this, 42);
+        });
+        m_medialib.reset();
+        QVERIFY(shuttingDown);
+        QVERIFY(!m_model->ml());
     }
 
     /**

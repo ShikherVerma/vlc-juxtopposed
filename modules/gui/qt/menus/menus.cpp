@@ -292,6 +292,14 @@ void VLCMenuBar::styleMenu(qt_intf_t* intf, QMenu* menu, int width)
         const auto icon = action->property("playerMenuIcon").toString();
         if (!icon.isEmpty())
             action->setIcon(ColorizedSvgIcon(icon, style->foreground(), style->quiet(), style->accent()));
+#ifdef Q_OS_MACOS
+        // QMacStyle defaults to suppressing menu icons and shortcut columns.
+        // These are authored QWidget popups (including QML-triggered menus),
+        // not the native macOS menu bar. Opt in per action, not globally.
+        action->setIconVisibleInMenu(true);
+        if (!action->shortcut().isEmpty() && !action->text().contains('\t'))
+            action->setText(action->text() + '\t' + action->shortcut().toString(QKeySequence::NativeText));
+#endif
         if (auto submenu = action->menu())
             styleMenu(intf, submenu, 265);
     }
@@ -341,6 +349,12 @@ QAction *addDPStaticEntry( QMenu *menu,
 #else
     Q_UNUSED( role );
 #endif
+#ifdef Q_OS_MACOS
+    // Keep legacy native-menu policy, but retain the source for authored
+    // QWidget popups: styleMenu() can opt those actions into visible icons.
+    if (!EMPTY_STR(icon))
+        action->setProperty("playerMenuIcon", QString::fromLatin1(icon));
+#endif
     return action;
 }
 
@@ -366,6 +380,10 @@ static QAction* addMIMStaticEntry( qt_intf_t *p_intf,
     {
         action = menu->addAction( text, THEMIM, member );
     }
+#ifdef Q_OS_MACOS
+    if (!EMPTY_STR(icon))
+        action->setProperty("playerMenuIcon", QString::fromLatin1(icon));
+#endif
     return action;
 }
 
@@ -388,6 +406,10 @@ static QAction* addMPLStaticEntry( qt_intf_t *p_intf,
     {
         action = menu->addAction( text, THEMPL, member );
     }
+#ifdef Q_OS_MACOS
+    if (!EMPTY_STR(icon))
+        action->setProperty("playerMenuIcon", QString::fromLatin1(icon));
+#endif
     return action;
 }
 

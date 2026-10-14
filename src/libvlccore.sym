@@ -866,6 +866,7 @@ vlc_player_CycleTrack
 vlc_player_DisplayPosition
 vlc_player_DecrementRate
 vlc_player_Delete
+vlc_player_GetAssociatedSubsFPS
 vlc_player_GetAtoBLoop
 vlc_player_GetCapabilities
 vlc_player_GetCategoryDelay

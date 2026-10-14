@@ -166,6 +166,9 @@ public:
     void cancelMLTask(const QObject* object, quint64 taskId);
 
 signals:
+    // Clients must release native ML event handles before this wrapper goes
+    // away; QObject::destroyed is too late to call its unregister method.
+    void aboutToDestroy();
     void discoveryStarted();
     void discoveryCompleted();
     void parsingProgressChanged( quint32 percent );
@@ -199,5 +202,7 @@ quint64 MediaLib::runOnMLThread(const QObject* obj,
                                     std::function<void (quint64 taskId, Ctx&)> uiFun,
                                     const char* queue)
 {
+    if (!m_runner)
+        return 0;
     return m_runner->runOnThread<Ctx>(obj, [ml = m_ml, mlFun](Ctx& ctx){mlFun(ml,ctx);}, uiFun, queue);
 }

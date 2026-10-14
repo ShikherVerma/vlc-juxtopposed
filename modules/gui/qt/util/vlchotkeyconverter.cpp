@@ -9,6 +9,7 @@
 #include <QKeyEvent>
 #include <QWheelEvent>
 #include <QApplication>
+#include <QKeySequence>
 #include <vlc_actions.h>
 
 /***************************************************************************
@@ -19,8 +20,15 @@ int qtKeyModifiersToVLC( const QInputEvent& e )
     int i_keyModifiers = 0;
     if( e.modifiers() & Qt::ShiftModifier ) i_keyModifiers |= KEY_MODIFIER_SHIFT;
     if( e.modifiers() & Qt::AltModifier ) i_keyModifiers |= KEY_MODIFIER_ALT;
+#ifdef Q_OS_MACOS
+    // Qt swaps Control/Meta on macOS: ControlModifier is the physical Command
+    // key and MetaModifier the physical Control key. Mirror VLCKeyToString.
+    if( e.modifiers() & Qt::ControlModifier ) i_keyModifiers |= KEY_MODIFIER_COMMAND;
+    if( e.modifiers() & Qt::MetaModifier ) i_keyModifiers |= KEY_MODIFIER_CTRL;
+#else
     if( e.modifiers() & Qt::ControlModifier ) i_keyModifiers |= KEY_MODIFIER_CTRL;
     if( e.modifiers() & Qt::MetaModifier ) i_keyModifiers |= KEY_MODIFIER_META;
+#endif
     return i_keyModifiers;
 }
 
@@ -341,6 +349,31 @@ void WheelToVLCConverter::customWheelEvent(const QPoint& pixelDelta,
 
 QString VLCKeyToString( unsigned val, bool locale )
 {
+#ifdef Q_OS_MACOS
+    if (locale)
+    {
+        // Qt swaps Control/Meta on macOS: Control is Command, Meta is the
+        // physical Control key. VLC's Command bit is distinct from both.
+        const unsigned key = val & ~KEY_MODIFIER;
+        int qtKey = 0;
+        // Resolve symbolic control keys before printable Latin-1: VLC stores
+        // Escape/Tab/Backspace/Return as ASCII, Qt uses its special-key range.
+        for (const auto& entry : keys)
+            if (entry.vlc == key) { qtKey = entry.qt; break; }
+        if (!qtKey && key >= 0x20 && key <= 0xff)
+            qtKey = QChar(key).toUpper().unicode();
+        if (qtKey)
+        {
+            Qt::KeyboardModifiers modifiers;
+            if (val & KEY_MODIFIER_COMMAND) modifiers |= Qt::ControlModifier;
+            if (val & (KEY_MODIFIER_CTRL | KEY_MODIFIER_META)) modifiers |= Qt::MetaModifier;
+            if (val & KEY_MODIFIER_ALT) modifiers |= Qt::AltModifier;
+            if (val & KEY_MODIFIER_SHIFT) modifiers |= Qt::ShiftModifier;
+            return QKeySequence(QKeyCombination(modifiers, Qt::Key(qtKey))).toString(QKeySequence::NativeText);
+        }
+        // Mouse keys have no QKeySequence representation; retain VLC's name.
+    }
+#endif
     char *base = vlc_keycode2str (val, locale);
     if (base == NULL)
         return qfu( "" );

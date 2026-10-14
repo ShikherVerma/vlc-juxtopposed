@@ -34,14 +34,19 @@ MediaLib::MediaLib(qt_intf_t *_intf, vlc::playlist::PlaylistController* playlist
         vlc_ml_event_unregister_callback( m_ml, cb );
       })
 {
+    m_runner = new ThreadRunner();
     m_event_cb.reset( vlc_ml_event_register_callback( m_ml, MediaLib::onMediaLibraryEvent,
                                                       this ) );
-    m_runner = new ThreadRunner();
 }
 
 MediaLib::~MediaLib()
 {
-    m_runner->destroy();
+    // Reject reentrant/late submissions before notifying clients. The runner
+    // drains asynchronously, so it must no longer be reachable via MediaLib.
+    auto runner = std::exchange(m_runner, nullptr);
+    emit aboutToDestroy();
+    m_event_cb.reset();
+    runner->destroy();
 }
 
 static void convertMLItemToPlaylistMedias(vlc_medialibrary_t* ml, const MLItemId & itemId, const QStringList &options, QVector<vlc::playlist::Media>& medias)
@@ -415,6 +420,8 @@ quint64 MediaLib::runOnMLThread(const QObject* obj,
                 std::function< void()> uiCb,
                 const char* queue)
 {
+    if (!m_runner)
+        return 0;
     struct NoCtx{};
     return m_runner->runOnThread<NoCtx>(obj,
     [mlCb, ml=m_ml](NoCtx&){
@@ -430,6 +437,8 @@ quint64 MediaLib::runOnMLThread(const QObject* obj,
                 std::function< void(vlc_medialibrary_t* ml)> mlCb,
                 std::function< void(quint64)> uiCb, const char* queue)
 {
+    if (!m_runner)
+        return 0;
     struct NoCtx{};
     return m_runner->runOnThread<NoCtx>(obj,
     [mlCb, ml=m_ml](NoCtx&){
@@ -445,6 +454,8 @@ quint64 MediaLib::runOnMLThread(const QObject* obj,
                 std::function< void(vlc_medialibrary_t* ml)> mlCb,
                 const char* queue)
 {
+    if (!m_runner)
+        return 0;
     struct NoCtx{};
     return m_runner->runOnThread<NoCtx>(obj,
     [mlCb, ml=m_ml](NoCtx&){
@@ -457,6 +468,7 @@ quint64 MediaLib::runOnMLThread(const QObject* obj,
 
 void MediaLib::cancelMLTask(const QObject* object, quint64 taskId)
 {
-    m_runner->cancelTask(object, taskId);
+    if (m_runner && taskId)
+        m_runner->cancelTask(object, taskId);
 }
 

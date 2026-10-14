@@ -457,7 +457,16 @@ void MLBaseModel::setMl(MediaLib* medialib)
     if (m_mediaLib == medialib)
         return;
 
+    // Release listeners while the old wrapper is still usable, including
+    // when a model is rebound to a different MediaLib.
+    m_ml_event_handle.reset();
+    disconnect(m_medialibDestroyConnection);
     m_mediaLib = medialib;
+    m_medialibDestroyConnection = connect(medialib, &MediaLib::aboutToDestroy, this, [this] {
+        m_ml_event_handle.reset();
+        m_itemLoader.reset();
+        m_mediaLib.clear();
+    });
     d->initializeModel();
     mlChanged();
 }
@@ -610,11 +619,14 @@ MLListCacheLoader::MLListCacheLoader(MediaLib* medialib, std::shared_ptr<MLListC
 
 void MLListCacheLoader::cancelTask(size_t taskId)
 {
-    m_medialib->cancelMLTask(this, taskId);
+    if (m_medialib && taskId)
+        m_medialib->cancelMLTask(this, taskId);
 }
 
 size_t MLListCacheLoader::countTask(std::function<void(size_t taskId, size_t count)> cb)
 {
+    if (!m_medialib)
+        return 0;
     struct Ctx {
         size_t count;
     };
@@ -636,6 +648,8 @@ size_t MLListCacheLoader::countTask(std::function<void(size_t taskId, size_t cou
 size_t MLListCacheLoader::loadTask(size_t offset, size_t limit,
     std::function<void (size_t, std::vector<ItemType>&)> cb)
 {
+    if (!m_medialib)
+        return 0;
     struct Ctx {
         std::vector<MLListCacheLoader::ItemType> list;
     };
@@ -658,6 +672,8 @@ size_t MLListCacheLoader::loadTask(size_t offset, size_t limit,
 size_t MLListCacheLoader::countAndLoadTask(size_t offset, size_t limit,
     std::function<void (size_t, size_t, std::vector<ItemType>&)> cb)
 {
+    if (!m_medialib)
+        return 0;
     struct Ctx {
         size_t maximumCount;
         std::vector<ItemType> list;
@@ -679,6 +695,8 @@ size_t MLListCacheLoader::countAndLoadTask(size_t offset, size_t limit,
 
 quint64 MLListCacheLoader::loadItemsTask(size_t offset, const QVector<int> &indexes, MLBaseModel::ItemCallback cb)
 {
+    if (!m_medialib)
+        return 0;
     struct Ctx
     {
         std::vector<std::unique_ptr<MLItem>> items;
@@ -737,6 +755,8 @@ quint64 MLListCacheLoader::loadItemsTask(size_t offset, const QVector<int> &inde
 
 size_t MLListCacheLoader::loadItemByIdTask(MLItemId itemId, std::function<void (size_t, ItemType&&)> cb) const
 {
+    if (!m_medialib)
+        return 0;
     struct Ctx {
         ItemType item;
     };

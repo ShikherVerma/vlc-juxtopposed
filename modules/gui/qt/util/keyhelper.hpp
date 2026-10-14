@@ -110,6 +110,15 @@ public:
     Q_INVOKABLE bool matchSearch( QObject* event ) { return call(&KeyHelper::matchSearch, event); }
     Q_INVOKABLE bool matchCancel(QObject* event)   { return call(&KeyHelper::matchCancel, event); }
 
+    Q_INVOKABLE QString nativeShortcutText(const QString& sequence) const
+    {
+#ifdef Q_OS_MACOS
+        return QKeySequence::fromString(sequence, QKeySequence::PortableText).toString(QKeySequence::NativeText);
+#else
+        return sequence;
+#endif
+    }
+
 private:
     //convert arguments and call the right function
     bool call(bool (*fun)(const QKeyEvent*), const QObject *event);

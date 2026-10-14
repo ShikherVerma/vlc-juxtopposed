@@ -26,6 +26,7 @@
 
 
 #include <memory>
+#include <QPointer>
 
 #include <vlc_media_library.h>
 #include "mlqmltypes.hpp"
@@ -159,7 +160,8 @@ private:
 protected:
     MLItemId m_parent;
 
-    MediaLib* m_mediaLib = nullptr;
+    QPointer<MediaLib> m_mediaLib;
+    QMetaObject::Connection m_medialibDestroyConnection;
     bool m_favoriteOnly = false;
     vlc_ml_sorting_criteria_t m_mlSortingCriteria = VLC_ML_SORTING_DEFAULT;
     std::unique_ptr<vlc_ml_event_callback_t,
@@ -219,7 +221,7 @@ public:
     size_t loadItemByIdTask(MLItemId itemId, std::function<void (size_t, ItemType&&)> cb) const;
 
 protected:
-    MediaLib* m_medialib = nullptr;
+    QPointer<MediaLib> m_medialib;
     std::shared_ptr<MLOp> m_op;
 };
 #endif // MLBASEMODEL_HPP
