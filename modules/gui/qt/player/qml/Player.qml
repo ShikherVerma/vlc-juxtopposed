@@ -62,6 +62,7 @@ FocusScope {
 
     property bool _keyPressed: false
     property bool adjustmentsVisible: false
+    property bool libraryVisible: false
 
     // Settings
 
@@ -72,7 +73,7 @@ FocusScope {
     // Events
 
     // Sidebar lists/editors must receive keys even after mouse focus.
-    Component.onCompleted: MainCtx.preferHotkeys = Qt.binding(() => !playlistVisibility.isPlaylistVisible && !rootPlayer.adjustmentsVisible)
+    Component.onCompleted: MainCtx.preferHotkeys = Qt.binding(() => !playlistVisibility.isPlaylistVisible && !rootPlayer.adjustmentsVisible && !rootPlayer.libraryVisible)
     Component.onDestruction: MainCtx.preferHotkeys = false
 
     Keys.priority: Keys.AfterItem
@@ -85,7 +86,7 @@ FocusScope {
         rootPlayer.Navigation.defaultKeyAction(event)
 
         //unhandled keys are forwarded as hotkeys
-        if (!event.accepted || (!rootPlayer.adjustmentsVisible && controlBar.state !== "visible"))
+        if (!event.accepted || (!rootPlayer.adjustmentsVisible && !rootPlayer.libraryVisible && controlBar.state !== "visible"))
             MainCtx.sendHotkey(event.key, event.modifiers);
     }
 
@@ -119,6 +120,7 @@ FocusScope {
     // Private
 
     function _onNavigationCancel() {
+        if (libraryVisible) { closeLibrary(); return }
         if (MainCtx.hasEmbededVideo && !MainCtx.canShowVideoPIP) {
             MainPlaylistController.stop()
         }
@@ -151,7 +153,7 @@ FocusScope {
 
         onIsPlaylistVisibleChanged: {
             if (isPlaylistVisible) rootPlayer.adjustmentsVisible = false
-            lockUnlockAutoHide(isPlaylistVisible || rootPlayer.adjustmentsVisible)
+            lockUnlockAutoHide(isPlaylistVisible || rootPlayer.adjustmentsVisible || rootPlayer.libraryVisible)
         }
     }
 
@@ -198,6 +200,7 @@ FocusScope {
 
         anchors {
             left: parent.left
+            leftMargin: rootPlayer.libraryVisible ? libraryPanel.width : 0
             right: parent.right
             top: (MainCtx.hasEmbededVideo && rootPlayer._controlsUnderVideo) ? topBar.bottom : parent.top
             bottom: (MainCtx.hasEmbededVideo && rootPlayer._controlsUnderVideo) ? controlBar.top : parent.bottom
@@ -1012,11 +1015,10 @@ FocusScope {
             }
         }
 
+        navigationVisible: rootPlayer.libraryVisible
         onBackRequested: {
-            if (MainCtx.hasEmbededVideo && !MainCtx.canShowVideoPIP) {
-               MainPlaylistController.stop()
-            }
-            MainCtx.playerView = false
+            rootPlayer.libraryVisible = !rootPlayer.libraryVisible
+            rootPlayer.lockUnlockAutoHide(rootPlayer.libraryVisible || playlistVisibility.isPlaylistVisible || rootPlayer.adjustmentsVisible)
         }
 
         FadeControllerStateGroup {
@@ -1026,9 +1028,43 @@ FocusScope {
 
     }
 
+    function closeLibrary() {
+        libraryVisible = false
+        lockUnlockAutoHide(playlistVisibility.isPlaylistVisible || adjustmentsVisible)
+        topBar.forceActiveFocus(Qt.BacktabFocusReason)
+    }
+
+    FocusScope {
+        id: libraryPanel
+        visible: rootPlayer.libraryVisible
+        width: Math.min(VLCStyle.dp(480), rootPlayer.width * 0.4)
+        anchors { left: parent.left; top: topBar.bottom; bottom: controlBar.top }
+        clip: true
+        Navigation.parentItem: rootPlayer
+        Navigation.cancelAction: () => rootPlayer.closeLibrary()
+        Rectangle { anchors.fill: parent; color: windowTheme.bg.primary }
+        RowLayout {
+            id: libraryHeader
+            anchors { left: parent.left; right: parent.right; top: parent.top }
+            height: VLCStyle.dp(40)
+            Widgets.MenuLabel { Layout.fillWidth: true; Layout.leftMargin: VLCStyle.dp(20); text: qsTr("Library"); color: windowTheme.fg.primary }
+            Widgets.IconToolButton {
+                text: VLCIcons.fullscreen
+                description: qsTr("Browse full library with mini-player")
+                onClicked: MainCtx.playerView = false
+            }
+            Widgets.IconToolButton { text: VLCIcons.close; description: qsTr("Close library"); onClicked: rootPlayer.closeLibrary() }
+        }
+        Loader {
+            anchors { top: libraryHeader.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
+            active: rootPlayer.libraryVisible
+            sourceComponent: MainDisplay { compact: true; onCloseRequested: rootPlayer.closeLibrary() }
+        }
+    }
+
     function closeAdjustments() {
         rootPlayer.adjustmentsVisible = false
-        lockUnlockAutoHide(playlistVisibility.isPlaylistVisible)
+        lockUnlockAutoHide(playlistVisibility.isPlaylistVisible || rootPlayer.libraryVisible)
         controlBar.forceActiveFocus(Qt.BacktabFocusReason)
     }
 

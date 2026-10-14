@@ -16,6 +16,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  *****************************************************************************/
 #include "videosurface.hpp"
+#include <QSet>
+#include <QDebug>
 
 #include <QSGRectangleNode>
 #include <QThreadPool>
@@ -27,6 +29,19 @@
 #endif
 
 #include "maininterface/mainctx.hpp"
+
+// Opt-in runtime evidence: count surfaces actually attached to providers,
+// including Loader teardown; no logging or state tracking in normal sessions.
+static QSet<const VideoSurface*> tracedSurfaces;
+static void traceSurface(const VideoSurface* surface, bool attached)
+{
+    if (!qEnvironmentVariableIsSet("VLC_QT_TRACE_SURFACES"))
+        return;
+    if (attached) tracedSurfaces.insert(surface);
+    else tracedSurfaces.remove(surface);
+    qInfo() << "Library video surfaces:" << tracedSurfaces.size()
+            << (attached ? "attach" : "detach") << surface;
+}
 
 VideoSurfaceProvider::VideoSurfaceProvider(bool threadedSurfaceUpdates, QObject* parent)
     : QObject(parent)
@@ -121,6 +136,8 @@ void VideoSurfaceProvider::onSurfacePropertiesChanged(const std::optional<QSizeF
 VideoSurface::VideoSurface(QQuickItem* parent)
     : ViewBlockingRectangle(parent)
 {
+    if (qEnvironmentVariableIsSet("VLC_QT_TRACE_SURFACES"))
+        connect(this, &QObject::destroyed, [](QObject* object) { traceSurface(static_cast<VideoSurface*>(object), false); });
     setAcceptHoverEvents(true);
     setAcceptedMouseButtons(Qt::AllButtons);
     setFlag(ItemAcceptsInputMethod, true);
@@ -348,6 +365,7 @@ void VideoSurface::setVideoSurfaceProvider(VideoSurfaceProvider *newVideoSurface
 
         assert(m_provider->videoSurface() == this);
         m_provider->setVideoSurface({});
+        traceSurface(this, false);
     }
 
     m_provider = newVideoSurfaceProvider;
@@ -379,6 +397,7 @@ void VideoSurface::setVideoSurfaceProvider(VideoSurfaceProvider *newVideoSurface
 
         assert(!m_provider->videoSurface());
         m_provider->setVideoSurface(this);
+        traceSurface(this, true);
 
         setFlag(ItemHasContents, true);
         update(); // this should not be necessary right after setting `ItemHasContents`, but just in case

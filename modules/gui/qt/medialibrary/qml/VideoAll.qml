@@ -90,6 +90,8 @@ MainViewLoader {
     isSearchable: true
     list: libraryLayout ? compactList : list
     grid: grid
+    // Compact browsing uses the real list without changing the saved view preference.
+    currentComponent: libraryLayout && width < VLCStyle.dp(700) ? compactList : MainCtx.gridView ? grid : list
     emptyLabel: emptylabel
 
     sortModel: [

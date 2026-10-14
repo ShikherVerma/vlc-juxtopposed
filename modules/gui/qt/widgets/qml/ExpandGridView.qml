@@ -192,8 +192,16 @@ FocusScope {
     }
 
     // view needs to be relayout, since items may move
-    onWidthChanged: Qt.callLater(_anchoredLayout, true)
-    onHeightChanged: Qt.callLater(_anchoredLayout, true)
+    onWidthChanged: anchoredLayoutTimer.restart()
+    onHeightChanged: anchoredLayoutTimer.restart()
+
+    // Object-owned timers cannot dispatch functions from a destroyed page's
+    // QML context, unlike queued references to the inner Flickable's methods.
+    Timer {
+        id: anchoredLayoutTimer
+        interval: 0
+        onTriggered: root._anchoredLayout(true)
+    }
 
     onContentWidthChanged: _anchoredLayout(true)
     onContentHeightChanged: _anchoredLayout(true)
@@ -371,6 +379,10 @@ FocusScope {
 
     // layouts such that views indexes are preserved during a resize
     function _anchoredLayout(forceLayout) {
+        // A queued resize can outlive the QML functions of the inner flickable
+        // during page teardown (e.g. compact/library navigation).
+        if (!flickable || typeof flickable.layout !== "function")
+            return
         if (_currentRange[0] === _currentRange[1]) {
             // empty view, we may still need to update internal variables here
             flickable.layout(forceLayout)
@@ -985,7 +997,13 @@ FocusScope {
 
         anchors.fill: parent
 
-        onContentYChanged: { Qt.callLater(flickable.layout, false) }
+        onContentYChanged: contentLayoutTimer.restart()
+
+        Timer {
+            id: contentLayoutTimer
+            interval: 0
+            onTriggered: flickable.layout(false)
+        }
 
         function getExpandItemGridId() {
             if (root.expandIndex !== -1) {

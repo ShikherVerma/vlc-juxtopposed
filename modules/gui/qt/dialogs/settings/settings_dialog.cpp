@@ -61,7 +61,8 @@ protected:
         painter.drawRoundedRect(rect(), 4, 4);
         painter.setBrush(isChecked() ? property("accentDim").value<QColor>() : QColor(light ? "#b3b3b3" : "#404040"));
         painter.drawRoundedRect(QRectF(isChecked() ? 39 : 3, 3, 26, 26), 3, 3);
-        painter.setPen(isChecked() ? (light ? QColor("#3b3b3b") : property("accentMain").value<QColor>()) : QColor("#6b6b6b"));
+        painter.setPen(isChecked() ? (light ? QColor("#3b3b3b") : property("accentMain").value<QColor>())
+                                   : (isEnabled() ? property("secondaryInk").value<QColor>() : QColor("#6b6b6b")));
         QFont font = this->font();
         font.setPixelSize(12);
         painter.setFont(font);
@@ -541,7 +542,7 @@ void SettingsDialog::selectCategory(int category)
     for (int i = 0; i < 13; ++i)
     {
         m_categories[i]->setChecked(i == category);
-        m_categories[i]->setIcon(glyphIcon(categoryIcons[i], i == category ? active : QColor(light ? "#2e2e2e" : "#8f8f8f")));
+        m_categories[i]->setIcon(glyphIcon(categoryIcons[i], i == category ? (light ? m_palette->get_accentDim() : active) : QColor(light ? "#2e2e2e" : "#8f8f8f")));
     }
     m_title->setText(qfut(categoryTitles[category]));
     m_accentRow->setVisible(category == 0);
@@ -1051,6 +1052,8 @@ void SettingsDialog::applyTheme()
     const QString primary = light ? "#161616" : "#c6c6c6";
     const QString selected = light ? "#dddddd" : "#222222";
     const QString focus = m_palette->get_accentMain().name();
+    const QString secondary = m_palette->getColor(ColorContext::View, ColorContext::Fg,
+                                                  ColorContext::Secondary, ColorContext::Normal).name();
     for (const auto &editor : m_editors)
     {
         if (editor.type != CONFIG_ITEM_BOOL) continue;
@@ -1058,6 +1061,7 @@ void SettingsDialog::applyTheme()
         editor.widget->setProperty("accentMain", m_palette->get_accentMain());
         editor.widget->setProperty("accentDim", m_palette->get_accentDim());
         editor.widget->setProperty("accentWell", selectedAccentWell(m_palette->get_accentMain(), light));
+        editor.widget->setProperty("secondaryInk", QColor(secondary));
         editor.widget->update();
     }
     setStyleSheet(QStringLiteral(
@@ -1091,13 +1095,15 @@ void SettingsDialog::applyTheme()
         "QTreeWidget::item { padding:8px 4px; }"
         "QTreeWidget::item:selected { background:%6; color:%5; }"
         "QHeaderView::section { background:%4; color:%1; border:0; padding:8px; }"
-        "QLabel#settingsGroup { color:#6b6b6b; }"
-    ).arg(fg, canvas, well, panel, primary, selected, focus));
+        "QLabel#settingsGroup { color:%8; }"
+    ).arg(fg, canvas, well, panel, primary, selected, focus, secondary));
     const QColor active = QColor(m_accent).isValid() ? QColor(m_accent) : QColor(light ? "#e8851a" : swatchColors[0]);
     for (int i = 0; i < 13; ++i)
-        m_categories[i]->setIcon(glyphIcon(categoryIcons[i], m_categories[i]->isChecked() ? active : QColor(fg)));
+        m_categories[i]->setIcon(glyphIcon(categoryIcons[i], m_categories[i]->isChecked() ? (light ? m_palette->get_accentDim() : active) : QColor(fg)));
     findChild<QPushButton *>(QStringLiteral("settingsClose"))->setIcon(glyphIcon(VLCIcons::close, QColor(fg)));
-    m_search->setStyleSheet(QStringLiteral("QLineEdit { background:%1; }").arg(light ? "#dddddd" : "#151515"));
+    m_search->setStyleSheet(QStringLiteral("QLineEdit { background:%1; %2 }").arg(
+        light ? "#dddddd" : "#151515",
+        light ? QStringLiteral("placeholder-text-color:%1;").arg(secondary) : QString()));
     for (int i = 0; i < 9; ++i)
     {
         const QColor color(i == 0 && light ? "#e8851a" : swatchColors[i]);

@@ -581,8 +581,15 @@ void CompositorX11RenderWindow::setVideoWindow( QWindow* window)
     //ensure Qt x11 pending operation have been forwarded to the server
     xcb_flush(qGuiApp->nativeInterface<QNativeInterface::QX11Application>()->connection());
     m_videoClient = std::make_unique<CompositorX11RenderClient>(m_intf, m_conn, window->winId());
-    connect(window, &QWindow::widthChanged, m_videoClient.get(), &CompositorX11RenderClient::resetPixmap);
-    connect(window, &QWindow::heightChanged, m_videoClient.get(), &CompositorX11RenderClient::resetPixmap);
+    // RenderTask creates/uses the pictures under m_pictureLock. Geometry
+    // signals run on the GUI thread: freeing a pixmap here without that same
+    // lock can race xcb_render_create_picture() on the rendering thread.
+    const auto resetVideoPixmap = [this, client = m_videoClient.get()]() {
+        QMutexLocker lock(&m_pictureLock);
+        client->resetPixmap();
+    };
+    connect(window, &QWindow::widthChanged, m_videoClient.get(), resetVideoPixmap);
+    connect(window, &QWindow::heightChanged, m_videoClient.get(), resetVideoPixmap);
     m_videoPosition = QRect(0,0,0,0);
     m_videoWindow = window;
     emit videoSurfaceChanged(m_videoClient.get());
@@ -618,7 +625,11 @@ void CompositorX11RenderWindow::setInterfaceWindow(CompositorX11UISurface* windo
     //ensure Qt x11 pending operation have been forwarded to the server
     xcb_flush(qGuiApp->nativeInterface<QNativeInterface::QX11Application>()->connection());
     m_interfaceClient = std::make_unique<CompositorX11RenderClient>(m_intf, m_conn, window->winId());
-    connect(window, &CompositorX11UISurface::requestPixmapReset, m_interfaceClient.get(), &CompositorX11RenderClient::resetPixmap);
+    connect(window, &CompositorX11UISurface::requestPixmapReset, m_interfaceClient.get(),
+            [this, client = m_interfaceClient.get()]() {
+                QMutexLocker lock(&m_pictureLock);
+                client->resetPixmap();
+            });
     m_interfaceWindow = window;
 }
 

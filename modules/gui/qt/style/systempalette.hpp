@@ -114,6 +114,7 @@ public:
     COLOR_DEFINITION(accentMain, "#e8851a");
     COLOR_DEFINITION(accentBright, "#ffa13b");
     COLOR_DEFINITION(accentDim, "#965916");
+    COLOR_DEFINITION(accentText, "#5f3303");
     COLOR_DEFINITION(accentLogo, "#c2711a");
     COLOR_DEFINITION(bgAccentDark, "#c6ab89");
     COLOR_DEFINITION(bgAccentBright, "#d8ba9a");
@@ -151,6 +152,7 @@ public:
 
     inline MainCtx* getCtx() const { return m_ctx; }
     bool hasCSDImage() const;
+    bool isDark() const { return m_isDark; }
 
     void setColor(ColorContext::ColorSet colorSet,  ColorContext::ColorSection section,
                   ColorContext::ColorName name, ColorContext::ColorState state, QColor color);

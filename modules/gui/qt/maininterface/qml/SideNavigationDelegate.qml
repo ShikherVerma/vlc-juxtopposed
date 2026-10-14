@@ -128,7 +128,7 @@ T.ItemDelegate {
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
 
-                color: (control.highlighted || control.checked) ? theme.accent : theme.fg.primary
+                color: (control.highlighted || control.checked) ? VLCStyle.accentForeground(VLCStyle.palette) : theme.fg.primary
 
                 font.pixelSize: VLCStyle.dp(24, VLCStyle.scale)
             }

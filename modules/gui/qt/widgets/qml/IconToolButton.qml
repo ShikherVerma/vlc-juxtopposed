@@ -34,7 +34,7 @@ T.ToolButton {
 
     required property string description
 
-    property color color: (control.checked && control.enabled) ? theme.accent : theme.fg.primary
+    property color color: (control.checked && control.enabled) ? VLCStyle.accentForeground(VLCStyle.palette) : theme.fg.primary
 
     property color backgroundColor: theme.bg.primary
 

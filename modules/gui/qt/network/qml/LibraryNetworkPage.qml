@@ -64,12 +64,20 @@ Widgets.PageExt {
             clip: true
             model: NetworkSourcesModel { id: sources; ctx: MainCtx; searchPattern: root.search.pattern }
             delegate: Controls.ItemDelegate {
+                id: serviceDelegate
+                readonly property ColorContext colorContext: ColorContext {
+                    id: serviceTheme
+                    colorSet: ColorContext.Item
+                    hovered: serviceDelegate.hovered
+                    pressed: serviceDelegate.down
+                    focused: serviceDelegate.visualFocus
+                }
                 required property var model
                 width: ListView.view.width
                 visible: model.type !== NetworkSourcesModel.TYPE_DUMMY
                 height: visible ? VLCStyle.dp(42, VLCStyle.scale) : 0
                 contentItem: Widgets.MenuLabel { text: model.long_name; color: theme.fg.primary; font.pixelSize: VLCStyle.dp(16, VLCStyle.scale); font.weight: Font.Normal; verticalAlignment: Text.AlignVCenter }
-                background: Rectangle { color: parent.hovered ? theme.bg.highlight : "transparent"; radius: VLCStyle.control_radius }
+                background: Rectangle { color: serviceTheme.bg.primary; radius: VLCStyle.control_radius }
                 onClicked: History.push(["discover", "services", "source_root"], {source_name: model.name})
             }
             Controls.ScrollBar.vertical: Widgets.ScrollBarExt {}

@@ -96,8 +96,16 @@ FocusScope {
                 Accessible.selected: root.currentTab === index
                 Accessible.description: index === 1 || index === 2 ? qsTr("Available in a later adjustment release") : ""
                 onClicked: root.selectTab(index, true, Qt.MouseFocusReason)
+                readonly property ColorContext colorContext: ColorContext {
+                    id: tabTheme
+                    colorSet: ColorContext.TabButton
+                    enabled: tab.enabled
+                    hovered: tab.hovered
+                    pressed: tab.down
+                    focused: tab.visualFocus
+                }
                 background: Rectangle {
-                    color: tab.hovered ? theme.bg.highlight : "transparent"
+                    color: tabTheme.bg.primary
                     radius: VLCStyle.dp(4)
                     border.width: tab.visualFocus ? VLCStyle.dp(1) : 0
                     border.color: theme.accent
@@ -111,15 +119,15 @@ FocusScope {
                         text: index === 0 ? (root.currentTab === 0 ? VLCIcons.playback_two_tone_yes : VLCIcons.playback)
                             : index === 1 ? VLCIcons.video : index === 2 ? VLCIcons.audio
                             : (root.currentTab === 3 ? VLCIcons.subtitles_two_tone_yes : VLCIcons.subtitle)
-                        color: root.currentTab === index ? theme.accent : quietIcons.fg.primary
+                        color: root.currentTab === index ? VLCStyle.accentForeground(VLCStyle.palette) : quietIcons.fg.primary
                     }
-                    Text { text: tab.text; font.pixelSize: VLCStyle.dp(12); color: theme.fg.secondary; y: VLCStyle.dp(2.5) }
+                    Text { text: tab.text; font.pixelSize: VLCStyle.dp(12); color: tabTheme.fg.primary; y: VLCStyle.dp(2.5) }
                   }
                 }
                 Rectangle {
                     x: VLCStyle.dp(8); y: parent.height - VLCStyle.dp(2)
                     width: parent.width - VLCStyle.dp(16); height: VLCStyle.dp(2)
-                    color: root.currentTab === index ? theme.accent : theme.bg.secondary
+                    color: root.currentTab === index ? VLCStyle.accentForeground(VLCStyle.palette) : theme.bg.secondary
                 }
                 Navigation.parentItem: root
                 Navigation.leftAction: () => root.selectTab(index === 0 ? 3 : 0)
@@ -282,7 +290,7 @@ FocusScope {
         textRole: "display"
         background: Rectangle {
             radius: VLCStyle.dp(6); color: choiceTheme.bg.primary
-            border.width: VLCStyle.dp(2); border.color: choice.visualFocus ? theme.accent : theme.bg.secondary
+            border.width: VLCStyle.dp(2); border.color: choice.visualFocus ? VLCStyle.accentForeground(VLCStyle.palette) : theme.bg.secondary
         }
         contentItem: Text { text: choice.displayText; font: choice.font; color: choiceTheme.fg.primary; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight; rightPadding: VLCStyle.dp(24) }
         indicator: Widgets.IconLabel { x: choice.width - width - VLCStyle.dp(16); y: (choice.height - height) / 2; width: VLCStyle.dp(24); height: width; font.pixelSize: width; text: VLCIcons.expand; color: choiceTheme.fg.primary }
@@ -291,7 +299,7 @@ FocusScope {
             width: choice.popup.availableWidth; height: VLCStyle.dp(44)
             highlighted: choice.highlightedIndex === index
             contentItem: Text { text: choice.textAt(index) || choice.emptyText; color: choiceTheme.fg.primary; font: choice.font; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-            background: Rectangle { radius: VLCStyle.dp(4); color: parent.highlighted ? theme.bg.highlight : choiceTheme.bg.primary }
+            background: Rectangle { radius: VLCStyle.dp(4); color: parent.highlighted ? choiceTheme.bg.secondary : choiceTheme.bg.primary }
         }
         popup: T.Popup {
             y: choice.height + VLCStyle.dp(4); width: Math.max(choice.width, VLCStyle.dp(220)); padding: VLCStyle.dp(2)

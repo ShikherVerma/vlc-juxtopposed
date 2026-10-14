@@ -603,7 +603,9 @@ T.Pane {
                 visible: false
                 enabled: visible
 
-                opacity: (listView.activeFocus) ? 1.0 : 0.4
+                // Enabled instructions are not disabled controls. Light uses
+                // secondary ink without fading; retain the authored Dark state.
+                opacity: theme.palette.isDark ? (listView.activeFocus ? 1.0 : 0.4) : 1.0
 
                 Binding on visible {
                     delayed: true
@@ -620,7 +622,7 @@ T.Pane {
 
                     text: VLCIcons.playlist
 
-                    color: theme.fg.primary
+                    color: !theme.palette.isDark && !listView.activeFocus ? theme.fg.secondary : theme.fg.primary
 
                     font.pixelSize: VLCStyle.dp(48, VLCStyle.scale)
                 }

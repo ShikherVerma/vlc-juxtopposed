@@ -182,67 +182,117 @@ Widgets.PageExt {
             spacing: VLCStyle.dp(10, VLCStyle.scale)
             Widgets.IconLabel { visible: entry.iconText !== ""; text: entry.iconText; color: menuTheme.fg.primary; font.pixelSize: VLCStyle.dp(24, VLCStyle.scale) }
             Widgets.MenuLabel { Layout.fillWidth: true; text: entry.text; color: menuTheme.fg.primary; font.pixelSize: VLCStyle.dp(14, VLCStyle.scale); font.weight: Font.Normal }
-            Widgets.IconLabel { visible: entry.checked; text: VLCIcons.check; color: menuTheme.accent; font.pixelSize: VLCStyle.dp(24, VLCStyle.scale) }
+            Widgets.IconLabel { visible: entry.checked; text: VLCIcons.check; color: VLCStyle.accentForeground(VLCStyle.palette); font.pixelSize: VLCStyle.dp(24, VLCStyle.scale) }
         }
     }
 
     header: Item {
-        implicitHeight: VLCStyle.dp(72, VLCStyle.scale)
+        id: folderHeader
+        readonly property bool narrow: root.width < VLCStyle.dp(700)
+        readonly property real sideMargin: VLCStyle.dp(narrow ? 8 : 20)
+        implicitHeight: VLCStyle.dp(narrow ? 110 : 72, VLCStyle.scale)
         RowLayout {
-            anchors { left: parent.left; right: parent.right; top: parent.top; leftMargin: VLCStyle.dp(20, VLCStyle.scale); rightMargin: VLCStyle.dp(20, VLCStyle.scale); topMargin: VLCStyle.dp(20, VLCStyle.scale) }
+            id: folderControls
+            anchors { left: parent.left; right: parent.right; top: parent.top; leftMargin: folderHeader.sideMargin; rightMargin: folderHeader.sideMargin; topMargin: VLCStyle.dp(20, VLCStyle.scale) }
             height: VLCStyle.dp(34, VLCStyle.scale)
-            spacing: VLCStyle.dp(8, VLCStyle.scale)
+            spacing: VLCStyle.dp(folderHeader.narrow ? 4 : 8, VLCStyle.scale)
             Widgets.IconToolButton {
                 Layout.preferredWidth: VLCStyle.dp(28, VLCStyle.scale)
+                Layout.minimumWidth: Layout.preferredWidth
+                Layout.maximumWidth: Layout.preferredWidth
                 Layout.fillHeight: true
                 text: VLCIcons.back
-                description: qsTr("Back")
-                enabled: !History.previousEmpty
-                onClicked: History.previous(Qt.MouseFocusReason)
+                description: folderHeader.narrow ? qsTr("Parent folder") : qsTr("Back")
+                enabled: folderHeader.narrow ? root.hasFolder : !History.previousEmpty
+                onClicked: {
+                    if (folderHeader.narrow) root.ancestor(root.breadcrumbs.length - 2)
+                    else History.previous(Qt.MouseFocusReason)
+                }
             }
             Widgets.IconToolButton {
                 Layout.preferredWidth: VLCStyle.dp(28, VLCStyle.scale)
+                Layout.minimumWidth: Layout.preferredWidth
+                Layout.maximumWidth: Layout.preferredWidth
                 Layout.fillHeight: true
                 text: VLCIcons.back
                 rotation: 180
+                visible: !folderHeader.narrow
                 description: qsTr("Forward")
                 enabled: !History.nextEmpty
                 onClicked: History.next(Qt.MouseFocusReason)
             }
-            RowLayout {
+            Widgets.MenuLabel {
+                visible: folderHeader.narrow
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
-                spacing: VLCStyle.dp(4, VLCStyle.scale)
-                Controls.ToolButton {
-                    text: qsTr("Videos")
-                    font.pixelSize: VLCStyle.dp(16, VLCStyle.scale)
-                    contentItem: Widgets.MenuLabel { text: parent.text; color: theme.fg.primary; font: parent.font }
-                    background: Rectangle { color: parent.hovered ? theme.bg.highlight : "transparent"; radius: VLCStyle.control_radius }
-                    onClicked: root.ancestor(-1)
-                }
-                Repeater {
-                    model: root.breadcrumbs
-                    RowLayout {
-                        required property var modelData
-                        required property int index
-                        spacing: VLCStyle.dp(4, VLCStyle.scale)
-                        Widgets.MenuLabel { text: "›"; color: theme.fg.secondary; font.pixelSize: VLCStyle.dp(16, VLCStyle.scale) }
-                        Controls.ToolButton {
-                            text: modelData.title
-                            font.pixelSize: VLCStyle.dp(16, VLCStyle.scale)
-                            font.weight: index === root.breadcrumbs.length - 1 ? Font.DemiBold : Font.Normal
-                            contentItem: Widgets.MenuLabel { text: parent.text; color: theme.fg.primary; font: parent.font; elide: Text.ElideMiddle }
-                            background: Rectangle { color: parent.hovered ? theme.bg.highlight : "transparent"; radius: VLCStyle.control_radius }
-                            onClicked: root.ancestor(index)
+                text: root.breadcrumbs.length ? root.breadcrumbs[root.breadcrumbs.length - 1].title : qsTr("Videos")
+                elide: Text.ElideMiddle
+                color: theme.fg.primary
+                font.pixelSize: VLCStyle.dp(14)
+                Accessible.name: qsTr("Current folder: %1").arg(text)
+            }
+            Flickable {
+                visible: !folderHeader.narrow
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                Layout.fillHeight: true
+                clip: true
+                contentWidth: breadcrumbRow.implicitWidth
+                contentHeight: height
+                flickableDirection: Flickable.HorizontalFlick
+                boundsBehavior: Flickable.StopAtBounds
+                RowLayout {
+                    id: breadcrumbRow
+                    height: parent.height
+                    spacing: VLCStyle.dp(4, VLCStyle.scale)
+                    Controls.ToolButton {
+                        id: breadcrumbButton
+                        text: qsTr("Videos")
+                        font.pixelSize: VLCStyle.dp(16, VLCStyle.scale)
+                        contentItem: Widgets.MenuLabel { text: parent.text; color: theme.fg.primary; font: parent.font }
+                        readonly property ColorContext colorContext: ColorContext {
+                            id: breadcrumbTheme
+                            colorSet: ColorContext.ToolButton
+                            hovered: breadcrumbButton.hovered
+                            pressed: breadcrumbButton.down
+                            focused: breadcrumbButton.visualFocus
+                        }
+                        background: Rectangle { color: breadcrumbTheme.bg.primary; radius: VLCStyle.control_radius; border.width: parent.visualFocus ? VLCStyle.dp(1) : 0; border.color: breadcrumbTheme.visualFocus }
+                        onClicked: root.ancestor(-1)
+                    }
+                    Repeater {
+                        model: root.breadcrumbs
+                        RowLayout {
+                            required property var modelData
+                            required property int index
+                            spacing: VLCStyle.dp(4, VLCStyle.scale)
+                            Widgets.MenuLabel { text: "›"; color: theme.fg.secondary; font.pixelSize: VLCStyle.dp(16, VLCStyle.scale) }
+                            Controls.ToolButton {
+                                id: ancestorButton
+                                text: modelData.title
+                                font.pixelSize: VLCStyle.dp(16, VLCStyle.scale)
+                                font.weight: index === root.breadcrumbs.length - 1 ? Font.DemiBold : Font.Normal
+                                contentItem: Widgets.MenuLabel { text: parent.text; color: theme.fg.primary; font: parent.font; elide: Text.ElideMiddle }
+                                readonly property ColorContext colorContext: ColorContext {
+                                    id: ancestorTheme
+                                    colorSet: ColorContext.ToolButton
+                                    hovered: ancestorButton.hovered
+                                    pressed: ancestorButton.down
+                                    focused: ancestorButton.visualFocus
+                                }
+                                background: Rectangle { color: ancestorTheme.bg.primary; radius: VLCStyle.control_radius; border.width: parent.visualFocus ? VLCStyle.dp(1) : 0; border.color: ancestorTheme.visualFocus }
+                                onClicked: root.ancestor(index)
+                            }
                         }
                     }
                 }
-                Item { Layout.fillWidth: true }
             }
-            Widgets.MenuLabel { text: (root.itemCount === 1 ? qsTr("%1 item") : qsTr("%1 items")).arg(root.itemCount); color: theme.fg.secondary; font.pixelSize: VLCStyle.dp(14, VLCStyle.scale); font.weight: Font.Normal }
+            Widgets.MenuLabel { visible: root.width >= VLCStyle.dp(700); text: (root.itemCount === 1 ? qsTr("%1 item") : qsTr("%1 items")).arg(root.itemCount); color: theme.fg.secondary; font.pixelSize: VLCStyle.dp(14, VLCStyle.scale); font.weight: Font.Normal }
             Widgets.IconToolButton {
                 id: sortButton
                 Layout.preferredWidth: VLCStyle.dp(32, VLCStyle.scale)
+                Layout.minimumWidth: Layout.preferredWidth
+                Layout.maximumWidth: Layout.preferredWidth
                 Layout.fillHeight: true
                 text: sortPopup.visible ? VLCIcons.sort_state_active : VLCIcons.topbar_sort
                 description: qsTr("Sort")
@@ -264,7 +314,10 @@ Widgets.PageExt {
             }
             Widgets.IconToolButton {
                 id: viewButton
+                visible: root.width >= VLCStyle.dp(700)
                 Layout.preferredWidth: VLCStyle.dp(32, VLCStyle.scale)
+                Layout.minimumWidth: Layout.preferredWidth
+                Layout.maximumWidth: Layout.preferredWidth
                 Layout.fillHeight: true
                 text: MainCtx.gridView ? VLCIcons.grid : VLCIcons.list
                 description: qsTr("View options")
@@ -278,6 +331,11 @@ Widgets.PageExt {
             }
             Widgets.TextFieldExt {
                 id: searchInput
+                parent: folderHeader.narrow ? folderHeader : folderControls
+                x: folderHeader.sideMargin
+                y: VLCStyle.dp(62)
+                width: folderHeader.width - 2 * folderHeader.sideMargin
+                height: VLCStyle.dp(34)
                 Layout.preferredWidth: Math.min(VLCStyle.dp(325, VLCStyle.scale), root.width / 5)
                 Layout.fillHeight: true
                 placeholderText: qsTr("Search")
@@ -299,6 +357,8 @@ Widgets.PageExt {
             }
             Widgets.IconToolButton {
                 Layout.preferredWidth: VLCStyle.dp(32, VLCStyle.scale)
+                Layout.minimumWidth: Layout.preferredWidth
+                Layout.maximumWidth: Layout.preferredWidth
                 Layout.fillHeight: true
                 text: VLCIcons.add
                 description: qsTr("Add library folder — Preferences, Media Library, Add, Save")
@@ -307,6 +367,8 @@ Widgets.PageExt {
             Widgets.IconToolButton {
                 id: moreButton
                 Layout.preferredWidth: VLCStyle.dp(32, VLCStyle.scale)
+                Layout.minimumWidth: Layout.preferredWidth
+                Layout.maximumWidth: Layout.preferredWidth
                 Layout.fillHeight: true
                 text: VLCIcons.more
                 description: qsTr("Folder actions")

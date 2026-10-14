@@ -17,7 +17,7 @@
  *****************************************************************************/
 import QtQuick
 import QtQuick.Templates as T
-
+import QtQuick.Layouts
 import VLC.MainInterface
 import VLC.Style
 import VLC.Widgets as Widgets
@@ -27,182 +27,110 @@ import VLC.Util
 
 T.Control {
     id: root
-    width: Math.round(VLCStyle.dp(320, VLCStyle.scale))
-    height: Math.round(VLCStyle.dp(180, VLCStyle.scale))
-
     objectName: "pip window"
-
-    property real dragXMin: 0
-    property real dragXMax: 0
-    property real dragYMin: undefined
-    property real dragYMax: undefined
-
-    property int textStyle: Text.Outline
-
-    // `hideControls` being `false` does not necessarily mean that the buttons are shown:
-    property bool hideControls: MainCtx.usingTouch // By default controls are hidden with touch
-
+    property bool showVideo: Player.hasVideoOutput && MainCtx.hasEmbededVideo
+    property bool hideControls: MainCtx.usingTouch
+    focusPolicy: Qt.StrongFocus
+    activeFocusOnTab: true
+    readonly property bool controlsVisible: !hideControls && (MainCtx.usingTouch || hover.hovered || activeFocus || controlFocus.activeFocus)
     Accessible.role: Accessible.Graphic
-    Accessible.focusable: false
-    Accessible.name: qsTr("video content")
+    Accessible.name: showVideo ? qsTr("Video content") : qsTr("Album artwork")
 
-    Drag.active: dragHandler.active
-
-    Drag.onActiveChanged: {
-        root.anchors.left = undefined
-        root.anchors.right = undefined
-        root.anchors.top = undefined
-        root.anchors.bottom = undefined
-        root.anchors.verticalCenter = undefined
-        root.anchors.horizontalCenter = undefined
-    }
-
+    HoverHandler { id: hover }
     DoubleClickIgnoringItem {
         anchors.fill: parent
-
         TapHandler {
-            gesturePolicy: TapHandler.WithinBounds
-
-            onDoubleTapped: (eventPoint, button) => {
-                // Docs are lying, there is no `deviceType`: QTBUG-135104
-                if (eventPoint.device.type !== PointerDevice.TouchScreen)
-                    MainCtx.playerView = true
-            }
-
-            onTapped: (eventPoint, button) => {
-                // Docs are lying, there is no `deviceType`: QTBUG-135104
-                if (eventPoint.device.type === PointerDevice.TouchScreen) {
-                    // Breaking the initial binding is intentional here:
-                    root.hideControls = !root.hideControls
-                } else {
-                    MainPlaylistController.togglePlayPause()
-                }
-            }
-        }
-
-        DragHandler {
-            id: dragHandler
-
-            target: root
-
-            cursorShape: Qt.DragMoveCursor
-
-            dragThreshold: 0
-
-            grabPermissions: PointerHandler.CanTakeOverFromAnything
-
-            xAxis.minimum: root.dragXMin
-            xAxis.maximum: root.dragXMax
-            yAxis.minimum: root.dragYMin
-            yAxis.maximum: root.dragYMax
-        }
-
-        HoverHandler {
-            id: hoverHandler
-
-            grabPermissions: PointerHandler.CanTakeOverFromAnything
-            cursorShape: Qt.ArrowCursor
-
-            Component.onCompleted: {
-                if (typeof blocking === 'boolean')
-                    blocking = true // Qt 6.3 feature
+            onDoubleTapped: MainCtx.playerView = true
+            onTapped: {
+                if (MainCtx.usingTouch) root.hideControls = !root.hideControls
+                else MainPlaylistController.togglePlayPause()
             }
         }
     }
 
-    background: VideoSurface {
-        id: videoSurface
-        videoSurfaceProvider: MainCtx.videoSurfaceProvider
-
-        color: (hoverHandler.hovered ||
-                playButton?.hovered ||
-                closeButton?.hovered ||
-                fullscreenButton?.hovered) ? "#10000000" : "transparent"
-
-        // It is acceptable for effects to exceed the boundaries of the
-        // parent. They are an exception to the "hypothetical clip test".
-        Widgets.DefaultShadow {
-
+    // The main player is unloaded before this surface is created. This uses
+    // the same provider/vout, never a second player or media input.
+    background: Rectangle {
+        color: frameTheme.bg.secondary
+        radius: VLCStyle.dp(3)
+        ColorContext { id: frameTheme; palette: VLCStyle.palette; colorSet: ColorContext.View }
+        Loader {
+            anchors.fill: parent
+            anchors.margins: VLCStyle.dp(2)
+            sourceComponent: root.showVideo ? video : artwork
+        }
+        Component {
+            id: video
+            VideoSurface {
+                videoSurfaceProvider: MainCtx.videoSurfaceProvider
+            }
+        }
+        Component {
+            id: artwork
+            Widgets.MediaCover {
+                source: Player.artwork
+                fallbackImageSource: VLCStyle.noArtAlbumCover
+                pictureWidth: width
+                pictureHeight: height
+                fillMode: Image.PreserveAspectFit
+                radius: VLCStyle.dp(3)
+            }
         }
     }
 
-    contentItem: Item {
-        visible: !root.hideControls &&
-                 (hoverHandler.hovered ||
-                 playButton.hovered ||
-                 closeButton.hovered ||
-                 fullscreenButton.hovered)
-
-        // Raise the content item so that the handlers of the control do
-        // not handle events that are to be handled by the handlers/items
-        // of the content item. Raising the content item should be fine
-        // because content item is supposed to be the foreground item.
+    contentItem: FocusScope {
+        id: controlFocus
         z: 1
-
-        Widgets.IconButton {
-            id: playButton
-
-            anchors.centerIn: parent
-
-            font.pixelSize: VLCStyle.icon_large
-
-            description: qsTr("play/pause")
-
-            AccessibleCompat.id: "pipPlayButton"
-
-            text: (Player.playingState !== Player.PLAYING_STATE_PAUSED
-                   && Player.playingState !== Player.PLAYING_STATE_STOPPED)
-                  ? VLCIcons.pause_filled
-                  : VLCIcons.play_filled
-
-            textStyle: root.textStyle
-
-            onClicked: MainPlaylistController.togglePlayPause()
-        }
-
-        Widgets.IconButton {
-            id: closeButton
-
-            anchors {
-                top: parent.top
-                topMargin: VLCStyle.margin_small
-                right: parent.right
-                rightMargin: VLCStyle.margin_small
+        visible: root.controlsVisible
+        Rectangle { anchors.fill: parent; color: "#80000000" }
+        // Controls over video/art deliberately keep light ink in either theme.
+        // Light page controls outside this surface use the application palette.
+        component VideoButton: Widgets.IconButton {
+            width: VLCStyle.dp(36); height: width
+            font.pixelSize: VLCStyle.dp(24)
+            color: enabled ? "#eaeaea" : "#8f8f8f"
+            background: Rectangle {
+                color: parent.down ? "#373737" : parent.hovered ? "#222222" : "transparent"
+                radius: VLCStyle.dp(4)
+                border.width: parent.visualFocus ? 1 : 0
+                border.color: VLCStyle.palette.accentMain
             }
-
-            font.pixelSize: VLCStyle.icon_PIP
-            description: qsTr("close video")
-
-            AccessibleCompat.id: "pipCloseButton"
-
+        }
+        VideoButton {
+            anchors { left: parent.left; top: parent.top; margins: VLCStyle.dp(8) }
             text: VLCIcons.close
-
-            textStyle: root.textStyle
-
+            description: qsTr("Stop and close mini-player")
+            AccessibleCompat.id: "pipCloseButton"
             onClicked: MainPlaylistController.stop()
         }
-
-        Widgets.IconButton {
-            id: fullscreenButton
-
-            anchors {
-                top: parent.top
-                topMargin: VLCStyle.margin_small
-                left: parent.left
-                leftMargin: VLCStyle.margin_small
-            }
-
-            font.pixelSize: VLCStyle.icon_PIP
-
-            description: qsTr("maximize player")
-
-            AccessibleCompat.id: "pipFullscreenButton"
-
+        VideoButton {
+            anchors { right: parent.right; top: parent.top; margins: VLCStyle.dp(8) }
             text: VLCIcons.fullscreen
-
-            textStyle: root.textStyle
-
+            description: qsTr("Return to player")
+            AccessibleCompat.id: "pipFullscreenButton"
             onClicked: MainCtx.playerView = true
+        }
+        Row {
+            anchors.centerIn: parent
+            spacing: VLCStyle.dp(32)
+            VideoButton {
+                text: VLCIcons.previous
+                description: qsTr("Previous")
+                enabled: MainPlaylistController.hasPrev
+                onClicked: MainPlaylistController.prev()
+            }
+            VideoButton {
+                text: Player.playingState === Player.PLAYING_STATE_PLAYING ? VLCIcons.pause_filled : VLCIcons.play_filled
+                description: qsTr("Play / pause")
+                AccessibleCompat.id: "pipPlayButton"
+                onClicked: MainPlaylistController.togglePlayPause()
+            }
+            VideoButton {
+                text: VLCIcons.next
+                description: qsTr("Next")
+                enabled: MainPlaylistController.hasNext
+                onClicked: MainPlaylistController.next()
+            }
         }
     }
 }

@@ -426,3 +426,9 @@ QColor ColorContext::accent() const
 {
     return getColor(Decoration, Accent);
 }
+
+QColor ColorContext::accentText() const
+{
+    // Preserve external/dark theme decoration ink exactly as before.
+    return m_palette && !m_palette->isDark() ? m_palette->get_accentText() : accent();
+}

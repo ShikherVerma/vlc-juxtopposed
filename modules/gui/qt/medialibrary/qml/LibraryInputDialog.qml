@@ -23,7 +23,9 @@ Window {
     flags: Qt.Dialog | Qt.FramelessWindowHint
     width: VLCStyle.dp(network ? 1048 : 713, VLCStyle.scale)
     height: VLCStyle.dp(network ? 631 : 589, VLCStyle.scale)
-    color: "transparent"
+    // Native X11 without a compositor otherwise backs transparent corners
+    // with black even in Light. Use the named opaque Light dialog surface.
+    color: VLCStyle.palette.isDark ? "transparent" : lightSurface.bg.primary
     readonly property ColorContext colorContext: body.colorContext
     function open() { if (playlists.transactionPending) return; titleField.text = ""; links.text = ""; files = []; artwork = ""; errorText = ""; show() }
     function addFiles(urls) { files = [...files, ...Array.from(urls, x => x.toString())] }
@@ -109,7 +111,7 @@ Window {
                 id: links
                 placeholderText: "e.g., https://www.example.com/stream.avi"
                 color: theme.fg.primary
-                placeholderTextColor: placeholderTheme.fg.primary
+                placeholderTextColor: VLCStyle.palette.isDark ? placeholderTheme.fg.primary : theme.fg.secondary
                 font.pixelSize: root.dp(14)
                 padding: root.dp(12)
                 wrapMode: TextEdit.Wrap
@@ -138,7 +140,7 @@ Window {
             x: root.dp(22); y: root.dp(root.network ? 466 : 154)
             width: parent.width - root.dp(root.network ? 44 : 176); height: root.dp(34)
             placeholderText: root.network ? qsTr("e.g., Favorite TV Channels") : qsTr("e.g., Favorite Videos")
-            placeholderTextColor: placeholderTheme.fg.primary
+            placeholderTextColor: VLCStyle.palette.isDark ? placeholderTheme.fg.primary : theme.fg.secondary
             Accessible.name: qsTr("Playlist title")
             enabled: MainCtx.mediaLibraryAvailable
             bgColor: theme.bg.secondary

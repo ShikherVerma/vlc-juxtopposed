@@ -16,80 +16,104 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  *****************************************************************************/
 import QtQuick
-
-
+import QtQuick.Templates as T
+import QtQuick.Layouts
 import VLC.MainInterface
 import VLC.Player
-import VLC.PlayerControls
 import VLC.Style
 import VLC.Util
+import VLC.Widgets as Widgets
 
-ControlBar {
+T.Control {
     id: root
-
     Accessible.name: qsTr("Mini player")
     AccessibleCompat.id: "miniplayerControlBar"
+    property Item dragTarget: root
+    property real dragXMin: 0
+    property real dragXMax: 0
+    property real dragYMin: 0
+    property real dragYMax: 0
+    readonly property real sliderY: contentItem.y + progress.y
+    readonly property ColorContext colorContext: ColorContext { id: theme; palette: VLCStyle.palette; colorSet: ColorContext.Window }
+    implicitWidth: VLCStyle.dp(391)
+    implicitHeight: video.height + VLCStyle.dp(130)
+    padding: VLCStyle.dp(8)
+    background: Rectangle { color: theme.bg.primary; radius: VLCStyle.dp(14) }
 
-    visible: (-anchors.bottomMargin < height) || (state === "inViewport")
-
-    anchors.bottomMargin: (state === "outViewport") ? -height : 0
-
-    height: _delayedImplicitHeight
-
-    state: Player.isStarted ? "inViewport"
-                            : "outViewport"
-
-    Binding on state {
-        id: stateBinding
-        when: false
-        delayed: true
-        value: Player.isStarted ? "inViewport"
-                                : "outViewport"
-    }
-
-    Component.onCompleted: {
-        Qt.callLater(() => { stateBinding.when = true })
-    }
-
-    textPosition: (MainCtx.pinVideoControls) ? ControlBar.TimeTextPosition.LeftRightSlider
-                                             : ControlBar.TimeTextPosition.Hide
-
-    sliderHeight: (MainCtx.pinVideoControls) ? VLCStyle.heightBar_xxsmall
-                                             : VLCStyle.dp(3, VLCStyle.scale)
-
-    bookmarksHeight: (MainCtx.pinVideoControls) ? VLCStyle.controlBarBookmarksHeight
-                                                : VLCStyle.icon_xsmall * 0.7
-
-    identifier: PlayerControlbarModel.Miniplayer
-
-    property real _delayedImplicitHeight
-
-    onImplicitHeightChanged: {
-        if (!animation.running) {
-            // Animation should not be based on the implicit height change
-            // but rather the visibility state:
-            behavior.enabled = false
-            Qt.callLater(() => { behavior.enabled = true })
+    contentItem: Item {
+        PIPPlayer {
+            id: video
+            width: parent.width
+            height: width * 9 / 16
         }
-    }
-
-    Binding on _delayedImplicitHeight {
-        // eliminate intermediate adjustments until implicit height is calculated fully
-        // we can not delay on component load because we do not want twitching
-        // NOTE: The delay here can be removed, as long as a direct height is set
-        //       for the whole control instead of implicit height.
-        delayed: behavior.enabled
-        value: root.implicitHeight
-    }
-
-    Behavior on anchors.bottomMargin {
-        id: behavior
-        enabled: false
-        NumberAnimation {
-            id: animation
-            easing.type: Easing.InOutSine
-            duration: VLCStyle.duration_long
+        SliderBar {
+            id: progress
+            anchors { top: video.bottom; topMargin: VLCStyle.dp(6); left: parent.left; right: parent.right }
+            height: VLCStyle.dp(16)
+            barHeight: height
+            thick: true
+            compactHandle: true
+            enabled: Player.seekable
+            activeFocusOnTab: true
+            Accessible.role: Accessible.Slider
+            Accessible.name: qsTr("Mini-player progress")
+        }
+        Widgets.MenuLabel {
+            id: title
+            // VLC already supports dragging its docked PIP. Move the whole card from
+            // its title region, leaving transport and seeking gestures independent.
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.LeftButton
+                cursorShape: Qt.DragMoveCursor
+                drag.target: root.dragTarget
+                drag.threshold: 0
+                drag.minimumX: root.dragXMin; drag.maximumX: root.dragXMax
+                drag.minimumY: root.dragYMin; drag.maximumY: root.dragYMax
+                onPressed: {
+                    root.dragTarget.anchors.bottom = undefined
+                    root.dragTarget.anchors.right = undefined
+                    console.debug("Mini-player drag:", true, root.dragTarget.x, root.dragTarget.y)
+                }
+                onReleased: console.debug("Mini-player drag:", false, root.dragTarget.x, root.dragTarget.y)
+            }
+            anchors { top: progress.bottom; topMargin: VLCStyle.dp(20); left: parent.left; leftMargin: VLCStyle.dp(8); right: parent.right; rightMargin: VLCStyle.dp(8) }
+            height: VLCStyle.dp(24)
+            text: Player.title
+            color: theme.fg.primary
+            font.pixelSize: VLCStyle.dp(16)
+            font.weight: Font.Normal
+            elide: Text.ElideMiddle
+        }
+        RowLayout {
+            anchors { top: title.bottom; topMargin: VLCStyle.dp(8); left: title.left; right: title.right }
+            height: VLCStyle.dp(32)
+            spacing: VLCStyle.dp(8)
+            Widgets.IconLabel { text: VLCIcons.folder; color: theme.fg.primary; font.pixelSize: VLCStyle.dp(24) }
+            Widgets.MenuLabel {
+                Layout.fillWidth: true
+                text: {
+                    const url = Player.url.toString()
+                    if (!url.startsWith("file:")) return qsTr("Stream")
+                    const parts = decodeURIComponent(url).split("/")
+                    return parts.length > 1 ? parts[parts.length - 2] : ""
+                }
+                color: theme.fg.primary
+                font.pixelSize: VLCStyle.dp(14)
+                elide: Text.ElideMiddle
+            }
+            Widgets.MenuLabel {
+                text: Player.time.formatHMS(0) + " / " + (Player.length.valid() && !Player.length.isSubSecond() ? Player.length.formatHMS(0) : "—")
+                color: theme.fg.primary
+                font.pixelSize: VLCStyle.dp(12)
+                Accessible.name: qsTr("Elapsed time / duration")
+            }
+            Widgets.IconToolButton {
+                text: VLCIcons.playlist
+                description: qsTr("Show queue")
+                checked: MainCtx.playqueuePanel.visible
+                onClicked: MainCtx.playqueuePanel.visible = !MainCtx.playqueuePanel.visible
+            }
         }
     }
 }
-

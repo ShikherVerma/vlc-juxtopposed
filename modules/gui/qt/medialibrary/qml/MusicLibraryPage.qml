@@ -54,9 +54,9 @@ LibraryCollectionPage {
                     height: VLCStyle.dp(48, VLCStyle.scale)
                     background: Rectangle {
                         color: parent.hovered ? root.colorContext.bg.secondary : "transparent"
-                        Rectangle { anchors { left: parent.left; right: parent.right; bottom: parent.bottom } height: VLCStyle.dp(2, VLCStyle.scale); color: root.colorContext.accent; visible: root.kind === modelData.name }
+                        Rectangle { anchors { left: parent.left; right: parent.right; bottom: parent.bottom } height: VLCStyle.dp(2, VLCStyle.scale); color: VLCStyle.accentForeground(VLCStyle.palette); visible: root.kind === modelData.name }
                     }
-                    contentItem: Widgets.MenuLabel { text: parent.text; color: root.kind === modelData.name ? root.colorContext.accent : root.colorContext.fg.secondary; font.pixelSize: VLCStyle.dp(16, VLCStyle.scale); font.weight: Font.Normal }
+                    contentItem: Widgets.MenuLabel { text: parent.text; color: root.kind === modelData.name ? VLCStyle.accentTextForeground(VLCStyle.palette) : root.colorContext.fg.secondary; font.pixelSize: VLCStyle.dp(16, VLCStyle.scale); font.weight: Font.Normal }
                     onClicked: History.push(["music", modelData.name])
                 }
             }

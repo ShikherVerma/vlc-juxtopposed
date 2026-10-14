@@ -594,7 +594,7 @@ Item {
             horizontalAlignment: Text.AlignHCenter
             font.pixelSize: VLCStyle.fontSize_small
 
-            color: theme.accent
+            color: theme.accentText
 
             text: "+" + (dragItem._indexesSize - dragItem._maxCovers)
         }

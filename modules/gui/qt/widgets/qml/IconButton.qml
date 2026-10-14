@@ -26,7 +26,7 @@ import VLC.Widgets as Widgets
 T.Button {
     id: control
 
-    property color color: control.checked && control.enabled ? theme.accent : theme.fg.primary
+    property color color: control.checked && control.enabled ? VLCStyle.accentForeground(VLCStyle.palette) : theme.fg.primary
     property string description
 
     property int textStyle: Text.Normal

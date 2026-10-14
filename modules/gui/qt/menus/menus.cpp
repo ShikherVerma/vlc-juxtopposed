@@ -95,7 +95,7 @@ public:
     bool dark() const { return m_palette.property("isDark").toBool(); }
     QColor foreground() const { return dark() ? QColor("#8f8f8f") : QColor("#2e2e2e"); }
     QColor quiet() const { return QColor("#6b6b6b"); }
-    QColor accent() const { return m_palette.get_accentMain(); }
+    QColor accent() const { return dark() ? m_palette.get_accentMain() : m_palette.get_accentDim(); }
 
     void applyPalette(QMenu* menu) const
     {

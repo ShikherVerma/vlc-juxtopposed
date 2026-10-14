@@ -354,6 +354,30 @@ void SystemPalette::updateAccent(bool dark)
     accentDim = family("#ab6314", "#965916");
     bgAccentDark = family("#1a1611", "#c6ab89");
     bgAccentBright = family("#371f06", "#d8ba9a");
+    accentText = accentMain;
+    if (!dark)
+    {
+        // Text, unlike fills/indicators, must remain readable for every accent.
+        // Include Window highlight and the selected switch well, not just the
+        // #d5d5d5 selected row. Measure rounded sRGB, with an AA margin.
+        const auto luminance = [](const QColor& color) {
+            const auto linear = [](qreal channel) {
+                return channel <= 0.04045 ? channel / 12.92
+                    : std::pow((channel + 0.055) / 1.055, 2.4);
+            };
+            return 0.2126 * linear(color.redF())
+                + 0.7152 * linear(color.greenF())
+                + 0.0722 * linear(color.blueF());
+        };
+        const qreal surface = std::min(luminance(QColor("#ababaa")),
+                                       luminance(bgAccentBright));
+        accentText = accentDim;
+        while (accentText != QColor(Qt::black)
+               && (surface + 0.05) / (luminance(accentText) + 0.05) < 4.6)
+            accentText = QColor(int(std::floor(accentText.red() * 0.98)),
+                                int(std::floor(accentText.green() * 0.98)),
+                                int(std::floor(accentText.blue() * 0.98)));
+    }
     accentLogo = family("#d37918", "#c2711a");
     orange500 = accentMain;
     orange800 = accentDim;
@@ -514,7 +538,7 @@ void SystemPalette::makeLightPalette()
         setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#3c3c3c")); // Light/FG/A1
         setColor(CS, C::Fg, C::Primary, C::Disabled, QColor("#6b6b6b")); // Light/FG/A3
 
-        setColor(CS, C::Fg, C::Secondary, C::Normal, QColor("#6b6b6b")); // Light/FG/A3
+        setColor(CS, C::Fg, C::Secondary, C::Normal, QColor("#404040")); // Enabled secondary ink: AA on Light surfaces, including #ababaa
 
         setColor(CS, C::Bg, C::Negative, C::Normal, QColor("#dccdca")); // D-status-Light-Bg-Negative
         setColor(CS, C::Fg, C::Negative, C::Normal, QColor("#9e3823")); // D-status-Light-Fg-Negative
@@ -538,7 +562,7 @@ void SystemPalette::makeLightPalette()
         setColor(CS, C::Decoration, C::Shadow, C::Normal, setColorAlpha(Qt::black, 0.46)); // D-shadow
 
         setColor(CS, C::Decoration, C::Accent, C::Normal, accentMain); // Light/Accent/Main
-        setColor(CS, C::Fg, C::Link, C::Normal, accentMain); // Light/Accent/Main
+        setColor(CS, C::Fg, C::Link, C::Normal, accentText); // Accessible Light accent text
     }
 
     //window banner & miniplayer
@@ -621,7 +645,7 @@ void SystemPalette::makeLightPalette()
         setColor(CS, C::Fg, C::Highlight, C::Normal, QColor("#161616")); // Light/FG/B1; 3021:9838
 
         setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#3c3c3c")); // Light/FG/A1
-        setColor(CS, C::Fg, C::Secondary, C::Normal, QColor("#6b6b6b")); // Light/FG/A3
+        setColor(CS, C::Fg, C::Secondary, C::Normal, QColor("#404040")); // Enabled secondary ink: AA on Light surfaces, including #ababaa
         setColor(CS, C::Fg, C::Primary, C::Disabled, QColor("#6b6b6b")); // D-control-disabled
 
         setColor(CS, C::Decoration, C::Indicator, C::Normal, accentLogo); // Light/Accent/Logo
@@ -657,7 +681,7 @@ void SystemPalette::makeLightPalette()
         setColor(CS, C::Fg, C::Highlight, C::Normal, QColor("#161616"));
         setColor(CS, C::Bg, C::Primary, C::Normal, QColor("#dedede")); // 500:3063 / D-control-states
 
-        setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#6b6b6b")); // 500:3061 normal label
+        setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#404040")); // Enabled button label: AA on the Light well
         setColor(CS, C::Fg, C::Primary, C::Focused, QColor("#2e2e2e")); // Light/FG/A2
         setColor(CS, C::Fg, C::Primary, C::Pressed, QColor("#2e2e2e")); // D-control-pressed: hover foreground
         setColor(CS, C::Fg, C::Primary, C::Hovered, QColor("#2e2e2e")); // 500:3065 hover label
@@ -714,7 +738,7 @@ void SystemPalette::makeLightPalette()
     //TextField
     {
         C::ColorSet CS = C::TextField;
-        setColor(CS, C::Fg, C::Secondary, C::Normal, QColor("#6b6b6b")); // placeholder
+        setColor(CS, C::Fg, C::Secondary, C::Normal, QColor("#404040")); // Enabled secondary ink: AA on Light surfaces, including #ababaa
         setColor(CS, C::Decoration, C::Border, C::Normal, QColor("#b3b3b3")); // 3062:10959 input rim
         setColor(CS, C::Decoration, C::Border, C::Focused, accentMain); // Light/Accent/Main
         setColor(CS, C::Decoration, C::Border, C::Hovered, QColor("#9b9b9b")); // Light/Divider/Bright
@@ -732,7 +756,7 @@ void SystemPalette::makeLightPalette()
         C::ColorSet CS = C::Switch;
         setColor(CS, C::Fg, C::Link, C::Normal, QColor("#3b3b3b"));
         setColor(CS, C::Bg, C::Primary, C::Normal, QColor("#b3b3b3")); // Light/BG/A4
-        setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#6b6b6b")); // Light/FG/A3
+        setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#404040")); // Enabled switch label: AA on Light surfaces
         setColor(CS, C::Decoration, C::Border, C::Normal, QColor("#acacac")); // Light/Divider/Dim
 
         setColor(CS, C::Bg, C::Secondary, C::Normal, bgAccentBright); // Light/BG/Accent Bright

@@ -127,7 +127,7 @@ FocusScope {
                     color: tab.hovered ? tabTheme.bg.primary : "transparent"
                     radius: VLCStyle.dp(4)
                     border.width: tab.visualFocus ? VLCStyle.dp(1) : 0
-                    border.color: theme.accent
+                    border.color: VLCStyle.accentForeground(VLCStyle.palette)
                 }
                 readonly property ColorContext colorContext: ColorContext {
                     id: tabTheme
@@ -146,7 +146,7 @@ FocusScope {
                         text: index === 0 ? (root.currentTab === 0 ? VLCIcons.queue_two_tone_yes : VLCIcons.queue)
                              : index === 1 ? (root.currentTab === 1 ? VLCIcons.bookmarks_two_tone_yes : VLCIcons.bookmarks)
                              : (root.currentTab === 2 ? VLCIcons.chapters_two_tone_yes : VLCIcons.chapters)
-                        color: root.currentTab === index ? theme.accent : theme.fg.secondary
+                        color: root.currentTab === index ? VLCStyle.accentForeground(VLCStyle.palette) : theme.fg.secondary
                     }
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
@@ -163,7 +163,7 @@ FocusScope {
                     width: parent.width - VLCStyle.dp(16)
                     y: parent.height - VLCStyle.dp(2)
                     height: VLCStyle.dp(2)
-                    color: root.currentTab === index ? theme.accent : theme.bg.secondary
+                    color: root.currentTab === index ? VLCStyle.accentForeground(VLCStyle.palette) : theme.bg.secondary
                 }
                 Navigation.parentItem: root
                 Navigation.leftAction: () => root.selectTab(index - 1)
@@ -271,7 +271,7 @@ FocusScope {
                 radius: VLCStyle.dp(4)
                 color: bookmarkRow.hovered || bookmarkRow.activeFocus ? rowTheme.bg.highlight : "transparent"
                 border.width: bookmarkRow.visualFocus ? VLCStyle.dp(1) : 0
-                border.color: theme.accent
+                border.color: VLCStyle.accentForeground(VLCStyle.palette)
             }
             readonly property ColorContext colorContext: ColorContext { id: rowTheme; colorSet: ColorContext.Item }
             contentItem: RowLayout {
@@ -360,13 +360,13 @@ FocusScope {
                 radius: VLCStyle.dp(4)
                 color: chapterRow.checked || chapterRow.hovered || chapterRow.activeFocus ? rowTheme.bg.highlight : "transparent"
                 border.width: chapterRow.visualFocus ? VLCStyle.dp(1) : 0
-                border.color: theme.accent
+                border.color: VLCStyle.accentForeground(VLCStyle.palette)
                 Rectangle {
                     visible: chapterRow.checked
                     width: VLCStyle.dp(2)
                     height: VLCStyle.dp(16)
                     anchors.verticalCenter: parent.verticalCenter
-                    color: theme.accent
+                    color: VLCStyle.accentForeground(VLCStyle.palette)
                 }
             }
             readonly property ColorContext colorContext: ColorContext { id: rowTheme; colorSet: ColorContext.Item }
@@ -377,7 +377,7 @@ FocusScope {
                     text: chapterRow.index + 1
                     font.pixelSize: VLCStyle.dp(14)
                     font.weight: Font.Medium
-                    color: theme.accent
+                    color: VLCStyle.accentTextForeground(VLCStyle.palette)
                 }
                 Text {
                     Layout.fillWidth: true

@@ -145,6 +145,7 @@ public:
     Q_PROPERTY(QColor indicator READ indicator NOTIFY colorsChanged FINAL)
     Q_PROPERTY(QColor shadow READ shadow NOTIFY colorsChanged FINAL)
     Q_PROPERTY(QColor accent READ accent NOTIFY colorsChanged FINAL)
+    Q_PROPERTY(QColor accentText READ accentText NOTIFY colorsChanged FINAL)
 
 
     Q_PROPERTY(bool initialized READ initialized NOTIFY initializedChanged FINAL)
@@ -167,6 +168,7 @@ public:
     QColor indicator() const;
     QColor shadow() const;
     QColor accent() const;
+    QColor accentText() const;
 
     void setPalette(SystemPalette*);
     void setColorSet(ColorSet);

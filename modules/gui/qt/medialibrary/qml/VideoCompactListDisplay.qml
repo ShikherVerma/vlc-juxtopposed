@@ -15,7 +15,7 @@ Widgets.ExpandGridView {
     property MLContextMenu contextMenu
     signal itemDoubleClicked(var model)
 
-    cellWidth: VLCStyle.dp(406, VLCStyle.scale)
+    cellWidth: Math.min(VLCStyle.dp(406, VLCStyle.scale), Math.max(VLCStyle.dp(100), width - VLCStyle.dp(40, VLCStyle.scale)))
     cellHeight: VLCStyle.dp(32, VLCStyle.scale)
     horizontalSpacing: VLCStyle.dp(10, VLCStyle.scale)
     verticalSpacing: VLCStyle.dp(10, VLCStyle.scale)

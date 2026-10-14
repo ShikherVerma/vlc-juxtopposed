@@ -116,7 +116,7 @@ Widgets.PageExt {
                  .every(section => !section.model.loading && section.model.count === 0)
 
         font.pixelSize: VLCStyle.fontHeight_xxlarge
-        color: root.activeFocus ? theme.accent : theme.fg.primary
+        color: root.activeFocus ? theme.accentText : theme.fg.primary
         text: qsTr("No network shares found")
     }
 

@@ -122,7 +122,7 @@ T.TabButton {
             verticalAlignment: Text.AlignVCenter
 
             color: (control.selected || control.activeFocus || control.hovered)
-                    ? theme.accent
+                    ? VLCStyle.accentForeground(VLCStyle.palette)
                     : theme.fg.primary
 
             font.pixelSize: VLCStyle.icon_banner

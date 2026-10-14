@@ -271,7 +271,7 @@ ListViewExt {
                 verticalAlignment: Text.AlignVCenter
 
                 text: root.currentSection
-                color: root.colorContext.accent
+                color: root.colorContext.accentText
                 visible: root.useCurrentSectionLabel
                          && root.headerPositioning === ListView.OverlayHeader
                          && text !== ""
@@ -381,7 +381,7 @@ ListViewExt {
         topPadding: VLCStyle.margin_xsmall
 
         text: section
-        color: root.colorContext.accent
+        color: root.colorContext.accentText
     }
 
     delegate: Widgets.TableViewDelegateExt {

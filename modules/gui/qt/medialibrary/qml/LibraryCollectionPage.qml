@@ -19,11 +19,12 @@ Widgets.PageExt {
     property int initialIndex: 0
     readonly property bool isLoading: root.model?.loading ?? true
     readonly property int count: root.model?.count ?? 0
-    readonly property Item currentItem: MainCtx.gridView ? grid.currentItem : list.currentItem
-    readonly property int currentIndex: MainCtx.gridView ? grid.currentIndex : list.currentIndex
+    readonly property bool effectiveGrid: MainCtx.gridView && width >= VLCStyle.dp(700)
+    readonly property Item currentItem: root.effectiveGrid ? grid.currentItem : list.currentItem
+    readonly property int currentIndex: root.effectiveGrid ? grid.currentIndex : list.currentIndex
     function resetFocus() {
         if (root.count <= 0) return
-        const view = MainCtx.gridView ? grid : list
+        const view = root.effectiveGrid ? grid : list
         view.currentIndex = Math.min(Math.max(0, root.initialIndex), root.count - 1)
         view.positionViewAtIndex(view.currentIndex, GridView.Contain)
     }
@@ -40,7 +41,7 @@ Widgets.PageExt {
     })
     function itemTitle(item) { return item.title || item.name || qsTr("Untitled") }
     function activate(item) { if (!item?.id || !item.id.isValid()) return; if (root.collections || root.playlists) root.activated(item); else MediaLib.addAndPlay(item.id) }
-    function setCurrentItemFocus(reason) { (MainCtx.gridView ? grid : list).forceActiveFocus(reason) }
+    function setCurrentItemFocus(reason) { (root.effectiveGrid ? grid : list).forceActiveFocus(reason) }
     header: Widgets.LibraryPageHeader {
         breadcrumbs: root.breadcrumbs
         count: root.model?.count ?? 0
@@ -59,7 +60,7 @@ Widgets.PageExt {
         id: grid
         anchors { fill: parent; margins: VLCStyle.dp(20, VLCStyle.scale) }
         clip: true
-        visible: MainCtx.gridView
+        visible: root.effectiveGrid
         focus: visible
         model: root.model
         cellWidth: VLCStyle.dp(root.playlists ? 336 : 220, VLCStyle.scale)
@@ -128,7 +129,7 @@ Widgets.PageExt {
         id: list
         anchors { fill: parent; margins: VLCStyle.dp(20, VLCStyle.scale) }
         clip: true
-        visible: !MainCtx.gridView
+        visible: !root.effectiveGrid
         focus: visible
         model: root.model
         spacing: VLCStyle.dp(10, VLCStyle.scale)

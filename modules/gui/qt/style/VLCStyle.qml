@@ -215,6 +215,10 @@ QtObject {
     // Authored transparent popup and search fills (Light analogues are named tokens).
     function titlebarDividerColor(dark: bool): color { return dark ? "#373737" : "#9b9b9b" }
     function popupTint(dark: bool): color { return dark ? "#191919" : "#d5d5d5" }
+    // Preserve authored icon/indicator colors independently of text contrast.
+    function accentForeground(palette): color { return palette.isDark ? palette.accentMain : palette.accentDim }
+    function accentTextForeground(palette): color { return palette.isDark ? palette.accentMain : palette.accentText }
+
     function searchInputColor(dark: bool): color { return dark ? "#151515" : "#dedede" }
     readonly property int popup_blurRadius: MainCtx.dp(50, scale)
     readonly property int popup_shadowRadius: MainCtx.dp(15, scale)

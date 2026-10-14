@@ -29,6 +29,7 @@ T.ProgressBar {
     id: control
 
     property bool thick: false
+    property bool compactHandle: false
     readonly property color playedColor: thick ? theme.bg.secondary : theme.fg.primary
     readonly property real _hoveredScalingFactor: thick ? 1.0 : 1.8
     property int barHeight: VLCStyle.dp(5, VLCStyle.scale)
@@ -598,7 +599,12 @@ T.ProgressBar {
             State {
                 name: "thick"
                 when: control.thick
-                PropertyChanges { target: sliderHandle; implicitWidth: VLCStyle.dp(8, VLCStyle.scale); implicitHeight: VLCStyle.dp(24, VLCStyle.scale); visible: true }
+                PropertyChanges {
+                    target: sliderHandle
+                    implicitWidth: VLCStyle.dp(control.compactHandle ? 6 : 8, VLCStyle.scale)
+                    implicitHeight: control.compactHandle ? control.barHeight - VLCStyle.dp(4, VLCStyle.scale) : VLCStyle.dp(24, VLCStyle.scale)
+                    visible: !control.compactHandle || hoverHandler.hovered || control.visualFocus || fsm._state === fsm.fsmHeld
+                }
             }
         ]
 
