@@ -147,7 +147,8 @@ FocusScope {
         Binding {
             target: sidebarButton.T.ToolTip.toolTip
             property: "y"
-            when: !root.showLocation && sidebarButton.T.ToolTip.toolTip.parent === sidebarButton
+            when: !root.showLocation && !!sidebarButton.T.ToolTip.toolTip
+                  && sidebarButton.T.ToolTip.toolTip.parent === sidebarButton
             value: sidebarButton.height + VLCStyle.margin_xxxsmall
         }
     }
