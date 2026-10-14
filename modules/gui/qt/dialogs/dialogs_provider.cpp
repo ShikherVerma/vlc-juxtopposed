@@ -32,6 +32,7 @@
 
 #include "qt.hpp"
 #include "dialogs_provider.hpp"
+#include "util/shutdown_trace.hpp"
 #include "player/player_controller.hpp" /* Load Subtitles */
 #include "playlist/playlist_controller.hpp"
 #include "menus/menus.hpp"
@@ -107,6 +108,7 @@ DialogsProvider::DialogsProvider( qt_intf_t *_p_intf )
 
 DialogsProvider::~DialogsProvider()
 {
+    vlc::qt::ShutdownTraceScope trace("DialogsProvider-destructor", this);
     // Preferences is parentless and QPointer is not an owner. Destroy it while
     // MainCtx/MediaLib still exist, not in QApplication's final window cleanup.
     // In particular the legacy folder models unregister ML callbacks here.
@@ -175,6 +177,8 @@ QVariant DialogsProvider::getTextDialog(QWidget *parent,
 
 void DialogsProvider::quit()
 {
+    vlc::qt::shutdownTraceRequested = true;
+    vlc::qt::shutdownTrace("DialogsProvider-quit", this);
     if (b_isDying)
         return;
     b_isDying = true;
@@ -312,6 +316,7 @@ const QEvent::Type DialogEvent::DialogEvent_Type =
 
 void DialogsProvider::closePrefsDialog()
 {
+    vlc::qt::ShutdownTraceScope trace("DialogsProvider-closePrefsDialog", this);
     if (!m_prefsDialog)
         return;
 

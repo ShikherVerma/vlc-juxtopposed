@@ -28,6 +28,7 @@
 #include "qt.hpp"
 #include <QAbstractListModel>
 #include <QUrl>
+#include <atomic>
 #include "mlhelper.hpp"
 
 #include <maininterface/mainctx.hpp>
@@ -60,7 +61,7 @@ public:
     };
 
     MLFoldersBaseModel( QObject *parent = nullptr );
-    virtual ~MLFoldersBaseModel() = default;
+    ~MLFoldersBaseModel() override;
 
     void setCtx(MainCtx* ctx);
     inline MainCtx* getCtx() { return m_ctx; }
@@ -89,7 +90,18 @@ protected:
         bool banned;
     };
 
-    virtual bool failed( const vlc_ml_event_t* event ) const = 0; // will be called outside the main thread
+    // Owned entry-point payload; native event strings expire on the ML thread.
+    struct FolderEvent
+    {
+        int type;
+        bool success;
+        QUrl url;
+    };
+
+    virtual bool failed(const FolderEvent& event) const = 0; // GUI thread only
+    // Must run before the derived vtable/state disappears. Unregister waits
+    // for native callbacks, while the token invalidates already queued work.
+    void stopEventListener();
 
 protected:
     static void onMlEvent( void* data , const vlc_ml_event_t* event );
@@ -102,6 +114,8 @@ protected:
     MediaLib *m_mediaLib = nullptr;
     MainCtx* m_ctx = nullptr;
     EventCallbackPtr m_ml_event_handle;
+    std::shared_ptr<std::atomic_bool> m_eventAlive = std::make_shared<std::atomic_bool>(true);
+    QMetaObject::Connection m_medialibDestroyConnection;
     bool m_updatePending = false;
 };
 
@@ -109,26 +123,28 @@ class MLFoldersModel : public MLFoldersBaseModel
 {
 public:
     using MLFoldersBaseModel::MLFoldersBaseModel;
+    ~MLFoldersModel() override;
 
     void remove( const QUrl &mrl ) override;
     void add( const QUrl &mrl ) override;
 
 private:
     void update() override final;
-    bool failed( const vlc_ml_event_t* event ) const override;
+    bool failed(const FolderEvent& event) const override;
 };
 
 class MLBannedFoldersModel : public MLFoldersBaseModel
 {
 public:
     using MLFoldersBaseModel::MLFoldersBaseModel;
+    ~MLBannedFoldersModel() override;
 
     void remove( const QUrl &mrl ) override;
     void add( const QUrl &mrl ) override;
 
 private:
     void update() override final;
-    bool failed( const vlc_ml_event_t* event ) const override;
+    bool failed(const FolderEvent& event) const override;
 };
 
 #endif // ML_FOLDERS_MODEL_HPP

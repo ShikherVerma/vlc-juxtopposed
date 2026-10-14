@@ -49,7 +49,7 @@ public:
 
 public:
     explicit MLGenreModel(QObject *parent = nullptr);
-    virtual ~MLGenreModel() = default;
+    ~MLGenreModel() override { stopEventListener(); }
 
     QHash<int, QByteArray> roleNames() const override;
 

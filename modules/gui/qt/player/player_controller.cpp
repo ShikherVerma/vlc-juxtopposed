@@ -22,6 +22,7 @@
 
 #include "dialogs/extensions/extensions_manager.hpp"
 #include "player_controller.hpp"
+#include "util/shutdown_trace.hpp"
 #include "dialogs/extended/extended_panels.hpp"
 #include <vlc_modules.h>
 #include "player_controller_p.hpp"
@@ -63,15 +64,21 @@ using SharedTitleList = ::vlc::vlc_shared_data_ptr<vlc_player_title_list,
 
 PlayerControllerPrivate::~PlayerControllerPrivate()
 {
+    vlc::qt::ShutdownTraceScope trace("PlayerControllerPrivate-destructor", this);
     assert(m_smpteTimerRequestCount == 0);
 
+    vlc::qt::ShutdownTraceScope traceLock("player-lock-remove-listeners", m_player);
     vlc_player_locker locker{m_player}; //this also locks the player
+    vlc::qt::shutdownTrace("player-locked-remove-listeners", m_player);
     vlc_player_vout_RemoveListener( m_player, m_player_vout_listener );
     vlc_player_aout_RemoveListener( m_player, m_player_aout_listener );
     vlc_player_RemoveListener( m_player, m_player_listener );
     vlc_player_RemoveTimer( m_player, m_player_timer );
     if (m_preparser != nullptr)
+    {
+        vlc::qt::ShutdownTraceScope trace("player-delete-preparser", m_preparser);
         vlc_preparser_Delete(m_preparser);
+    }
 }
 
 bool PlayerControllerPrivate::isCurrentItemSynced()

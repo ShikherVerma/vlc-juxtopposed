@@ -18,6 +18,7 @@
 
 #include "base_model.hpp"
 #include "base_model_p.hpp"
+#include "shutdown_trace.hpp"
 
 BaseModel::BaseModel(BaseModelPrivate* priv, QObject* parent)
     : QAbstractListModel(parent)
@@ -114,6 +115,10 @@ const QString& BaseModel::searchPattern() const
 
 void BaseModel::setSearchPattern( const QString& pattern )
 {
+    vlc::qt::shutdownTrace("BaseModel-setSearchPattern", this);
+    if (vlc::qt::shutdownTraceEnabled())
+        qDebug() << "QTSD search model=" << static_cast<const void*>(this)
+            << "class=" << metaObject()->className() << "length=" << pattern.size();
     Q_D(BaseModel);
     QString patternToApply = pattern.length() == 0 ? QString{} : pattern;
     if (patternToApply == d->m_searchPattern)
@@ -180,6 +185,7 @@ void BaseModel::validateCache() const
 
 void BaseModel::resetCache()
 {
+    vlc::qt::shutdownTrace("BaseModel-resetCache", this);
     Q_D(BaseModel);
     d->resetCache();
 }

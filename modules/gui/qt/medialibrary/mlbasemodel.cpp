@@ -71,7 +71,12 @@ public:
     std::unique_ptr<ListCacheLoader<std::unique_ptr<MLItem>>> createLoader() const override
     {
         Q_Q(const MLBaseModel);
-        return q->createMLLoader();
+        auto loader = q->createMLLoader();
+        if (vlc::qt::shutdownTraceEnabled())
+            qDebug() << "QTSD cache-loader model=" << static_cast<const void*>(q)
+                << "class=" << q->metaObject()->className()
+                << "loader=" << static_cast<const void*>(loader.get());
+        return loader;
     }
 
     bool cachable() const override {
@@ -190,7 +195,18 @@ MLBaseModel::MLBaseModel(QObject *parent)
 }
 
 /* For std::unique_ptr, see Effective Modern C++, Item 22 */
-MLBaseModel::~MLBaseModel() = default;
+MLBaseModel::~MLBaseModel()
+{
+    vlc::qt::shutdownTrace("MLBaseModel-destructor", this);
+    stopEventListener();
+}
+
+void MLBaseModel::stopEventListener()
+{
+    vlc::qt::ShutdownTraceScope trace("MLBaseModel-stop-listener", this);
+    *m_eventAlive = false;
+    m_ml_event_handle.reset();
+}
 
 void MLBaseModel::sortByColumn(QByteArray criteria, Qt::SortOrder order)
 {
@@ -421,9 +437,10 @@ void MLBaseModel::onVlcMlEvent(void* data, const vlc_ml_event_t* event)
     auto self = static_cast<MLBaseModel*>(data);
     //MLEvent is not copiable, but lambda needs to be copiable
     auto  mlEvent = std::make_shared<MLEvent>(event);
-    QMetaObject::invokeMethod(self, [self, mlEvent] () mutable {
-        self->onVlcMlEvent(*mlEvent);
-    });
+    QMetaObject::invokeMethod(self, [self, mlEvent, alive = self->m_eventAlive] () mutable {
+        if (*alive)
+            self->onVlcMlEvent(*mlEvent);
+    }, Qt::QueuedConnection);
 }
 
 MLItemId MLBaseModel::parentId() const
@@ -459,11 +476,12 @@ void MLBaseModel::setMl(MediaLib* medialib)
 
     // Release listeners while the old wrapper is still usable, including
     // when a model is rebound to a different MediaLib.
-    m_ml_event_handle.reset();
+    stopEventListener();
+    m_eventAlive = std::make_shared<std::atomic_bool>(true);
     disconnect(m_medialibDestroyConnection);
     m_mediaLib = medialib;
     m_medialibDestroyConnection = connect(medialib, &MediaLib::aboutToDestroy, this, [this] {
-        m_ml_event_handle.reset();
+        stopEventListener();
         m_itemLoader.reset();
         m_mediaLib.clear();
     });

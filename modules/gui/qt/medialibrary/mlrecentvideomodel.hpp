@@ -32,7 +32,7 @@ class MLRecentVideoModel : public MLVideoModel
 public:
     explicit MLRecentVideoModel(QObject * parent = nullptr);
 
-    virtual ~MLRecentVideoModel() = default;
+    ~MLRecentVideoModel() override { stopEventListener(); }
 
 protected: // MLBaseModel implementation
     std::unique_ptr<MLListCacheLoader> createMLLoader() const override;

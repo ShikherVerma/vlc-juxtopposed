@@ -45,7 +45,7 @@ public:
 public:
     explicit MLVideoGroupsModel(QObject * parent = nullptr);
 
-    virtual ~MLVideoGroupsModel() = default;
+    ~MLVideoGroupsModel() override { stopEventListener(); }
 
 protected: // MLVideoModel reimplementation
     QHash<int, QByteArray> roleNames() const override;

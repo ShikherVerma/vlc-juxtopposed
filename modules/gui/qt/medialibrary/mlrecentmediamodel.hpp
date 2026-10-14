@@ -35,7 +35,7 @@ public:
     };
 
     explicit MLRecentMediaModel( QObject* parent = nullptr );
-    virtual ~MLRecentMediaModel() = default;
+    ~MLRecentMediaModel() override { stopEventListener(); }
 
     Q_INVOKABLE void clearHistory();
 

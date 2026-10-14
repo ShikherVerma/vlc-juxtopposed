@@ -28,6 +28,9 @@
 #include <QSet>
 #include <vector>
 #include <QMutex>
+#include <QPointer>
+
+class ThreadRunner;
 
 #include "networkdevicemodel.hpp"
 #include "mediatreelistener.hpp"
@@ -117,7 +120,8 @@ signals:
     void itemsUpdated();
 
 private:
-    MainCtx* m_ctx = nullptr;
+    QPointer<MainCtx> m_ctx;
+    QPointer<ThreadRunner> m_runner;
     quint64 m_taskId = 0;
 
     NetworkDeviceModel::SDCatType m_sdSource;

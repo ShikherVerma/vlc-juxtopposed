@@ -29,6 +29,8 @@ class MLPlaylistModel : public MLBaseModel
     Q_PROPERTY(bool transactionPending READ transactionPending NOTIFY transactionPendingChanged FINAL)
 
 public:
+    ~MLPlaylistModel() override { stopEventListener(); }
+
     enum Role
     {
         MEDIA_ID = Qt::UserRole + 1,

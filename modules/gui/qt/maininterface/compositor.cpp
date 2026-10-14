@@ -17,6 +17,7 @@
  *****************************************************************************/
 
 #include "compositor.hpp"
+#include "util/shutdown_trace.hpp"
 #include "compositor_dummy.hpp"
 #include "mainctx.hpp"
 #include "video_window_handler.hpp"
@@ -131,10 +132,13 @@ static int windowEnableCb(vlc_window_t* p_wnd, const vlc_window_cfg_t * cfg)
 
 static void windowDisableCb(vlc_window_t* p_wnd)
 {
+    vlc::qt::ShutdownTraceScope trace("vout-windowDisable-blocking-GUI", p_wnd);
     assert(p_wnd->sys);
     auto that = static_cast<CompositorWindow*>(p_wnd->sys);
     QMetaObject::invokeMethod(that->compositor, [that](){
+        vlc::qt::shutdownTrace("vout-windowDisable-GUI-enter", that->compositor);
         that->compositor->windowDisable();
+        vlc::qt::shutdownTrace("vout-windowDisable-GUI-exit", that->compositor);
     }, Qt::BlockingQueuedConnection);
 }
 
@@ -147,6 +151,7 @@ static void windowResizeCb(vlc_window_t* p_wnd, unsigned width, unsigned height)
 
 static void windowDestroyCb(struct vlc_window * p_wnd)
 {
+    vlc::qt::ShutdownTraceScope trace("vout-windowDestroy", p_wnd);
     assert(p_wnd->sys);
     auto that = static_cast<CompositorWindow*>(p_wnd->sys);
     that->compositor->windowDestroy();

@@ -23,8 +23,8 @@
 #include <QObject>
 #include <QHash>
 #include <QSet>
-#include <QMutex>
 #include <memory>
+#include <atomic>
 
 #include <functional>
 
@@ -40,6 +40,7 @@ class ThumbnailCollector : public QObject
 
 public:
     ThumbnailCollector(QObject *parent = nullptr);
+    ~ThumbnailCollector() override;
 
     void start(MediaLib *ml, const QSet<int64_t> &mlIds);
 
@@ -51,7 +52,7 @@ signals:
 private:
     static void onVlcMLEvent(void *data, const vlc_ml_event_t *event);
 
-    QMutex m_mut;
+    std::shared_ptr<std::atomic_bool> m_eventAlive = std::make_shared<std::atomic_bool>(true);
     MediaLib *m_ml {};
     std::unique_ptr<vlc_ml_event_callback_t,
                     std::function<void(vlc_ml_event_callback_t*)>> m_ml_event_handle {};

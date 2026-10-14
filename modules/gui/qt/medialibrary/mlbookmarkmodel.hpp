@@ -21,6 +21,7 @@
 
 #include <QAbstractListModel>
 #include <memory>
+#include <atomic>
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -114,6 +115,10 @@ private:
     using InputItemPtr = std::unique_ptr<input_item_t, decltype(&input_item_Release)>;
 
     MediaLib* m_mediaLib = nullptr;
+    QMetaObject::Connection m_medialibDestroyConnection;
+    // Player dispatch has a different unregister barrier from ML rebinding.
+    const std::shared_ptr<std::atomic_bool> m_playerAlive = std::make_shared<std::atomic_bool>(true);
+    std::shared_ptr<std::atomic_bool> m_eventAlive = std::make_shared<std::atomic_bool>(true);
     vlc_player_t* m_player = nullptr;
     vlc_player_listener_id* m_listener = nullptr;
     PlayerController* m_player_controller = nullptr;

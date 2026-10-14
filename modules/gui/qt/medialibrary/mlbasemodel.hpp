@@ -27,6 +27,7 @@
 
 #include <memory>
 #include <QPointer>
+#include <atomic>
 
 #include <vlc_media_library.h>
 #include "mlqmltypes.hpp"
@@ -158,6 +159,9 @@ private:
 
 
 protected:
+    // Derived destructors must stop dispatch before their own state disappears.
+    void stopEventListener();
+
     MLItemId m_parent;
 
     QPointer<MediaLib> m_mediaLib;
@@ -166,6 +170,7 @@ protected:
     vlc_ml_sorting_criteria_t m_mlSortingCriteria = VLC_ML_SORTING_DEFAULT;
     std::unique_ptr<vlc_ml_event_callback_t,
                     std::function<void(vlc_ml_event_callback_t*)>> m_ml_event_handle;
+    std::shared_ptr<std::atomic_bool> m_eventAlive = std::make_shared<std::atomic_bool>(true);
     bool m_need_reset = false;
 
 

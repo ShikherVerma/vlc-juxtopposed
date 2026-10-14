@@ -50,7 +50,7 @@ public:
 
 public:
     explicit MLAlbumModel(QObject *parent = nullptr);
-    virtual ~MLAlbumModel() = default;
+    ~MLAlbumModel() override { stopEventListener(); }
 
     Q_INVOKABLE QHash<int, QByteArray> roleNames() const override;
 

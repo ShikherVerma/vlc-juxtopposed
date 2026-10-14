@@ -41,20 +41,46 @@ MLFoldersBaseModel::EntryPoint::EntryPoint( const vlc_ml_folder_t& entryPoint)
 {
 }
 
+MLFoldersBaseModel::~MLFoldersBaseModel()
+{
+    stopEventListener();
+}
+
+MLFoldersModel::~MLFoldersModel()
+{
+    stopEventListener();
+}
+
+MLBannedFoldersModel::~MLBannedFoldersModel()
+{
+    stopEventListener();
+}
+
+void MLFoldersBaseModel::stopEventListener()
+{
+    vlc::qt::ShutdownTraceScope trace("MLFoldersBaseModel-stop-listener", this);
+    *m_eventAlive = false;
+    // vlc_ml_event_unregister_callback takes the event-dispatch lock. Once
+    // this returns, no native callback can still access this model/token.
+    m_ml_event_handle.reset();
+}
+
 void MLFoldersBaseModel::setCtx(MainCtx* ctx)
 {
-    if (ctx)
+    stopEventListener();
+    disconnect(m_medialibDestroyConnection);
+    m_updatePending = false;
+    m_ctx = ctx;
+    m_mediaLib = ctx ? ctx->getMediaLibrary() : nullptr;
+    if (m_mediaLib)
     {
-        m_ctx = ctx;
-        m_mediaLib = m_ctx->getMediaLibrary();
+        m_eventAlive = std::make_shared<std::atomic_bool>(true);
         m_ml_event_handle.reset(m_mediaLib->registerEventListener(onMlEvent, this));
-    }
-    else
-    {
-        m_ctx = nullptr;
-        //reset *before* setting m_mediaLib to nullptr
-        m_ml_event_handle.reset( nullptr );
-        m_mediaLib = nullptr;
+        m_medialibDestroyConnection = connect(m_mediaLib, &MediaLib::aboutToDestroy, this, [this] {
+            stopEventListener();
+            m_mediaLib = nullptr;
+            m_ctx = nullptr;
+        });
     }
     update();
     emit ctxChanged();
@@ -100,6 +126,8 @@ QHash<int, QByteArray> MLFoldersBaseModel::roleNames() const
 
 void MLFoldersBaseModel::reload(const int row)
 {
+    if (!m_mediaLib)
+        return;
     const QString mrl = m_mrls.at(row).mrl;
     m_mediaLib->runOnMLThread(this, [mrl](vlc_medialibrary_t *ml)
     {
@@ -118,18 +146,45 @@ void MLFoldersBaseModel::removeAt(int index)
 
 void MLFoldersBaseModel::onMlEvent( void* data , const vlc_ml_event_t* event )
 {
-    auto self = static_cast<MLFoldersBaseModel *>( data );
-    if ( event->i_type == VLC_ML_EVENT_ENTRY_POINT_ADDED || event->i_type == VLC_ML_EVENT_ENTRY_POINT_REMOVED ||
-         event->i_type == VLC_ML_EVENT_ENTRY_POINT_UNBANNED || event->i_type == VLC_ML_EVENT_ENTRY_POINT_BANNED  )
+    auto self = static_cast<MLFoldersBaseModel *>(data);
+    vlc::qt::shutdownTrace("folder-native-event", self, event->i_type);
+    FolderEvent snapshot;
+    snapshot.type = event->i_type;
+    switch (event->i_type)
     {
-        if (!self->failed( event ))
-            emit self->onMLEntryPointModified( QPrivateSignal() );
+    case VLC_ML_EVENT_ENTRY_POINT_ADDED:
+        snapshot.success = event->entry_point_added.b_success;
+        snapshot.url = QUrl::fromEncoded(event->entry_point_added.psz_entry_point);
+        break;
+    case VLC_ML_EVENT_ENTRY_POINT_REMOVED:
+        snapshot.success = event->entry_point_removed.b_success;
+        snapshot.url = QUrl::fromEncoded(event->entry_point_removed.psz_entry_point);
+        break;
+    case VLC_ML_EVENT_ENTRY_POINT_BANNED:
+        snapshot.success = event->entry_point_banned.b_success;
+        snapshot.url = QUrl::fromEncoded(event->entry_point_banned.psz_entry_point);
+        break;
+    case VLC_ML_EVENT_ENTRY_POINT_UNBANNED:
+        snapshot.success = event->entry_point_unbanned.b_success;
+        snapshot.url = QUrl::fromEncoded(event->entry_point_unbanned.psz_entry_point);
+        break;
+    default:
+        return;
     }
+    // Never call a virtual method (or emit a model signal) on the ML thread.
+    // The listener barrier keeps self valid while posting; the independent
+    // token also rejects delivery during partial destruction or after rebind.
+    QMetaObject::invokeMethod(self, [self, alive = self->m_eventAlive, snapshot] {
+        vlc::qt::shutdownTrace(*alive ? "folder-deliver-event" : "folder-reject-event", self, snapshot.type);
+        if (*alive && !self->failed(snapshot))
+            emit self->onMLEntryPointModified(QPrivateSignal());
+    }, Qt::QueuedConnection);
 }
 
 void MLFoldersBaseModel::updateImpl(vlc_ml_folder_list_t* (*folderListFunc)( vlc_medialibrary_t* p_ml, const vlc_ml_query_params_t* params ))
 {
-    if (m_updatePending)
+    vlc::qt::shutdownTrace("folder-update", this);
+    if (!m_mediaLib || m_updatePending)
         return;
 
     m_updatePending = true;
@@ -149,8 +204,10 @@ void MLFoldersBaseModel::updateImpl(vlc_ml_folder_list_t* (*folderListFunc)( vlc
         }
     },
     //UI thread
-    [this](quint64, Ctx& ctx)
+    [this, alive = m_eventAlive](quint64, Ctx& ctx)
     {
+        if (!*alive)
+            return;
         beginResetModel();
         m_mrls = std::move(ctx.r);
         m_updatePending = false;
@@ -164,16 +221,16 @@ void MLFoldersModel::update()
 }
 
 
-bool MLFoldersModel::failed(const vlc_ml_event_t *event) const
+bool MLFoldersModel::failed(const FolderEvent& event) const
 {
-    if ( event->i_type == VLC_ML_EVENT_ENTRY_POINT_ADDED && !event->entry_point_added.b_success )
+    if ( event.type == VLC_ML_EVENT_ENTRY_POINT_ADDED && !event.success )
     {
-        emit operationFailed( Add, QUrl::fromEncoded( event->entry_point_added.psz_entry_point ) );
+        emit operationFailed( Add, event.url );
         return true;
     }
-    else if ( event->i_type == VLC_ML_EVENT_ENTRY_POINT_REMOVED && !event->entry_point_removed.b_success )
+    else if ( event.type == VLC_ML_EVENT_ENTRY_POINT_REMOVED && !event.success )
     {
-        emit operationFailed( Remove, QUrl::fromEncoded( event->entry_point_removed.psz_entry_point ) );
+        emit operationFailed( Remove, event.url );
         return true;
     }
 
@@ -182,6 +239,8 @@ bool MLFoldersModel::failed(const vlc_ml_event_t *event) const
 
 void MLFoldersModel::remove( const QUrl &mrl )
 {
+    if (!m_mediaLib)
+        return;
     //UI data is updated on onMlEvent
     m_mediaLib->runOnMLThread(this,
     //ML thread
@@ -193,6 +252,9 @@ void MLFoldersModel::remove( const QUrl &mrl )
 
 void MLFoldersModel::add(const QUrl &mrl )
 {
+    vlc::qt::shutdownTrace("MLFoldersModel-add", this);
+    if (!m_mediaLib)
+        return;
     //UI data is updated on onMlEvent
     m_mediaLib->runOnMLThread(this,
     //ML thread
@@ -204,6 +266,8 @@ void MLFoldersModel::add(const QUrl &mrl )
 
 void MLBannedFoldersModel::remove(const QUrl &mrl)
 {
+    if (!m_mediaLib)
+        return;
     //UI data is updated on onMlEvent
     m_mediaLib->runOnMLThread(this,
     //ML thread
@@ -215,6 +279,8 @@ void MLBannedFoldersModel::remove(const QUrl &mrl)
 
 void MLBannedFoldersModel::add(const QUrl &mrl)
 {
+    if (!m_mediaLib)
+        return;
     //UI data is updated on onMlEvent
     m_mediaLib->runOnMLThread(this,
     //ML thread
@@ -229,16 +295,16 @@ void MLBannedFoldersModel::update()
     updateImpl(vlc_ml_list_banned_entry_points);
 }
 
-bool MLBannedFoldersModel::failed(const vlc_ml_event_t *event) const
+bool MLBannedFoldersModel::failed(const FolderEvent& event) const
 {
-    if ( event->i_type == VLC_ML_EVENT_ENTRY_POINT_BANNED && !event->entry_point_banned.b_success )
+    if ( event.type == VLC_ML_EVENT_ENTRY_POINT_BANNED && !event.success )
     {
-        emit operationFailed( Ban, QUrl::fromEncoded( event->entry_point_banned.psz_entry_point ) );
+        emit operationFailed( Ban, event.url );
         return true;
     }
-    else if ( event->i_type == VLC_ML_EVENT_ENTRY_POINT_UNBANNED && !event->entry_point_unbanned.b_success )
+    else if ( event.type == VLC_ML_EVENT_ENTRY_POINT_UNBANNED && !event.success )
     {
-        emit operationFailed( Unban, QUrl::fromEncoded( event->entry_point_unbanned.psz_entry_point ) );
+        emit operationFailed( Unban, event.url );
         return true;
     }
 

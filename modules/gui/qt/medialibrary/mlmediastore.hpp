@@ -27,6 +27,7 @@
 #include <QString>
 
 #include <memory>
+#include <atomic>
 
 #include "mlmedia.hpp"
 
@@ -60,6 +61,7 @@ private:
 
     void setMedia(const QString &mrl, MLMedia media);
 
+    std::shared_ptr<std::atomic_bool> m_eventAlive = std::make_shared<std::atomic_bool>(true);
     MediaLib *m_ml;
 
     std::unique_ptr<vlc_ml_event_callback_t,

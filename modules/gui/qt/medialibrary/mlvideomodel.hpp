@@ -46,7 +46,7 @@ public:
 public:
     explicit MLVideoModel(QObject* parent = nullptr);
 
-    virtual ~MLVideoModel() = default;
+    ~MLVideoModel() override { stopEventListener(); }
 
 public: // Interface
     // NOTE: This function is useful when we want to apply a change before the database event.

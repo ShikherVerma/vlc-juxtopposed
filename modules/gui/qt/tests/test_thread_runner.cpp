@@ -26,6 +26,10 @@
 #include "qtestcase.h"
 #include <thread>
 #include <atomic>
+#ifdef Q_OS_UNIX
+#include <sys/mman.h>
+#include <unistd.h>
+#endif
 
 static const int TASK_TIMEOUT = 300; //MS
 
@@ -793,6 +797,69 @@ private slots:
         QVERIFY(!called);
     }
 
+    void testOutOfOrderSameOwnerCompletion()
+    {
+        // Windows trace: the newer of two same-owner tasks completes first;
+        // Qt remove(key,value) missed its entry, then owner destruction asserted.
+        // Gates, not scheduler sleeps, select that sequence. Linux's STL does
+        // not exhibit the Qt bug, but exercises the same map/connection lifetime.
+        auto runner = getRunner();
+        runner->setMaxThreadCount(2);
+        auto owner = std::make_unique<Dummy>();
+        auto firstStarted = std::make_shared<QSemaphore>();
+        auto firstRelease = std::make_shared<QSemaphore>();
+        auto secondRelease = std::make_shared<QSemaphore>();
+        bool firstDone = false, secondDone = false;
+        const auto first = runner->runOnThread<Ctx>(owner.get(),
+            [firstStarted, firstRelease](Ctx&) {
+                firstStarted->release();
+                firstRelease->tryAcquire(1, 5000);
+            }, [&firstDone](quint64, Ctx&) { firstDone = true; });
+        QVERIFY(firstStarted->tryAcquire(1, 5000));
+        const auto second = runner->runOnThread<Ctx>(owner.get(),
+            [secondRelease](Ctx&) { secondRelease->tryAcquire(1, 5000); },
+            [&secondDone](quint64, Ctx&) { secondDone = true; });
+        secondRelease->release();
+        QTRY_VERIFY_WITH_TIMEOUT(secondDone, 5000);
+        {
+            QMutexLocker lock(&runner->m_lock);
+            QVERIFY(runner->m_runningTasks.contains(first));
+            QVERIFY(!runner->m_runningTasks.contains(second));
+            QCOMPARE(runner->m_objectTasks.values(owner.get()), QList<quint64>{first});
+        }
+        firstRelease->release();
+        QTRY_VERIFY_WITH_TIMEOUT(firstDone, 5000);
+        {
+            QMutexLocker lock(&runner->m_lock);
+            QVERIFY(!runner->m_objectTasks.contains(owner.get()));
+        }
+        owner.reset(); // keep the production assert(task) in this path
+    }
+
+    void testSameOwnerCancelRemovesExactId()
+    {
+        auto runner = getRunner();
+        auto owner = std::make_unique<Dummy>();
+        auto started = std::make_shared<QSemaphore>();
+        auto release = std::make_shared<QSemaphore>();
+        runner->setMaxThreadCount(1);
+        const auto first = runner->runOnThread<Ctx>(owner.get(),
+            [started, release](Ctx&) {
+                started->release();
+                release->tryAcquire(1, 5000);
+            }, [](quint64, Ctx&) {});
+        QVERIFY(started->tryAcquire(1, 5000));
+        const auto second = runner->runOnThread<Ctx>(owner.get(), [](Ctx&) {},
+            [](quint64, Ctx&) { QFAIL("Canceled UI callback executed"); });
+        runner->cancelTask(owner.get(), second);
+        {
+            QMutexLocker lock(&runner->m_lock);
+            QCOMPARE(runner->m_objectTasks.values(owner.get()), QList<quint64>{first});
+        }
+        owner.reset();
+        release->release();
+    }
+
     void testFinishedBeforeTargetDestroyed()
     {
         // Intercept the queued done event before its slot executes: the ML
@@ -872,6 +939,150 @@ private slots:
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
         QVERIFY(workerContext.expired());
         QVERIFY(!called);
+    }
+
+    void testCompletionCannotDeleteEmittingTask()
+    {
+        auto runner = m_runner.get();
+        Dummy owner;
+        auto start = std::make_shared<QSemaphore>();
+        auto emitting = std::make_shared<QSemaphore>();
+        auto resume = std::make_shared<QSemaphore>();
+        const auto id = runner->runOnThread<Ctx>(&owner,
+            [start](Ctx&) { start->tryAcquire(1, 5000); }, [](quint64, Ctx&) {});
+        QPointer<RunOnThreadBaseRunner> task;
+        {
+            QMutexLocker lock(&runner->m_lock);
+            task = runner->m_runningTasks.value(id);
+            connect(task, &RunOnThreadBaseRunner::done, task, [emitting, resume] {
+                emitting->release();
+                resume->tryAcquire(1, 5000);
+            }, Qt::DirectConnection);
+        }
+        start->release();
+        QVERIFY(emitting->tryAcquire(1, 5000));
+        // The queued done handler and DeferredDelete both run while the
+        // worker is deterministically still inside QObject::activate(done).
+        QCoreApplication::sendPostedEvents(runner, QEvent::MetaCall);
+        QCoreApplication::sendPostedEvents(task, QEvent::DeferredDelete);
+        const bool aliveDuringEmission = !task.isNull();
+        resume->release();
+        QVERIFY(aliveDuringEmission);
+        QTRY_VERIFY_WITH_TIMEOUT(task.isNull(), 5000);
+    }
+
+    void testSelfDeletingSerialTask()
+    {
+#ifdef Q_OS_UNIX
+        // A non-auto-delete runnable may release itself in run(). Unmap its
+        // storage immediately, so a wrapper's post-run flag read fails every
+        // time rather than depending on allocator reuse/timing.
+        struct SelfDeletingTask : QRunnable {
+            std::atomic_int* destroyed;
+            explicit SelfDeletingTask(std::atomic_int* count) : destroyed(count) { setAutoDelete(false); }
+            ~SelfDeletingTask() override { ++*destroyed; }
+            void run() override { delete this; }
+            static void* operator new(size_t) {
+                void* p = mmap(nullptr, sysconf(_SC_PAGESIZE), PROT_READ | PROT_WRITE,
+                               MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+                if (p == MAP_FAILED)
+                    throw std::bad_alloc();
+                return p;
+            }
+            static void operator delete(void* p) { munmap(p, sysconf(_SC_PAGESIZE)); }
+        };
+        auto runner = getRunner();
+        std::atomic_int destroyed{0};
+        {
+            QMutexLocker lock(&runner->m_lock);
+            runner->start(new SelfDeletingTask(&destroyed), "self-deleting");
+        }
+        QTRY_COMPARE_WITH_TIMEOUT(destroyed.load(), 1, 5000);
+#else
+        QSKIP("Deterministic unmapped-storage regression is Unix-only");
+#endif
+    }
+
+    void testProducerThreadDoesNotOwnCleanup()
+    {
+        auto runner = getRunner();
+        Dummy owner;
+        auto context = std::make_shared<int>(42);
+        const std::weak_ptr<int> weak = context;
+        bool called = false;
+        std::thread producer([&] {
+            runner->runOnThread<Ctx>(&owner, [](Ctx&) {},
+                [context, &called](quint64, Ctx&) { called = true; });
+        });
+        producer.join(); // no producer event loop exists to process deleteLater
+        context.reset();
+        QTRY_VERIFY_WITH_TIMEOUT(called, 5000);
+        QTRY_VERIFY_WITH_TIMEOUT(weak.expired(), 5000);
+    }
+
+    void testDiscardedForeignCallbackReleasesContext()
+    {
+        auto runner = m_runnerThread->m_runner.get();
+        auto owner = std::make_unique<Dummy>();
+        auto context = std::make_shared<int>(42);
+        const std::weak_ptr<int> weak = context;
+        QSemaphore delivered;
+        struct DoneFilter : QObject {
+            QSemaphore* delivered;
+            bool eventFilter(QObject* receiver, QEvent* event) override
+            {
+                if (event->type() == QEvent::MetaCall)
+                    {
+                    receiver->removeEventFilter(this);
+                    auto semaphore = delivered;
+                    QMetaObject::invokeMethod(receiver, [semaphore] { semaphore->release(); }, Qt::QueuedConnection);
+                }
+                return false;
+            }
+        };
+        // Install in the runner thread; remove before the marker MetaCall so
+        // it only observes the worker's done event, not its own marker.
+        auto filter = new DoneFilter;
+        filter->delivered = &delivered;
+        filter->moveToThread(runner->thread());
+        QMetaObject::invokeMethod(runner, [=] { runner->installEventFilter(filter); }, Qt::BlockingQueuedConnection);
+        bool called = false;
+        runner->runOnThread<Ctx>(owner.get(), [](Ctx&) {},
+            [context, &called](quint64, Ctx&) { called = true; });
+        context.reset();
+        QVERIFY(delivered.tryAcquire(1, 5000));
+        QMetaObject::invokeMethod(runner, [=] { runner->removeEventFilter(filter); delete filter; }, Qt::BlockingQueuedConnection);
+        // No GUI event processing has occurred: completion is queued to owner.
+        QVERIFY(!called);
+        owner.reset();
+        QTRY_VERIFY_WITH_TIMEOUT(weak.expired(), 5000);
+        QVERIFY(!called);
+    }
+
+    void testCancelReentrantClosureDestructor()
+    {
+        auto runner = getRunner();
+        auto owner = std::make_unique<Dummy>();
+        auto started = std::make_shared<QSemaphore>();
+        auto release = std::make_shared<QSemaphore>();
+        runner->setMaxThreadCount(1);
+        runner->runOnThread<Ctx>(owner.get(), [started, release](Ctx&) {
+            started->release();
+            release->tryAcquire(1, 5000);
+        }, [](quint64, Ctx&) {});
+        QVERIFY(started->tryAcquire(1, 5000));
+        const auto other = runner->runOnThread<Ctx>(owner.get(), [](Ctx&) {}, [](quint64, Ctx&) {});
+        // Releasing a captured resource may cancel another task. No arbitrary
+        // closure/QObject destructor may execute with the bookkeeping lock held.
+        auto resource = std::shared_ptr<int>(new int(0), [runner, target = owner.get(), other](int* p) {
+            runner->cancelTask(target, other);
+            delete p;
+        });
+        const auto first = runner->runOnThread<Ctx>(owner.get(), [](Ctx&) {},
+            [resource](quint64, Ctx&) {});
+        resource.reset();
+        runner->cancelTask(owner.get(), first);
+        release->release();
     }
 
     void testNestedTask()

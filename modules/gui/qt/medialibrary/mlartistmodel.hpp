@@ -42,7 +42,7 @@ public:
 
 public:
     explicit MLArtistModel(QObject *parent = nullptr);
-    virtual ~MLArtistModel() = default;
+    ~MLArtistModel() override { stopEventListener(); }
 
     QHash<int, QByteArray> roleNames() const override;
 

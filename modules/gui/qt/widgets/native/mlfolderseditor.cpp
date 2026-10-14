@@ -26,6 +26,7 @@
 #endif
 
 #include "mlfolderseditor.hpp"
+#include "util/shutdown_trace.hpp"
 #include "medialibrary/mlhelper.hpp"
 
 #include <QBoxLayout>
@@ -83,6 +84,7 @@ bool MLFoldersEditor::contains(const QUrl &url)
 
 void MLFoldersEditor::commit()
 {
+    vlc::qt::shutdownTrace("MLFoldersEditor-commit", this, 0, m_foldersModel);
     for ( const auto &removeEntry : m_removeEntries )
         m_foldersModel->remove( removeEntry );
 

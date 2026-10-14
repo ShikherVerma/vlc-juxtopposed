@@ -28,6 +28,8 @@
 #include <qconfig.h>
 #include <QtPlugin>
 #include <QQuickStyle>
+#include <QAbstractEventDispatcher>
+#include "util/shutdown_trace.hpp"
 
 QT_BEGIN_NAMESPACE
 #include "plugins.hpp"
@@ -664,6 +666,7 @@ static int OpenInternal( qt_intf_t *p_intf )
 
 static void CloseInternal( qt_intf_t *p_intf )
 {
+    vlc::qt::ShutdownTraceScope trace("CloseInternal-join-UI", p_intf);
     /* And quit */
     msg_Dbg( p_intf, "requesting exit..." );
 
@@ -743,6 +746,8 @@ static int OpenDialogs( vlc_object_t *p_this )
 /* close interface */
 static void Close( vlc_object_t *p_this )
 {
+    vlc::qt::shutdownTraceRequested = true;
+    vlc::qt::ShutdownTraceScope trace("Close-core-interface", p_this);
     intf_thread_t* intfThread = (intf_thread_t*)(p_this);
     auto p_intf = reinterpret_cast<qt_intf_t*>(intfThread->p_sys);
     if (p_intf)
@@ -1497,8 +1502,26 @@ static void *Thread( void *obj )
 #undef QTSTYLE_KEY
 
     /* Launch */
-    app.exec();
+    {
+        vlc::qt::ShutdownTraceScope trace("interface-event-loop-core-shutdown", p_intf, true);
+        if (vlc::qt::shutdownTraceEnabled())
+        {
+            // Observe the dispatcher without posting heartbeat events that
+            // could wake it and change the shutdown sequence under test.
+            auto dispatcher = QAbstractEventDispatcher::instance();
+            QObject::connect(dispatcher, &QAbstractEventDispatcher::awake, &app, [p_intf] {
+                if (vlc::qt::shutdownTraceRequested)
+                    vlc::qt::shutdownTrace("shutdown-GUI-dispatcher-awake", p_intf);
+            });
+            QObject::connect(dispatcher, &QAbstractEventDispatcher::aboutToBlock, &app, [p_intf] {
+                if (vlc::qt::shutdownTraceRequested)
+                    vlc::qt::shutdownTrace("shutdown-GUI-dispatcher-about-to-block", p_intf);
+            });
+        }
+        app.exec();
+    }
 
+    vlc::qt::shutdownTrace("interface-event-loop-exit", p_intf);
     msg_Dbg( p_intf, "QApp exec() finished" );
 
     playlistModelRecoveryAgent.reset();
@@ -1507,6 +1530,7 @@ static void *Thread( void *obj )
 
 static void *ThreadCleanup( qt_intf_t *p_intf, CleanupReason cleanupReason )
 {
+    vlc::qt::ShutdownTraceScope trace("ThreadCleanup", p_intf);
     {
         vlc::threads::mutex_locker locker (lock);
         if( cleanupReason == CLEANUP_ERROR )
@@ -1520,6 +1544,7 @@ static void *ThreadCleanup( qt_intf_t *p_intf, CleanupReason cleanupReason )
 
     if ( p_intf->p_compositor )
     {
+        vlc::qt::ShutdownTraceScope trace("compositor-destroy-or-unload-GUI", p_intf);
         if (cleanupReason == CLEANUP_INTF_CLOSED)
             p_intf->p_compositor->unloadGUI();
         else // CLEANUP_APP_TERMINATED
@@ -1534,6 +1559,7 @@ static void *ThreadCleanup( qt_intf_t *p_intf, CleanupReason cleanupReason )
        in the MainInputManager
        Settings must be destroyed after that.
      */
+    vlc::qt::shutdownTrace("dispose-dialogs", p_intf);
     DialogsProvider::killInstance();
     VLCDialogModel::killInstance();
     DialogErrorModel::killInstance();
@@ -1545,10 +1571,14 @@ static void *ThreadCleanup( qt_intf_t *p_intf, CleanupReason cleanupReason )
     // model callback can use a freed ML runner and block this event loop,
     // which the vout still needs for its BlockingQueued windowDisableCb.
     // Drain only deferred deletions, not arbitrary callbacks during teardown.
-    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    {
+        vlc::qt::ShutdownTraceScope trace("flush-deferred-model-deletion", p_intf);
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    }
 
     //destroy MainCtx, Compositor shouldn't not use MainCtx after `unloadGUI`
     if (p_intf->p_mi) {
+        vlc::qt::ShutdownTraceScope trace("delete-MainCtx", p_intf->p_mi);
         delete p_intf->p_mi;
         p_intf->p_mi = nullptr;
     }
@@ -1564,6 +1594,7 @@ static void *ThreadCleanup( qt_intf_t *p_intf, CleanupReason cleanupReason )
     /* Destroy the main playlist controller */
     if (p_intf->p_mainPlaylistController)
     {
+        vlc::qt::ShutdownTraceScope trace("delete-PlaylistController", p_intf->p_mainPlaylistController);
         delete p_intf->p_mainPlaylistController;
         p_intf->p_mainPlaylistController = nullptr;
     }
@@ -1571,11 +1602,13 @@ static void *ThreadCleanup( qt_intf_t *p_intf, CleanupReason cleanupReason )
     /* Destroy the main InputManager */
     if (p_intf->p_mainPlayerController)
     {
+        vlc::qt::ShutdownTraceScope trace("delete-PlayerController", p_intf->p_mainPlayerController);
         delete p_intf->p_mainPlayerController;
         p_intf->p_mainPlayerController = nullptr;
     }
 
     /* Delete the application automatically */
+    vlc::qt::shutdownTrace("interface-cleanup-complete", p_intf);
     return NULL;
 }
 

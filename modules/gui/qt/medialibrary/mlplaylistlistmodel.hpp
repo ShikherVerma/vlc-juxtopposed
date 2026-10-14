@@ -31,6 +31,8 @@ class MLPlaylistListModel : public MLBaseModel
     Q_OBJECT
 
 public:
+    ~MLPlaylistListModel() override { stopEventListener(); }
+
     enum Roles
     {
         PLAYLIST_ID = Qt::UserRole + 1,

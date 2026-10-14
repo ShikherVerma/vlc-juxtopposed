@@ -41,11 +41,16 @@ MediaLib::MediaLib(qt_intf_t *_intf, vlc::playlist::PlaylistController* playlist
 
 MediaLib::~MediaLib()
 {
+    vlc::qt::ShutdownTraceScope trace("MediaLib-destructor", this);
     // Reject reentrant/late submissions before notifying clients. The runner
     // drains asynchronously, so it must no longer be reachable via MediaLib.
+    *m_eventAlive = false;
     auto runner = std::exchange(m_runner, nullptr);
+    {
+        vlc::qt::ShutdownTraceScope trace("MediaLib-unregister", this);
+        m_event_cb.reset();
+    }
     emit aboutToDestroy();
-    m_event_cb.reset();
     runner->destroy();
 }
 
@@ -353,6 +358,7 @@ vlc_ml_event_callback_t* MediaLib::registerEventListener( void (*callback)(void*
 
 void MediaLib::unregisterEventListener(vlc_ml_event_callback_t* cb)
 {
+    vlc::qt::ShutdownTraceScope trace("MediaLib-unregister-listener", cb);
     vlc_ml_event_unregister_callback( m_ml , cb );
 }
 
@@ -364,19 +370,23 @@ void MediaLib::onMediaLibraryEvent( void* data, const vlc_ml_event_t* event )
         case VLC_ML_EVENT_PARSING_PROGRESS_UPDATED:
         {
             int percent =  event->parsing_progress.i_percent;
-            QMetaObject::invokeMethod(self, [self, percent]() {
+            QMetaObject::invokeMethod(self, [self, percent, alive = self->m_eventAlive]() {
+                if (!*alive)
+                    return;
                 self->m_parsingProgress = percent;
                 self->emit parsingProgressChanged(percent);
-            });
+            }, Qt::QueuedConnection);
             break;
         }
         case VLC_ML_EVENT_DISCOVERY_STARTED:
         {
-            QMetaObject::invokeMethod(self, [self]() {
+            QMetaObject::invokeMethod(self, [self, alive = self->m_eventAlive]() {
+                if (!*alive)
+                    return;
                 self->m_discoveryPending = true;
                 self->emit discoveryPendingChanged(self->m_discoveryPending);
                 self->emit discoveryStarted();
-            });
+            }, Qt::QueuedConnection);
             break;
         }
         case VLC_ML_EVENT_DISCOVERY_PROGRESS:
@@ -386,28 +396,34 @@ void MediaLib::onMediaLibraryEvent( void* data, const vlc_ml_event_t* event )
                                               ? entryPoint.toLocalFile()
                                               : entryPoint.toDisplayString();
 
-            QMetaObject::invokeMethod(self, [self, entryPointStr]() {
+            QMetaObject::invokeMethod(self, [self, entryPointStr, alive = self->m_eventAlive]() {
+                if (!*alive)
+                    return;
                 self->m_discoveryEntryPoint = entryPointStr;
                 self->emit discoveryEntryPointChanged(entryPointStr);
-            });
+            }, Qt::QueuedConnection);
             break;
         }
         case VLC_ML_EVENT_DISCOVERY_COMPLETED:
         {
-            QMetaObject::invokeMethod(self, [self]() {
+            QMetaObject::invokeMethod(self, [self, alive = self->m_eventAlive]() {
+                if (!*alive)
+                    return;
                 self->m_discoveryPending = false;
                 self->emit discoveryPendingChanged(self->m_discoveryPending);
                 self->emit discoveryCompleted();
-            });
+            }, Qt::QueuedConnection);
             break;
         }
         case VLC_ML_EVENT_BACKGROUND_IDLE_CHANGED:
         {
             bool idle = event->background_idle_changed.b_idle;
-            QMetaObject::invokeMethod(self, [self, idle]() {
+            QMetaObject::invokeMethod(self, [self, idle, alive = self->m_eventAlive]() {
+                if (!*alive)
+                    return;
                 self->m_idle = idle;
                 self->emit idleChanged();
-            });
+            }, Qt::QueuedConnection);
             break;
         }
         default:

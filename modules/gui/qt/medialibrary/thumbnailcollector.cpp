@@ -27,19 +27,30 @@ ThumbnailCollector::ThumbnailCollector(QObject *parent)
     , m_ml_event_handle(nullptr, [this](vlc_ml_event_callback_t *cb)
     {
         assert(m_ml);
-        QMutexLocker lock(&m_mut);
         m_ml->unregisterEventListener(cb);
     })
 {
+}
+
+ThumbnailCollector::~ThumbnailCollector()
+{
+    *m_eventAlive = false;
+    // Stop native dispatch before any callback-accessible member is destroyed.
+    // Do not hold a model lock here: unregister waits for the ML dispatch lock.
+    m_ml_event_handle.reset();
 }
 
 void ThumbnailCollector::start(MediaLib *ml, const QSet<int64_t> &mlIds)
 {
     assert(!m_ml); // class object is only one time usable
     m_ml = ml;
-    m_ml_event_handle.reset(ml->registerEventListener(&onVlcMLEvent, this));
-
+    connect(ml, &MediaLib::aboutToDestroy, this, [this] {
+        *m_eventAlive = false;
+        m_ml_event_handle.reset();
+        m_ml = nullptr;
+    });
     m_pending = mlIds;
+    m_ml_event_handle.reset(ml->registerEventListener(&onVlcMLEvent, this));
     m_ml->runOnMLThread(this, [ids = mlIds](vlc_medialibrary_t* ml)
     {
         for (const auto id : ids)
@@ -61,26 +72,25 @@ void ThumbnailCollector::onVlcMLEvent(void *data, const vlc_ml_event_t *event)
         return;
 
     const auto self = reinterpret_cast<ThumbnailCollector *>(data);
-    QMutexLocker lock(&self->m_mut);
-
     const auto id = mediaID(event);
-    if (!self->m_pending.contains(id))
-        return;
+    const bool generated = event->i_type == VLC_ML_EVENT_MEDIA_THUMBNAIL_GENERATED;
+    const bool success = generated && event->media_thumbnail_generated.b_success;
+    const QString url = generated
+        ? toValidLocalFile(event->media_thumbnail_generated.p_media->thumbnails[VLC_ML_THUMBNAIL_SMALL].psz_mrl)
+        : QString{};
 
-    self->m_pending.remove(id);
+    QMetaObject::invokeMethod(self, [self, id, generated, success, url, alive = self->m_eventAlive] {
+        if (!*alive || !self->m_pending.remove(id))
+            return;
 
-    if (event->i_type == VLC_ML_EVENT_MEDIA_THUMBNAIL_GENERATED)
-    {
-        const auto media = event->media_thumbnail_generated.p_media;
-        const auto url = toValidLocalFile(media->thumbnails[VLC_ML_THUMBNAIL_SMALL].psz_mrl);
-
-        if (event->media_thumbnail_generated.b_success && !url.isEmpty()) {
-            self->m_thumbnails.insert(id, url);
-        } else {
-            qDebug("thumbnail generation failed, id: %" PRId64 ", url: '%s'", id, qUtf8Printable(url));
+        if (generated)
+        {
+            if (success && !url.isEmpty())
+                self->m_thumbnails.insert(id, url);
+            else
+                qDebug("thumbnail generation failed, id: %" PRId64 ", url: '%s'", id, qUtf8Printable(url));
         }
-    }
-
-    if (self->m_pending.empty())
-        emit self->finished();
+        if (self->m_pending.empty())
+            emit self->finished();
+    }, Qt::QueuedConnection);
 }

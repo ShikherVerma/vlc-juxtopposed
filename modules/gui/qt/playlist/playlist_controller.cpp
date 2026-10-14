@@ -21,6 +21,7 @@
 #endif
 
 #include "playlist_controller.hpp"
+#include "util/shutdown_trace.hpp"
 #include "playlist_controller_p.hpp"
 #include <vlc_player.h>
 #include <vlc_url.h>
@@ -381,9 +382,12 @@ PlaylistControllerPrivate::PlaylistControllerPrivate(PlaylistController* playlis
 
 PlaylistControllerPrivate::~PlaylistControllerPrivate()
 {
+    vlc::qt::ShutdownTraceScope trace("PlaylistControllerPrivate-destructor", this);
     if (m_playlist && m_listener)
     {
+        vlc::qt::ShutdownTraceScope trace("playlist-lock-remove-listener", m_playlist);
         vlc_playlist_locker lock(m_playlist);
+        vlc::qt::shutdownTrace("playlist-locked-remove-listener", m_playlist);
         vlc_playlist_RemoveListener(m_playlist, m_listener);
     }
 }

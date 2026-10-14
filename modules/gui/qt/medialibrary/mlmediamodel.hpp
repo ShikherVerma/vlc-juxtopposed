@@ -52,7 +52,7 @@ public:
     };
 
     explicit MLMediaModel(QObject *par = nullptr);
-    virtual ~MLMediaModel() = default;
+    ~MLMediaModel() override { stopEventListener(); }
 
     Q_INVOKABLE void setMediaIsFavorite(const QModelIndex &index, bool isFavorite);
     Q_INVOKABLE QUrl getParentURL(const QModelIndex &index);

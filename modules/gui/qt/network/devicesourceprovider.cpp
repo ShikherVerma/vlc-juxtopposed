@@ -213,6 +213,7 @@ DeviceSourceProvider::DeviceSourceProvider(
     QObject* parent)
     : QObject(parent)
     , m_ctx(ctx)
+    , m_runner(ctx->threadRunner())
     , m_sdSource {sdSource}
     , m_sourceName {sourceName}
 {
@@ -220,12 +221,14 @@ DeviceSourceProvider::DeviceSourceProvider(
 
 DeviceSourceProvider::~DeviceSourceProvider()
 {
-    if (m_taskId != 0)
-        m_ctx->threadRunner()->cancelTask(this, m_taskId);
+    if (m_taskId != 0 && m_runner)
+        m_runner->cancelTask(this, m_taskId);
 }
 
 void DeviceSourceProvider::init()
 {
+    if (!m_ctx || !m_runner)
+        return;
     using SourceMetaPtr = std::unique_ptr<vlc_media_source_meta_list_t,
                                           decltype( &vlc_media_source_meta_list_Delete )>;
 
@@ -235,7 +238,7 @@ void DeviceSourceProvider::init()
         std::vector<SharedMediaSourceModel> sources;
     };
     QThread* thread = QThread::currentThread();
-    m_taskId = m_ctx->threadRunner()->runOnThread<Ctx>(
+    m_taskId = m_runner->runOnThread<Ctx>(
         this,
         //Worker thread
         [intf = m_ctx->getIntf(), sdSource = m_sdSource, nameFilter = m_sourceName, thread](Ctx& ctx){

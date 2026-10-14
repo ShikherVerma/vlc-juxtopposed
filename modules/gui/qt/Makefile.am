@@ -342,6 +342,7 @@ libqt_plugin_la_SOURCES = \
 	util/flickable_scroll_handler.cpp \
 	util/flickable_scroll_handler.hpp \
 	util/qt_dirs.cpp util/qt_dirs.hpp \
+	util/shutdown_trace.hpp \
 	util/proxycolumnmodel.hpp \
 	util/registry.cpp util/registry.hpp \
 	util/renderer_manager.cpp util/renderer_manager.hpp \

@@ -57,7 +57,7 @@ public:
 
     explicit MLUrlModel(QObject *parent = nullptr);
 
-    virtual ~MLUrlModel() = default;
+    ~MLUrlModel() override { stopEventListener(); }
 
     QHash<int, QByteArray> roleNames() const override;
 

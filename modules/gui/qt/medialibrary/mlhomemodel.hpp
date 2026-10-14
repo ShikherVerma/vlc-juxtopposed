@@ -29,6 +29,8 @@ class MLHomeModel : public MLMediaModel
     Q_OBJECT
     Q_PROPERTY(Section section READ section WRITE setSection NOTIFY sectionChanged FINAL)
 public:
+    ~MLHomeModel() override { stopEventListener(); }
+
     enum Section { ContinueWatching, ListenAgain, Folders, Playlists, Artists };
     Q_ENUM(Section)
     enum { HOME_SUBTITLE = MEDIA_ROLES_COUNT, HOME_SCORE, HOME_LAST_PLAYED };

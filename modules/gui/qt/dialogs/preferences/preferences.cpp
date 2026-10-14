@@ -26,6 +26,7 @@
 #endif
 
 #include "dialogs/preferences/preferences.hpp"
+#include "util/shutdown_trace.hpp"
 
 #include "expert_view.hpp"
 #include "dialogs/preferences/complete_preferences.hpp"
@@ -187,6 +188,7 @@ PrefsDialog::PrefsDialog( QWindow *parent, qt_intf_t *_p_intf )
 
 PrefsDialog::~PrefsDialog()
 {
+    vlc::qt::shutdownTrace("PrefsDialog-destructor", this);
     module_list_free( p_list );
 }
 
@@ -372,6 +374,7 @@ void PrefsDialog::changeExpertDesc( const QModelIndex &current, const QModelInde
 /* Actual apply and save for the preferences */
 void PrefsDialog::save()
 {
+    vlc::qt::ShutdownTraceScope trace("PrefsDialog-save", this);
     if( simple->isChecked() && simple_tree->isVisible() )
     {
         msg_Dbg( p_intf, "Saving the simple preferences" );

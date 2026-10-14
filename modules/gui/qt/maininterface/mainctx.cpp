@@ -32,6 +32,7 @@
 #include <QJSEngine>
 
 #include "mainctx.hpp"
+#include "util/shutdown_trace.hpp"
 #include "mainctx_submodels.hpp"
 #include "medialibrary/mlhelper.hpp"
 
@@ -856,6 +857,7 @@ VideoSurfaceProvider* MainCtx::getVideoSurfaceProvider() const
 
 void MainCtx::onWindowClose( QWindow* )
 {
+    vlc::qt::shutdownTrace("MainCtx-window-close", this);
     // Use the same core shutdown as Quit VLC, including when the player is
     // already stopped but still owns its cached vout. Waiting for a future
     // STOPPED notification can leave a hidden application alive indefinitely.

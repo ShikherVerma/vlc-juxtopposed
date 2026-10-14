@@ -33,6 +33,8 @@ class MLVideoFoldersModel : public MLBaseModel
     Q_PROPERTY(bool hierarchical READ hierarchical WRITE setHierarchical NOTIFY hierarchicalChanged FINAL)
 
 public:
+    ~MLVideoFoldersModel() override { stopEventListener(); }
+
     enum Roles
     {
         FOLDER_ID = Qt::UserRole + 1,

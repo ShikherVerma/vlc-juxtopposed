@@ -45,6 +45,9 @@ MLBookmarkModel::MLBookmarkModel( QObject *parent )
 
 MLBookmarkModel::~MLBookmarkModel()
 {
+    *m_playerAlive = false;
+    *m_eventAlive = false;
+    m_ml_event_handle.reset();
     if(m_player && m_listener){
         vlc_player_locker lock{ m_player };
         vlc_player_RemoveListener( m_player, m_listener );
@@ -84,7 +87,7 @@ QVariant MLBookmarkModel::data( const QModelIndex &index, int role ) const
 
 bool MLBookmarkModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
-    if ( index.isValid() == false )
+    if (!m_mediaLib || index.isValid() == false )
         return false;
     if ( role == Qt::EditRole )
         role = columnToRole(index.column());
@@ -300,7 +303,7 @@ void MLBookmarkModel::add()
 
 void MLBookmarkModel::remove( const QModelIndexList &indexes )
 {
-    if (m_currentMediaId == 0 || !m_bookmarks)
+    if (!m_mediaLib || m_currentMediaId == 0 || !m_bookmarks)
         return;
 
     std::vector<int64_t> bookmarkTimeList;
@@ -328,7 +331,7 @@ void MLBookmarkModel::remove( const QModelIndexList &indexes )
 
 void MLBookmarkModel::clear()
 {
-    if (m_currentMediaId == 0)
+    if (!m_mediaLib || m_currentMediaId == 0)
         return;
 
     m_mediaLib->runOnMLThread(this,
@@ -379,8 +382,10 @@ void MLBookmarkModel::onCurrentMediaChanged( vlc_player_t*, input_item_t* media,
     // playlist activation), with the player lock still held. Always queue:
     // resetting a model synchronously can re-enter player getters/listeners.
     QMetaObject::invokeMethod(self,
-    [self, revision, mediaUri]()
+    [self, revision, mediaUri, alive = self->m_playerAlive]()
     {
+        if (!*alive)
+            return;
         {
             vlc::threads::mutex_locker lock{ self->m_mutex };
             //did we start playing a new media in between
@@ -396,7 +401,9 @@ void MLBookmarkModel::onPlaybackStateChanged( vlc_player_t *, vlc_player_state s
 {
     auto self = static_cast<MLBookmarkModel*>( data );
 
-    QMetaObject::invokeMethod(self, [self, state](){
+    QMetaObject::invokeMethod(self, [self, state, alive = self->m_playerAlive](){
+        if (!*alive)
+            return;
         if (self->m_currentMediaId == 0)
             return;
         if ( state == VLC_PLAYER_STATE_STARTED )
@@ -462,7 +469,7 @@ void MLBookmarkModel::updateMediaId(uint64_t revision, const QString &mediaUri)
 
 void MLBookmarkModel::refresh(MLBookmarkModel::RefreshOperation forceClear )
 {
-    if (m_currentMediaId == 0 || forceClear == MLBOOKMARKMODEL_CLEAR)
+    if (!m_mediaLib || m_currentMediaId == 0 || forceClear == MLBOOKMARKMODEL_CLEAR)
     {
         beginResetModel();
         m_bookmarks.reset();
@@ -508,6 +515,7 @@ void MLBookmarkModel::setPlayer(vlc_player_t * player)
     if(m_player && m_listener){
         vlc_player_locker lock{ m_player };
         vlc_player_RemoveListener( m_player, m_listener );
+        m_listener = nullptr;
     }
 
     m_player = player;
@@ -550,10 +558,17 @@ void MLBookmarkModel::setMl(MediaLib* medialib)
 {
     if(m_mediaLib == medialib) return;
 
-    if(m_mediaLib)
-        m_ml_event_handle.reset(nullptr);
-
+    *m_eventAlive = false;
+    m_ml_event_handle.reset();
+    disconnect(m_medialibDestroyConnection);
     m_mediaLib = medialib;
+    m_eventAlive = std::make_shared<std::atomic_bool>(true);
+    if (medialib)
+        m_medialibDestroyConnection = connect(medialib, &MediaLib::aboutToDestroy, this, [this] {
+            *m_eventAlive = false;
+            m_ml_event_handle.reset();
+            m_mediaLib = nullptr;
+        });
 
     if (m_player && m_mediaLib)
         initModel();
@@ -571,6 +586,8 @@ void MLBookmarkModel::initModel()
     {
         vlc_player_locker lock{ m_player };
         vlc::threads::mutex_locker selflock{ m_mutex };
+        if (m_listener)
+            vlc_player_RemoveListener(m_player, m_listener);
         m_listener = vlc_player_AddListener( m_player, &cbs, this );
         if ( m_listener == nullptr )
             throw std::bad_alloc{};
@@ -592,9 +609,10 @@ void MLBookmarkModel::onVlcMlEvent(void* data, const vlc_ml_event_t* event)
 {
     auto self = static_cast<MLBookmarkModel*>(data);
     auto  mlEvent = std::make_shared<MLEvent>(event);
-    QMetaObject::invokeMethod(self, [self, mlEvent] () mutable {
-        self->onVlcMlEvent(*mlEvent);
-    });
+    QMetaObject::invokeMethod(self, [self, mlEvent, alive = self->m_eventAlive] () mutable {
+        if (*alive)
+            self->onVlcMlEvent(*mlEvent);
+    }, Qt::QueuedConnection);
 }
 
 void MLBookmarkModel::onVlcMlEvent(const MLEvent &event){

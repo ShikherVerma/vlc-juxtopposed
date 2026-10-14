@@ -27,7 +27,11 @@
 
 static const char *UPDATE_QUEUE = "MLMEDIASTORE_UPDATEQUEUE";
 
-MLMediaStore::~MLMediaStore() = default;
+MLMediaStore::~MLMediaStore()
+{
+    *m_eventAlive = false;
+    m_ml_event_handle.reset();
+}
 
 MLMediaStore::MLMediaStore(MediaLib *ml, QObject *parent)
     : QObject(parent)
@@ -38,6 +42,11 @@ MLMediaStore::MLMediaStore(MediaLib *ml, QObject *parent)
         m_ml->unregisterEventListener( cb );
     })
 {
+    connect(m_ml, &MediaLib::aboutToDestroy, this, [this] {
+        *m_eventAlive = false;
+        m_ml_event_handle.reset();
+        m_ml = nullptr;
+    });
     m_ml_event_handle.reset
     (
         m_ml->registerEventListener(MLMediaStore::onVlcMlEvent, this)
@@ -46,6 +55,8 @@ MLMediaStore::MLMediaStore(MediaLib *ml, QObject *parent)
 
 void MLMediaStore::insert(const QString &mrl)
 {
+    if (!m_ml)
+        return;
     struct Ctx
     {
         MLMedia media;
@@ -109,10 +120,11 @@ void MLMediaStore::onVlcMlEvent(void *data, const vlc_ml_event_t *event)
             break;
 
         MLMedia mlMedia (media);
-        QMetaObject::invokeMethod(self, [self, mrl, mlMedia]()
+        QMetaObject::invokeMethod(self, [self, mrl, mlMedia, alive = self->m_eventAlive]()
         {
-            self->setMedia(mrl, mlMedia);
-        });
+            if (*alive)
+                self->setMedia(mrl, mlMedia);
+        }, Qt::QueuedConnection);
 
         break;
     }
@@ -120,10 +132,11 @@ void MLMediaStore::onVlcMlEvent(void *data, const vlc_ml_event_t *event)
     case VLC_ML_EVENT_MEDIA_UPDATED:
     {
         const MLItemId id(event->modification.i_entity_id, VLC_ML_PARENT_UNKNOWN);
-        QMetaObject::invokeMethod(self, [self, id] () mutable
+        QMetaObject::invokeMethod(self, [self, id, alive = self->m_eventAlive] () mutable
         {
-            self->update(id);
-        });
+            if (*alive)
+                self->update(id);
+        }, Qt::QueuedConnection);
 
         break;
     }
@@ -131,10 +144,11 @@ void MLMediaStore::onVlcMlEvent(void *data, const vlc_ml_event_t *event)
     case VLC_ML_EVENT_MEDIA_DELETED:
     {
         const MLItemId id{ event->deletion.i_entity_id, VLC_ML_PARENT_UNKNOWN };
-        QMetaObject::invokeMethod(self, [self, id]()
+        QMetaObject::invokeMethod(self, [self, id, alive = self->m_eventAlive]()
         {
-            self->remove(id);
-        });
+            if (*alive)
+                self->remove(id);
+        }, Qt::QueuedConnection);
 
         break;
     }
@@ -149,6 +163,8 @@ void MLMediaStore::update(const MLItemId &id)
     if (!m_mrls.contains(id))
         return;
 
+    if (!m_ml)
+        return;
     struct Ctx
     {
         MLMedia media;

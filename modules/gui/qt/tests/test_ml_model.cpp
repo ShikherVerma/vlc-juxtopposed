@@ -24,6 +24,11 @@
 #include "../medialibrary/mlmedia.hpp"
 #include "../medialibrary/mlplaylist.hpp"
 #include "../medialibrary/mlfolder.hpp"
+#include "../medialibrary/mlfoldersmodel.hpp"
+#include <QSignalSpy>
+#include <QThread>
+#include <thread>
+#include <atomic>
 #include "vlc_stub_modules.hpp"
 
 #include <memory>
@@ -120,6 +125,53 @@ protected:
     std::vector<MLItemId> m_items;
 };
 
+// These callback-only tests never instantiate MainCtx. Supply its type
+// identity for the ctx property without linking the entire GUI application.
+const QMetaObject MainCtx::staticMetaObject = QObject::staticMetaObject;
+
+// Expose only the native entry point: exercise the production callback and
+// real folders-model destructors rather than a parallel mock implementation.
+template<class Model>
+class TestFoldersModelImpl : public Model
+{
+public:
+    using MLFoldersBaseModel::onMlEvent;
+
+    void eventAtUnregister(std::function<void()> callback)
+    {
+        this->m_ml_event_handle = MLFoldersBaseModel::EventCallbackPtr(
+            reinterpret_cast<vlc_ml_event_callback_t*>(quintptr(1)),
+            [callback](vlc_ml_event_callback_t*) { callback(); });
+    }
+};
+
+using TestFoldersModel = TestFoldersModelImpl<MLFoldersModel>;
+using TestBannedFoldersModel = TestFoldersModelImpl<MLBannedFoldersModel>;
+
+static vlc_ml_event_t folderEvent(int type, const char* url)
+{
+    vlc_ml_event_t event{};
+    event.i_type = type;
+    switch (type)
+    {
+    case VLC_ML_EVENT_ENTRY_POINT_ADDED:
+        event.entry_point_added.psz_entry_point = url;
+        break;
+    case VLC_ML_EVENT_ENTRY_POINT_REMOVED:
+        event.entry_point_removed.psz_entry_point = url;
+        break;
+    case VLC_ML_EVENT_ENTRY_POINT_BANNED:
+        event.entry_point_banned.psz_entry_point = url;
+        break;
+    case VLC_ML_EVENT_ENTRY_POINT_UNBANNED:
+        event.entry_point_unbanned.psz_entry_point = url;
+        break;
+    default:
+        Q_UNREACHABLE();
+    }
+    return event;
+}
+
 class TestVLCMLModel : public QObject
 {
     Q_OBJECT
@@ -147,6 +199,104 @@ private slots:
         m_medialib.reset();
     }
 
+    void testFolderEventQueuedWithOwnedPayload_data()
+    {
+        QTest::addColumn<int>("type");
+        QTest::addColumn<int>("operation");
+        QTest::newRow("add") << int(VLC_ML_EVENT_ENTRY_POINT_ADDED) << int(MLFoldersBaseModel::Add);
+        QTest::newRow("remove") << int(VLC_ML_EVENT_ENTRY_POINT_REMOVED) << int(MLFoldersBaseModel::Remove);
+        QTest::newRow("ban") << int(VLC_ML_EVENT_ENTRY_POINT_BANNED) << int(MLFoldersBaseModel::Ban);
+        QTest::newRow("unban") << int(VLC_ML_EVENT_ENTRY_POINT_UNBANNED) << int(MLFoldersBaseModel::Unban);
+    }
+
+    void testFolderEventQueuedWithOwnedPayload()
+    {
+        QFETCH(int, type);
+        QFETCH(int, operation);
+        TestFoldersModel folders;
+        TestBannedFoldersModel bannedFolders;
+        MLFoldersBaseModel& model = operation == MLFoldersBaseModel::Add || operation == MLFoldersBaseModel::Remove
+            ? static_cast<MLFoldersBaseModel&>(folders) : static_cast<MLFoldersBaseModel&>(bannedFolders);
+        QSignalSpy failed(&model, &MLFoldersBaseModel::operationFailed);
+        std::atomic_bool onGuiThread{false};
+        connect(&model, &MLFoldersBaseModel::operationFailed, &model, [&] {
+            onGuiThread = QThread::currentThread() == model.thread();
+        }, Qt::DirectConnection);
+        std::thread native([&] {
+            QByteArray url("file:///expired-native-event/");
+            const auto event = folderEvent(type, url.constData());
+            TestFoldersModel::onMlEvent(&model, &event);
+            url.fill('x'); // the queued handler must not keep native pointers
+        });
+        native.join();
+        QCOMPARE(failed.count(), 0);
+        QCoreApplication::sendPostedEvents(&model, QEvent::MetaCall);
+        QCOMPARE(failed.count(), 1);
+        QVERIFY(onGuiThread);
+        QCOMPARE(failed.at(0).at(0).toInt(), operation);
+        QCOMPARE(failed.at(0).at(1).toUrl(), QUrl("file:///expired-native-event/"));
+    }
+
+    void testFolderQueuedEventRejectedAfterRebind()
+    {
+        TestFoldersModel model;
+        QSignalSpy failed(&model, &MLFoldersBaseModel::operationFailed);
+        vlc_ml_event_t event{};
+        event.i_type = VLC_ML_EVENT_ENTRY_POINT_ADDED;
+        event.entry_point_added.b_success = false;
+        event.entry_point_added.psz_entry_point = "file:///old-binding/";
+        TestFoldersModel::onMlEvent(&model, &event);
+        model.setCtx(nullptr);
+        QCoreApplication::sendPostedEvents(&model, QEvent::MetaCall);
+        QCOMPARE(failed.count(), 0);
+    }
+
+    void testFolderEventDuringDestruction_data()
+    {
+        QTest::addColumn<bool>("banned");
+        QTest::newRow("folders") << false;
+        QTest::newRow("banned-folders") << true;
+    }
+
+    void testFolderEventDuringDestruction()
+    {
+        QFETCH(bool, banned);
+        if (banned)
+            folderEventDuringDestruction<TestBannedFoldersModel>(VLC_ML_EVENT_ENTRY_POINT_BANNED);
+        else
+            folderEventDuringDestruction<TestFoldersModel>(VLC_ML_EVENT_ENTRY_POINT_ADDED);
+    }
+
+private:
+    template<class Model>
+    void folderEventDuringDestruction(int type)
+    {
+        auto model = std::make_unique<Model>();
+        auto raw = model.get();
+        std::atomic_int signalCount{0};
+        connect(raw, &MLFoldersBaseModel::operationFailed, this, [&] { ++signalCount; }, Qt::DirectConnection);
+        bool unregistered = false;
+        model->eventAtUnregister([&] {
+            // Native unregister is a dispatch barrier: an already-entered ML
+            // callback may finish while unregister waits. Before the fix this
+            // happened only in the base member destructor, after the derived
+            // vtable was gone, and failed(event) called a pure virtual method.
+            std::thread native([&] {
+                const auto event = folderEvent(type, "file:///late-event/");
+                TestFoldersModel::onMlEvent(raw, &event);
+            });
+            native.join();
+            // Also exercise a nested event-loop delivery before QObject's
+            // own destructor has had a chance to remove queued MetaCalls.
+            QCoreApplication::sendPostedEvents(raw, QEvent::MetaCall);
+            unregistered = true;
+        });
+        model.reset();
+        QVERIFY(unregistered);
+        QCOMPARE(signalCount.load(), 0);
+    }
+
+private slots:
     void testMediaLibraryDeletedBeforeQueuedLoad()
     {
         // A cache loader can be retained by an already-posted model event

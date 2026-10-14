@@ -19,6 +19,7 @@
 #include <QQuickItem>
 
 #include <memory>
+#include <atomic>
 
 #include "qt.hpp"
 #include "mlthreadpool.hpp"
@@ -193,6 +194,7 @@ private:
     /* Medialibrary */
     vlc_medialibrary_t* m_ml;
     std::unique_ptr<vlc_ml_event_callback_t, std::function<void(vlc_ml_event_callback_t*)>> m_event_cb;
+    std::shared_ptr<std::atomic_bool> m_eventAlive = std::make_shared<std::atomic_bool>(true);
     ThreadRunner* m_runner = nullptr;
 
     QMap<QVector<MLItemId>, QVector<QJSValue>> m_inputItemQuery;

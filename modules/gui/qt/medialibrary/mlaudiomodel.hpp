@@ -47,7 +47,7 @@ public:
 public:
     explicit MLAudioModel(QObject *parent = nullptr);
 
-    virtual ~MLAudioModel() = default;
+    ~MLAudioModel() override { stopEventListener(); }
 
 protected:
     QHash<int, QByteArray> roleNames() const override;
