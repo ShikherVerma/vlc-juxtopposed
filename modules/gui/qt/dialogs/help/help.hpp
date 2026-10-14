@@ -37,6 +37,7 @@
 #include "ui_update.h"
 
 class QEvent;
+class SystemPalette;
 
 class HelpDialog : public QVLCFrame
 {
@@ -62,6 +63,8 @@ protected:
 private:
     bool b_advanced;
     Ui::aboutWidget ui;
+    SystemPalette *m_palette = nullptr;
+    void applyTheme();
 
 private slots:
     void showLicense();

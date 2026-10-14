@@ -47,6 +47,26 @@ public:
         return new AboutModel;
     }
 
+    // USER: fill in the public URL of this fork's complete corresponding source
+    // (including packaging scripts) before distributing a release.
+    static constexpr const char *SOURCE_URL = "";
+
+    static QString getCredits()
+    {
+        QString text = tr("<p>Design: Juxtopposed "
+                          "(<a href=\"https://www.youtube.com/watch?v=ERFeOgqk324\">YouTube video</a> · "
+                          "<a href=\"https://www.figma.com/community/file/1691465999134370980/vlc-redesign\">Figma file</a>)</p>"
+                          "<p>Built on VLC media player by VideoLAN and contributors</p>"
+                          "<p>GNU General Public License, version 2 or later (GPLv2+).</p>");
+        const QString source = QString::fromUtf8(SOURCE_URL);
+        if (source.isEmpty())
+            text += tr("<p>Source code: source available on request from the distributor. "
+                       "Release maintainer: fill in SOURCE_URL in dialogs/help/aboutmodel.hpp.</p>");
+        else
+            text += tr("<p>Source code: <a href=\"%1\">%1</a></p>").arg(source.toHtmlEscaped());
+        return text;
+    }
+
     static QString getLicense()
     {
         return QString::fromUtf8(psz_license);

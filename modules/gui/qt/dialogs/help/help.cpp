@@ -27,10 +27,13 @@
 
 #include "qt.hpp"
 #include "help.hpp"
+#include "aboutmodel.hpp"
 #include "util/qt_dirs.hpp"
 #include "maininterface/mainctx.hpp"
+#include "style/systempalette.hpp"
+#include <algorithm>
+#include <cmath>
 
-#include <vlc_about.h>
 #include <vlc_intf_strings.h>
 
 #ifdef UPDATE_CHECK
@@ -87,16 +90,16 @@ AboutDialog::AboutDialog( qt_intf_t *_p_intf)
 {
     /* Build UI */
     ui.setupUi( this );
-    setWindowTitle( qtr( "About" ) );
+    setWindowTitle( qtr( "About VLC (Juxtopposed)" ) );
     setWindowRole( "vlc-about" );
     setWindowModality( Qt::WindowModal );
 
     ui.version->setText(qfu( " " VERSION_MESSAGE ) );
-    ui.title->setText("<html><head/><body><p><span style=\" font-size:26pt; color:#353535;\"> " + qtr( "VLC media player" ) + " </span></p></body></html>");
+    ui.title->setText(qtr("VLC (Juxtopposed)"));
+    ui.title->setTextFormat(Qt::PlainText);
 
-    ui.MainBlabla->setText("<html><head/><body>" +
-    qtr( "<p>VLC media player is a free and open source media player, encoder, and streamer made by the volunteers of the <a href=\"https://www.videolan.org/\"><span style=\" text-decoration: underline; color:#0057ae;\">VideoLAN</span></a> community.</p><p>VLC uses its internal codecs, works on essentially every popular platform, and can read almost all files, CDs, DVDs, network streams, capture cards and other media formats!</p><p><a href=\"https://www.videolan.org/contribute/\"><span style=\" text-decoration: underline; color:#0057ae;\">Help and join us!</span></a>" ) +
-    "</p></body> </html>");
+    ui.MainBlabla->setText(AboutModel::getCredits());
+    ui.MainBlabla->setOpenExternalLinks(true);
 
     const QDate today = QDate::currentDate();
     if( today.month() == 4 && today.day() == 1
@@ -106,24 +109,89 @@ AboutDialog::AboutDialog( qt_intf_t *_p_intf)
     ui.update->hide();
 
     /* GPL License */
-    ui.licensePage->setText( qfu( psz_license ) );
+    ui.licensePage->setText( AboutModel::getLicense() );
 
     /* People who helped */
-    ui.creditPage->setText( qfu( psz_thanks ) );
+    ui.creditPage->setText( AboutModel::getThanks() );
 
     /* People who wrote the software */
-    ui.authorsPage->setText( qfu( psz_authors ) );
+    ui.authorsPage->setText( AboutModel::getAuthors() );
 
-    ui.licenseButton->setText( "<html><head/><body><p><span style=\" text-decoration: underline; color:#0057ae;\">"+qtr( "License" )+"</span></p></body></html>");
+    ui.licenseButton->setText(qtr("License"));
+    ui.licenseButton->setTextFormat(Qt::PlainText);
     ui.licenseButton->installEventFilter( this );
 
-    ui.authorsButton->setText( "<html><head/><body><p><span style=\" text-decoration: underline; color:#0057ae;\">"+qtr( "Authors" )+"</span></p></body></html>");
+    ui.authorsButton->setText(qtr("Authors"));
+    ui.authorsButton->setTextFormat(Qt::PlainText);
     ui.authorsButton->installEventFilter( this );
 
-    ui.creditsButton->setText( "<html><head/><body><p><span style=\" text-decoration: underline; color:#0057ae;\">"+qtr( "Credits" )+"</span></p></body></html>");
+    ui.creditsButton->setText(qtr("Credits"));
+    ui.creditsButton->setTextFormat(Qt::PlainText);
     ui.creditsButton->installEventFilter( this );
 
     ui.version->installEventFilter( this );
+
+    // Same provider and authored QWidget tokens as the Settings shell.
+    m_palette = new SystemPalette(this);
+    m_palette->setCtx(p_intf->p_mi);
+    m_palette->setSource(p_intf->p_mi ? p_intf->p_mi->getColorScheme()->currentScheme() : ColorSchemeModel::Night);
+    connect(m_palette, &SystemPalette::paletteChanged, this, &AboutDialog::applyTheme);
+    if (p_intf->p_mi)
+        connect(p_intf->p_mi->getColorScheme(), &ColorSchemeModel::currentChanged, this, [this] {
+            m_palette->setSource(p_intf->p_mi->getColorScheme()->currentScheme());
+        });
+    applyTheme();
+}
+
+void AboutDialog::applyTheme()
+{
+    const bool light = !m_palette->property("isDark").toBool();
+    const QString canvas = light ? "#e7e7e7" : "#0e0e0e";
+    const QString panel = light ? "#d5d5d5" : "#181818";
+    const QString fg = light ? "#2e2e2e" : "#8f8f8f";
+    const QString primary = light ? "#161616" : "#c6c6c6";
+    QColor link = m_palette->get_accentMain();
+    // Preserve the selected accent hue, adjusting luminance only when needed
+    // for AA small-text contrast on BOTH main and footer surfaces.
+    const auto luminance = [](const QColor &color) {
+        const auto linear = [](double c) { return c <= .04045 ? c / 12.92 : std::pow((c + .055) / 1.055, 2.4); };
+        return .2126 * linear(color.redF()) + .7152 * linear(color.greenF()) + .0722 * linear(color.blueF());
+    };
+    const auto contrast = [&](const QColor &bg) {
+        const double a = luminance(link), b = luminance(bg);
+        return (std::max(a, b) + .05) / (std::min(a, b) + .05);
+    };
+    for (int i = 0; i < 100 && (contrast(QColor(canvas)) < 4.5 || contrast(QColor(panel)) < 4.5); ++i)
+    {
+        link = light ? link.darker(110) : link.lighter(110);
+        // Measure the same 8-bit RGB that name() emits into rich text / CSS.
+        link = QColor(link.name());
+    }
+    if (contrast(QColor(canvas)) < 4.5 || contrast(QColor(panel)) < 4.5)
+        link = QColor(primary); // e.g. a custom pure-black accent in Dark
+
+    setStyleSheet(QStringLiteral(
+        "QWidget { color:%1; font-family:Inter; font-size:14px; background:%2; }"
+        "QFrame#footer { background:%3; }"
+        "QLabel { background:transparent; }"
+        "QLabel#title { color:%4; font-size:26pt; }"
+        "QLabel#authorsButton, QLabel#licenseButton, QLabel#creditsButton { color:%5; text-decoration:underline; }"
+        "QTextEdit { background:%2; color:%1; border:0; selection-background-color:%5; selection-color:%2; }"
+        "QScrollBar:vertical { background:%2; width:6px; margin:0; }"
+        "QScrollBar::handle:vertical { background:%1; min-height:32px; border-radius:3px; }"
+        "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height:0; border:0; background:transparent; }"
+        "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background:transparent; }"
+    ).arg(fg, canvas, panel, primary, link.name()));
+    QString credits = AboutModel::getCredits();
+    credits.replace(QStringLiteral("<a "), QStringLiteral("<a style=\"color:%1;\" ").arg(link.name()));
+    ui.MainBlabla->setText(credits);
+    for (auto *page : {ui.licensePage, ui.authorsPage, ui.creditPage})
+    {
+        QPalette palette = page->palette();
+        palette.setColor(QPalette::Link, link);
+        palette.setColor(QPalette::LinkVisited, link);
+        page->setPalette(palette);
+    }
 }
 
 void AboutDialog::showLicense()
