@@ -193,6 +193,7 @@ private:
 
     QMap<quint64, QColor> m_colorMap;
     QColor m_playAccent;
+    QColor m_switchInk;
 
 };
 

@@ -354,21 +354,33 @@ void SystemPalette::updateAccent(bool dark)
     accentDim = family("#ab6314", "#965916");
     bgAccentDark = family("#1a1611", "#c6ab89");
     bgAccentBright = family("#371f06", "#d8ba9a");
+    // WCAG relative luminance of the rounded production sRGB colors.
+    const auto luminance = [](const QColor& color) {
+        const auto linear = [](qreal channel) {
+            return channel <= 0.04045 ? channel / 12.92
+                : std::pow((channel + 0.055) / 1.055, 2.4);
+        };
+        return 0.2126 * linear(color.redF())
+            + 0.7152 * linear(color.greenF())
+            + 0.0722 * linear(color.blueF());
+    };
+    const auto contrast = [&](const QColor& ink) {
+        const qreal a = luminance(ink), b = luminance(bgAccentBright);
+        return (std::max(a, b) + 0.05) / (std::min(a, b) + 0.05);
+    };
+    // Preserve authored ON ink wherever it passes (including default orange).
+    // Both QWidget and QML switches consume Switch/Fg/Link from this palette.
+    m_switchInk = dark ? accentMain : QColor("#3b3b3b");
+    if (contrast(m_switchInk) < 4.5)
+        m_switchInk = contrast(QColor(Qt::black)) > contrast(QColor(Qt::white))
+            ? QColor(Qt::black) : QColor(Qt::white);
+
     accentText = accentMain;
     if (!dark)
     {
         // Text, unlike fills/indicators, must remain readable for every accent.
         // Include Window highlight and the selected switch well, not just the
         // #d5d5d5 selected row. Measure rounded sRGB, with an AA margin.
-        const auto luminance = [](const QColor& color) {
-            const auto linear = [](qreal channel) {
-                return channel <= 0.04045 ? channel / 12.92
-                    : std::pow((channel + 0.055) / 1.055, 2.4);
-            };
-            return 0.2126 * linear(color.redF())
-                + 0.7152 * linear(color.greenF())
-                + 0.0722 * linear(color.blueF());
-        };
         const qreal surface = std::min(luminance(QColor("#ababaa")),
                                        luminance(bgAccentBright));
         accentText = accentDim;
@@ -754,7 +766,7 @@ void SystemPalette::makeLightPalette()
     //Switch
     {
         C::ColorSet CS = C::Switch;
-        setColor(CS, C::Fg, C::Link, C::Normal, QColor("#3b3b3b"));
+        setColor(CS, C::Fg, C::Link, C::Normal, m_switchInk);
         setColor(CS, C::Bg, C::Primary, C::Normal, QColor("#b3b3b3")); // Light/BG/A4
         setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#404040")); // Enabled switch label: AA on Light surfaces
         setColor(CS, C::Decoration, C::Border, C::Normal, QColor("#acacac")); // Light/Divider/Dim
@@ -1023,7 +1035,7 @@ void SystemPalette::makeDarkPalette()
     //Switch
     {
         C::ColorSet CS = C::Switch;
-        setColor(CS, C::Fg, C::Link, C::Normal, accentMain);
+        setColor(CS, C::Fg, C::Link, C::Normal, m_switchInk);
         setColor(CS, C::Bg, C::Primary, C::Normal, QColor("#191919")); // Dark/BG/A4
         setColor(CS, C::Fg, C::Primary, C::Normal, QColor("#404040")); // Dark/FG/A4
         setColor(CS, C::Decoration, C::Border, C::Normal, QColor("#222222")); // Dark/Divider/Dim

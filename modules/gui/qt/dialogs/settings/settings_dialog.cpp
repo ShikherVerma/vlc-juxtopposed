@@ -61,7 +61,7 @@ protected:
         painter.drawRoundedRect(rect(), 4, 4);
         painter.setBrush(isChecked() ? property("accentDim").value<QColor>() : QColor(light ? "#b3b3b3" : "#404040"));
         painter.drawRoundedRect(QRectF(isChecked() ? 39 : 3, 3, 26, 26), 3, 3);
-        painter.setPen(isChecked() ? (light ? QColor("#3b3b3b") : property("accentMain").value<QColor>())
+        painter.setPen(isChecked() ? property("switchInk").value<QColor>()
                                    : (isEnabled() ? property("secondaryInk").value<QColor>() : QColor("#6b6b6b")));
         QFont font = this->font();
         font.setPixelSize(12);
@@ -1060,7 +1060,9 @@ void SettingsDialog::applyTheme()
         editor.widget->setProperty("light", light);
         editor.widget->setProperty("accentMain", m_palette->get_accentMain());
         editor.widget->setProperty("accentDim", m_palette->get_accentDim());
-        editor.widget->setProperty("accentWell", selectedAccentWell(m_palette->get_accentMain(), light));
+        editor.widget->setProperty("accentWell", m_palette->get_bgAccentBright());
+        editor.widget->setProperty("switchInk", m_palette->getColor(ColorContext::Switch, ColorContext::Fg,
+                                                                  ColorContext::Link, ColorContext::Normal));
         editor.widget->setProperty("secondaryInk", QColor(secondary));
         editor.widget->update();
     }
