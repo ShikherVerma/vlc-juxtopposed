@@ -21,6 +21,7 @@ FocusScope {
     readonly property var activeView: currentTab === 0 ? queue.view : currentTab === 1 ? bookmarkList : chapterList
     readonly property var bookmarkModel: bookmarkLoader.item
     readonly property bool bookmarksAvailable: bookmarkModel && bookmarkModel.available
+    signal bookmarkAddedWhileHidden()
     readonly property var model: queue.model
     readonly property var selectionModel: queue.selectionModel
     readonly property var isDropAcceptableFunc: queue.isDropAcceptableFunc
@@ -40,6 +41,15 @@ FocusScope {
             activeView.forceActiveFocus(Qt.TabFocusReason)
         else
             tabs.itemAt(currentTab).forceActiveFocus(Qt.TabFocusReason)
+    }
+
+    function addBookmark() {
+        if (!bookmarksAvailable || !Player.isStarted || !Player.time.valid() || !Player.seekable)
+            return false
+        bookmarkModel.add()
+        if (!visible)
+            bookmarkAddedWhileHidden()
+        return true
     }
 
     function clock(ms, milliseconds = false) {
@@ -69,8 +79,7 @@ FocusScope {
         target: MainCtx.intfMainWindow
         enabled: MainCtx.playerView
         Keys.onPressed: event => {
-            if (event.key === Qt.Key_B && event.modifiers === Qt.ControlModifier && root.bookmarksAvailable && Player.isStarted && Player.seekable) {
-                root.bookmarkModel.add()
+            if (event.key === Qt.Key_B && event.modifiers === Qt.ControlModifier && root.addBookmark()) {
                 event.accepted = true
             } else if (event.key === Qt.Key_F2 && root.visible && root.currentTab === 1 && bookmarkList.count > 0) {
                 bookmarkList.currentItem?.beginRename()
@@ -211,7 +220,7 @@ FocusScope {
                          ? qsTr("Add bookmark at current time (%1)").arg(KeyHelper.nativeShortcutText("Ctrl+B"))
                          : qsTr("Add bookmark at current time (Ctrl+B)")
             enabled: root.bookmarksAvailable && Player.isStarted && Player.time.valid() && Player.seekable
-            onClicked: root.bookmarkModel.add()
+            onClicked: root.addBookmark()
             Navigation.parentItem: root
             Navigation.downItem: bookmarkList
             AccessibleCompat.id: "playerSidebarAddBookmark"

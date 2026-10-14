@@ -414,7 +414,7 @@ RecentMenu::RecentMenu(MLRecentMediaModel* model, MediaLib* ml,  QWidget* parent
 BookmarkMenu::BookmarkMenu(MediaLib * mediaLib, vlc_player_t * player, QWidget * parent)
     : QMenu(parent)
 {
-    addAction(qtr("&Manage"), THEDP, &DialogsProvider::bookmarksDialog )->setShortcut(QKeySequence("Ctrl+B"));
+    addAction(qtr("&Manage"), THEDP, &DialogsProvider::bookmarksDialog );
 
     addSeparator();
 

@@ -1139,6 +1139,14 @@ FocusScope {
         }
     }
 
+    Connections {
+        target: playlistpopup.item
+        function onBookmarkAddedWhileHidden() {
+            playlistpopup.item.currentTab = 1
+            if (!playlistVisibility.isPlaylistVisible)
+                playlistVisibility.togglePlaylistVisibility()
+        }
+    }
 
     Timer {
         // NavigationBox's visibility depends on this timer
