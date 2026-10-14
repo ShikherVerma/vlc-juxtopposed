@@ -255,6 +255,7 @@ libqt_plugin_la_SOURCES = \
 	medialibrary/mlplaylist.hpp \
 	medialibrary/mlplaylistlistmodel.cpp \
 	medialibrary/mlplaylistlistmodel.hpp \
+	medialibrary/playlistart.hpp \
 	medialibrary/mlplaylistmedia.cpp \
 	medialibrary/mlplaylistmedia.hpp \
 	medialibrary/mlplaylistmodel.cpp \
@@ -1362,6 +1363,11 @@ libqml_module_medialibrary_a_QML = \
 	medialibrary/qml/MusicAllArtists.qml \
 	medialibrary/qml/MusicArtistsDisplay.qml \
 	medialibrary/qml/MusicDisplay.qml \
+	medialibrary/qml/MusicLibraryPage.qml \
+	medialibrary/qml/LibraryCollectionPage.qml \
+	medialibrary/qml/LibraryInputDialog.qml \
+	medialibrary/qml/LibraryPlaylistsDisplay.qml \
+	medialibrary/qml/LibraryRecentPage.qml \
 	medialibrary/qml/MusicGenres.qml \
 	medialibrary/qml/MusicGenresDisplay.qml \
 	medialibrary/qml/MusicPlaylistsDisplay.qml \
@@ -1415,6 +1421,7 @@ libqml_module_network_a_QML = \
 	network/qml/AddressbarButton.qml \
 	network/qml/BrowseDeviceView.qml \
 	network/qml/BrowseDisplay.qml \
+	network/qml/LibraryNetworkPage.qml \
 	network/qml/BrowseHomeDisplay.qml \
 	network/qml/BrowseTreeDisplay.qml \
 	network/qml/BrowseTreeHeader.qml \
@@ -1635,6 +1642,7 @@ libqml_module_widgets_a_QML = \
 	widgets/qml/StackViewExt.qml \
 	widgets/qml/PageLoader.qml \
 	widgets/qml/PageExt.qml \
+	widgets/qml/LibraryPageHeader.qml \
 	widgets/qml/ButtonExt.qml \
 	widgets/qml/TableColumns.qml \
 	widgets/qml/TextFieldExt.qml \
@@ -2042,6 +2050,8 @@ QT_QTEST_COMMON_ldflags = $(AM_LDFLAGS) $(QT_LDFLAGS) $(QT_QTEST_LDFLAGS)
 test_ml_model_SOURCES = \
 	tests/vlc_stub_modules.cpp tests/vlc_stub_modules.hpp \
 	tests/test_ml_model.cpp \
+	medialibrary/mlplaylist.cpp medialibrary/mlplaylist.hpp \
+	medialibrary/mlfolder.cpp medialibrary/mlfolder.hpp \
 	util/base_model.hpp util/base_model_p.hpp  util/base_model.cpp \
 	util/listcache.hpp \
 	util/vlctick.cpp util/vlctick.hpp \
@@ -2134,6 +2144,17 @@ test_vlc_dialog_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_vlc_dialog_model
 TESTS += test_vlc_dialog_model
 
+
+test_qt_playlist_art_SOURCES = tests/test_playlist_art.cpp medialibrary/playlistart.hpp
+nodist_test_qt_playlist_art_SOURCES = tests/test_playlist_art.moc
+BUILT_SOURCES += tests/test_playlist_art.moc
+CLEANFILES += tests/test_playlist_art.moc
+test_qt_playlist_art_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_qt_playlist_art_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_qt_playlist_art_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_qt_playlist_art_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_qt_playlist_art
+TESTS += test_qt_playlist_art
 
 test_qt_home_ranking_SOURCES = tests/test_home_ranking.cpp medialibrary/mlhomeranking.hpp
 nodist_test_qt_home_ranking_SOURCES = tests/test_home_ranking.moc

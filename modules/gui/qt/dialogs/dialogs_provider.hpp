@@ -139,6 +139,7 @@ public:
                                 EXT_FILTER_VIDEO | EXT_FILTER_AUDIO |
                                 EXT_FILTER_PLAYLIST,
                                 const QUrl& path = QUrl() );
+    Q_INVOKABLE QVariantList pickPlaylistFiles(bool artwork = false);
     bool isDying() { return b_isDying; }
     static QString getDirectoryDialog( qt_intf_t *p_intf);
 

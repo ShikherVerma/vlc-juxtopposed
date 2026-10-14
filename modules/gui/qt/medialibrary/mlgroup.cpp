@@ -52,7 +52,7 @@ QString MLGroup::getTitle() const
 
 VLCDuration MLGroup::getDuration() const
 {
-    return VLCDuration::fromMS(m_duration);
+    return m_duration < 0 ? VLCDuration{} : VLCDuration::fromMS(m_duration);
 }
 
 QDateTime MLGroup::getDate() const

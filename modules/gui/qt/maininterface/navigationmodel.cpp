@@ -286,16 +286,16 @@ public:
         // Keep the original pages and their history paths: these are navigation
         // aliases, not new network capabilities or replacement page models.
         ModelEntry networkEntry{ qtr("Network"), "network", VLCIcons::topbar_network, QStringLiteral(":/icons/ic_fluent_wifi_1.svg") };
-        networkEntry.children.emplace_back(qtr("Browse"), "browse", QString{}, QString{}, QStringList{"network"});
+        networkEntry.children.emplace_back(qtr("Browse"), "browse", QString{}, QString{}, QStringList{"network", "lan"});
         networkEntry.children.emplace_back(qtr("Network streams"), "streams", QString{}, QString{}, QStringList{"discover", "url"});
         networkEntry.children.emplace_back(qtr("Services (Podcasts / Radio)"), "services", QString{}, QString{}, QStringList{"discover", "services"});
         m_model.children.push_back(std::move(networkEntry));
 
         if (m_hasMedialib)
         {
-            ModelEntry playlistsEntry{ qtr("Playlists"), "playlists", VLCIcons::media_playlist, QStringLiteral(":/sd/playlist.svg"), QStringList{"video", "playlists"} };
-            playlistsEntry.children.emplace_back(qtr("Video playlists"), "video", QString{}, QString{}, QStringList{"video", "playlists"});
-            playlistsEntry.children.emplace_back(qtr("Music playlists"), "music", QString{}, QString{}, QStringList{"music", "playlists"});
+            ModelEntry playlistsEntry{ qtr("Playlists"), "playlists", VLCIcons::media_playlist, QStringLiteral(":/sd/playlist.svg") };
+            playlistsEntry.children.emplace_back(qtr("All playlists"), "all", QString{}, QString{}, QStringList{"playlists", "all"});
+            playlistsEntry.children.emplace_back(qtr("Create playlist"), "create", QString{}, QString{}, QStringList{"playlist-create"});
             m_model.children.push_back(std::move(playlistsEntry));
             m_model.children.emplace_back(qtr("Recent"), "recent", VLCIcons::history, QStringLiteral(":/menu/redesign/recent.svg"));
             m_model.children.emplace_back(qtr("Add item"), "library-add", VLCIcons::add, QStringLiteral(":/menu/add.svg"));

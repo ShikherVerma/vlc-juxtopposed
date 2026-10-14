@@ -24,6 +24,7 @@ import QtQml.Models
 
 import VLC.MainInterface
 import VLC.MediaLibrary
+import VLC.Dialogs
 
 import VLC.Widgets as Widgets
 import VLC.Util
@@ -161,15 +162,26 @@ Widgets.PageExt {
         }
 
 
-        PlaylistMediaContextMenu {
+        Widgets.LibraryPageHeader.LibraryMenu {
             id: contextMenu
+            property var selected: []
+            readonly property var ids: selected.map(index => root.model.getDataAt(index).id)
 
-            model: root.model
-            ctx: MainCtx
-
-           function tableView_popup(index, selectedIndexes, globalPos) {
-               popup(selectedIndexes, globalPos)
-           }
+            function popup(indexes, globalPos) {
+                selected = Array.from(indexes)
+                const point = contextMenu.parent.mapFromGlobal(globalPos.x, globalPos.y)
+                x = point.x
+                y = point.y
+                open()
+            }
+            function tableView_popup(index, selectedIndexes, globalPos) {
+                popup(selectedIndexes, globalPos)
+            }
+            Widgets.LibraryPageHeader.LibraryMenuItem { text: qsTr("Play"); iconText: VLCIcons.play; accentIcon: true; onTriggered: MediaLib.addAndPlay(contextMenu.ids) }
+            Widgets.LibraryPageHeader.LibraryMenuItem { text: qsTr("Add to Queue"); iconText: VLCIcons.queue; accentIcon: true; onTriggered: MediaLib.addToPlaylist(contextMenu.ids) }
+            Widgets.LibraryPageHeader.LibraryMenuItem { text: qsTr("Add to playlist"); iconText: VLCIcons.media_playlist; accentIcon: true; onTriggered: DialogsProvider.playlistsDialog(contextMenu.ids) }
+            Widgets.LibraryPageHeader.LibraryMenuItem { text: qsTr("Play as audio"); iconText: VLCIcons.topbar_music; accentIcon: true; onTriggered: MediaLib.addAndPlay(contextMenu.ids, [":no-video"]) }
+            Widgets.LibraryPageHeader.LibraryMenuItem { text: qsTr("Remove Selected"); iconText: VLCIcons.remove; onTriggered: root.model.remove(contextMenu.selected) }
         }
 
         PlaylistMedia

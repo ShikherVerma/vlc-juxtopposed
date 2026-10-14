@@ -214,7 +214,7 @@ T.Pane {
                         if (depth > 0)
                             return "libraryNav-" + uri.join("-")
                         const ids = { "home": "homeNavBar", "video": "videoNavBar", "music": "musicNavBar",
-                                      "network": "browseNavBar", "recent": "recentNavBar", "library-add": "addItemNavBar" }
+                                      "network": "browseNavBar", "playlists": "playlistsNavBar", "recent": "recentNavBar", "library-add": "addItemNavBar" }
                         return uri[0] === "video" && uri[1] === "playlists" ? "playlistsNavBar" : (ids[uri[0]] || "")
                     }
                     Accessible.description: uri[0] === "library-add"

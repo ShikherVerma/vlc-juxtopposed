@@ -158,6 +158,7 @@ FocusScope {
             url: "qrc:///qt/qml/VLC/MediaLibrary/VideoDisplay.qml"
         }, {
             name: "music",
+            forwardProperties: true,
             url: "qrc:///qt/qml/VLC/MediaLibrary/MusicDisplay.qml"
         }, {
             name: "network",
@@ -166,34 +167,18 @@ FocusScope {
             name: "discover",
             url: "qrc:///qt/qml/VLC/Network/DiscoverDisplay.qml"
         }, {
+            name: "playlists",
+            forwardProperties: true,
+            url: "qrc:///qt/qml/VLC/MediaLibrary/LibraryPlaylistsDisplay.qml"
+        }, {
             name: "recent",
             component: recentComponent
         }
     ]
 
-    // Reuse the existing media view and genuine history model; no Home content
-    // or new Recent-page presentation is authored by this navigation lane.
-    Component {
-        id: recentComponent
-        Widgets.PageExt {
-            id: recentPage
-            title: qsTr("Recent")
-            MediaView {
-                anchors.fill: parent
-                focus: true
-                model: MLRecentMediaModel {
-                    ml: MediaLib
-                    sortCriteria: recentPage.sort.criteria
-                    sortOrder: recentPage.sort.order
-                    searchPattern: recentPage.search.pattern
-                }
-                displayMarginBeginning: recentPage.displayMarginBeginning
-                displayMarginEnd: recentPage.displayMarginEnd
-                enableBeginningFade: recentPage.enableBeginningFade
-                enableEndFade: recentPage.enableEndFade
-            }
-        }
-    }
+    LibraryInputDialog { id: newPlaylistDialog }
+
+    Component { id: recentComponent; LibraryRecentPage {} }
 
     PinchHandler {
         id: interfaceScalePinchHandler
@@ -646,6 +631,10 @@ FocusScope {
 
             onItemClicked: (modelUri, item) => {
                 Qt.callLater(() => console.debug("Library navigation:", History.viewPath.join("/"), "page:", stackView.pageName))
+                if (modelUri[0] === "playlist-create") {
+                    newPlaylistDialog.open()
+                    return
+                }
                 if (modelUri[0] === "library-add") {
                     // The retained preferences Media Library category owns the
                     // real folder picker/indexing flow until lane 3.4.

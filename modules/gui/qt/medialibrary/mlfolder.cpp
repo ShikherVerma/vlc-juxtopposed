@@ -30,7 +30,7 @@ MLFolder::MLFolder(const vlc_ml_folder_t * data)
     , m_banned(data->b_banned)
     , m_title(data->psz_name)
     , m_mrl(data->psz_mrl)
-    , m_duration(0) // FIXME: We should have a duration field in vlc_ml_folder_t.
+    , m_duration(-1) // vlc_ml_folder_t does not expose a duration.
     , m_count(data->i_nb_media)
     , m_audioCount(data->i_nb_audio)
     , m_videoCount(data->i_nb_video)
@@ -60,7 +60,7 @@ QString MLFolder::getMRL() const
 
 VLCDuration MLFolder::getDuration() const
 {
-    return VLCDuration::fromMS(m_duration);
+    return m_duration < 0 ? VLCDuration{} : VLCDuration::fromMS(m_duration);
 }
 
 unsigned int MLFolder::getCount() const

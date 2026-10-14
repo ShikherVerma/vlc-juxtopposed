@@ -21,6 +21,9 @@
 #endif
 
 #include "../medialibrary/mlbasemodel.hpp"
+#include "../medialibrary/mlmedia.hpp"
+#include "../medialibrary/mlplaylist.hpp"
+#include "../medialibrary/mlfolder.hpp"
 #include "vlc_stub_modules.hpp"
 
 #include <memory>
@@ -227,6 +230,55 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(m_model->getCount(), 1000u, 100);
     }
 
+
+    void unknownMediaDuration_data()
+    {
+        QTest::addColumn<qint64>("milliseconds");
+        QTest::newRow("unknown") << qint64(-1);
+        QTest::newRow("negative") << qint64(-2000);
+        QTest::newRow("zero") << qint64(0);
+        QTest::newRow("known") << qint64(25000);
+    }
+
+    void unknownMediaDuration()
+    {
+        QFETCH(qint64, milliseconds);
+        vlc_ml_media_t raw{};
+        raw.i_duration = milliseconds;
+        // MLMedia requires a file list, even when empty.
+        vlc_ml_file_list_t files{};
+        raw.p_files = &files;
+        const MLMedia media(&raw);
+        QCOMPARE(media.duration().valid(), milliseconds >= 0);
+        if (milliseconds < 0)
+        {
+            QCOMPARE(media.duration().formatHMS(), QString("--:--"));
+            QCOMPARE(media.duration().formatShort(), QString("--:--"));
+            QCOMPARE(media.duration().formatLong(), QString("--:--"));
+        }
+        else
+            QCOMPARE(media.duration().toMilliseconds(), milliseconds);
+        // Signed player delays must not lose their valid negative values.
+        QVERIFY(VLCDuration::fromMS(-1).valid());
+    }
+
+    void unknownCollectionDuration()
+    {
+        vlc_ml_playlist_t raw{};
+        raw.i_duration = 25000;
+        raw.i_nb_duration_unknown = 1;
+        QVERIFY(!MLPlaylist(&raw).getDuration().valid());
+        raw.i_nb_duration_unknown = 0;
+        QCOMPARE(MLPlaylist(&raw).getDuration().toMilliseconds(), 25000);
+        raw.i_duration = -1;
+        QCOMPARE(MLPlaylist(&raw).getDuration().formatShort(), QString("--:--"));
+        raw.i_duration = 0;
+        QVERIFY(MLPlaylist(&raw).getDuration().valid());
+
+        // The folder API has no duration field: do not invent a zero total.
+        vlc_ml_folder_t folder{};
+        QCOMPARE(MLFolder(&folder).getDuration().formatHMS(), QString("--:--"));
+    }
 
     void testGetIndexFromID()
     {

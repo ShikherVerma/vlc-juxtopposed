@@ -66,5 +66,5 @@ unsigned int MLAlbum::getNbTracks() const
 
 VLCDuration MLAlbum::getDuration() const
 {
-    return VLCDuration::fromMS(m_duration);
+    return m_duration < 0 ? VLCDuration{} : VLCDuration::fromMS(m_duration);
 }

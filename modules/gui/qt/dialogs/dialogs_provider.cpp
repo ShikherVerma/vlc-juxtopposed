@@ -111,6 +111,23 @@ DialogsProvider::~DialogsProvider()
     VLCMenuBar::freeRendererMenu();
 }
 
+QVariantList DialogsProvider::pickPlaylistFiles(bool artwork)
+{
+    const QString filter = artwork ? qtr("Images (*.png *.jpg *.jpeg *.webp *.bmp)") : QString();
+    const QList<QUrl> urls = QFileDialog::getOpenFileUrls(nullptr,
+        artwork ? qtr("Playlist thumbnail") : qtr("Playlist files"),
+        p_intf->p_mi->getDialogFilePath(), filter);
+    QVariantList result;
+    for (const QUrl &url : urls)
+    {
+        if (url.isLocalFile())
+            result.append(url);
+        if (artwork && !result.isEmpty())
+            break;
+    }
+    return result;
+}
+
 QString DialogsProvider::getSaveFileName( QWidget *parent,
                                           const QString &caption,
                                           const QUrl &dir,

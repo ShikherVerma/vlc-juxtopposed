@@ -33,29 +33,20 @@ Widgets.PageLoader {
     Accessible.name: qsTr("Music view")
     AccessibleCompat.id: "musicDisplay"
 
-    pageModel: [{
-            displayText: qsTr("Artists"),
-            name: "artists",
-            default: true,
-            url: "qrc:///qt/qml/VLC/MediaLibrary/MusicArtistsDisplay.qml"
-        }, {
-            displayText: qsTr("Albums"),
-            name: "albums",
-            url: "qrc:///qt/qml/VLC/MediaLibrary/MusicAlbumsDisplay.qml"
-        }, {
-            displayText: qsTr("Tracks"),
-            name: "tracks" ,
-            url: "qrc:///qt/qml/VLC/MediaLibrary/MusicTracksDisplay.qml"
-        }, {
-            displayText: qsTr("Genres"),
-            name: "genres" ,
-            url: "qrc:///qt/qml/VLC/MediaLibrary/MusicGenresDisplay.qml"
-        }, {
-            displayText: qsTr("Playlists"),
-            name: "playlists" ,
-            url: "qrc:///qt/qml/VLC/MediaLibrary/MusicPlaylistsDisplay.qml"
-        }
+    pageModel: [
+        {name: "tracks", default: true, component: songs},
+        {name: "albums", component: albums},
+        {name: "artists", component: artists},
+        {name: "genres", component: genres},
+        {name: "collection", component: collection},
+        // Preserve old saved-playlist routes for Home/legacy callers.
+        {name: "playlists", url: "qrc:///qt/qml/VLC/MediaLibrary/MusicPlaylistsDisplay.qml"}
     ]
+    Component { id: songs; MusicLibraryPage { kind: "tracks" } }
+    Component { id: albums; MusicLibraryPage { kind: "albums" } }
+    Component { id: artists; MusicLibraryPage { kind: "artists" } }
+    Component { id: genres; MusicLibraryPage { kind: "genres" } }
+    Component { id: collection; MusicLibraryPage {} }
 
     property int displayMarginBeginning: 0
     property int displayMarginEnd: 0

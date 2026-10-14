@@ -70,7 +70,12 @@ public:
     explicit MLPlaylistListModel(QObject * parent = nullptr);
 
 public: // Interface
-    Q_INVOKABLE void create(const QString & name, const QVariantList& initialItems);
+    static vlc_ml_sorting_criteria_t sortingCriteriaForName(const QByteArray & name)
+    {
+        return name == QByteArrayLiteral("title") ? VLC_ML_SORTING_ALPHA : VLC_ML_SORTING_DEFAULT;
+    }
+
+    Q_INVOKABLE void create(const QString & name, const QVariantList& initialItems, const QUrl & artwork = QUrl());
 
     Q_INVOKABLE void append(const MLItemId & playlistId, const QVariantList & ids);
 
@@ -92,6 +97,11 @@ public: // QAbstractItemModel reimplementation
 protected: // MLBaseModel implementation
     QVariant itemRoleData(const MLItem* item, int role = Qt::DisplayRole) const override;
 
+    vlc_ml_sorting_criteria_t nameToCriteria(QByteArray name) const override
+    {
+        return sortingCriteriaForName(name);
+    }
+
     std::unique_ptr<MLListCacheLoader> createMLLoader() const override;
 
 private: // Functions
@@ -105,6 +115,8 @@ private: // MLBaseModel implementation
     void onVlcMlEvent(const MLEvent & event) override;
 
 signals:
+    void playlistCreated(MLItemId id);
+    void playlistCreationFailed();
     void coverSizeChanged   ();
     void coverDefaultChanged();
     void coverPrefixChanged ();

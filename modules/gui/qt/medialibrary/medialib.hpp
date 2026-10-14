@@ -61,6 +61,8 @@ public:
 
     Q_INVOKABLE void reload();
 
+    QSettings *settings() const { return m_intf->mainSettings; }
+
     Q_INVOKABLE void mlInputItem(const QVector<MLItemId>& itemIdVector, QJSValue callback);
 
     inline bool idle() const { return m_idle; }

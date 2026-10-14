@@ -29,7 +29,7 @@
 MLPlaylist::MLPlaylist(const vlc_ml_playlist_t * data)
     : MLItem(MLItemId(data->i_id, VLC_ML_PARENT_PLAYLIST))
     , m_name(qfu(data->psz_name))
-    , m_duration(data->i_duration)
+    , m_duration(data->i_nb_duration_unknown > 0 ? -1 : data->i_duration)
     , m_count(data->i_nb_media)
     , m_nbAudio(data->i_nb_audio)
     , m_nbVideo(data->i_nb_video)
@@ -56,7 +56,7 @@ void MLPlaylist::setName(const QString & name)
 
 VLCDuration MLPlaylist::getDuration() const
 {
-    return VLCDuration::fromMS(m_duration);
+    return m_duration < 0 ? VLCDuration{} : VLCDuration::fromMS(m_duration);
 }
 
 unsigned int MLPlaylist::getCount() const

@@ -40,6 +40,9 @@ Widgets.PageLoader {
     pageModel: [{
         name: "home",
         default: true,
+        component: libraryHome
+    }, {
+        name: "lan",
         component: browseHome
     }, {
         name: "folders",
@@ -76,6 +79,8 @@ Widgets.PageLoader {
     }
 
     // Children
+    Component { id: libraryHome; LibraryNetworkPage {} }
+
     Component {
         id: browseHome
 

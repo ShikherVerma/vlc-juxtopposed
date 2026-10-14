@@ -33,6 +33,7 @@
 #include "mlhelper.hpp"
 #include "mlcustomcover.hpp"
 #include "mlplaylist.hpp"
+#include "playlistart.hpp"
 
 //-------------------------------------------------------------------------------------------------
 // Static variables
@@ -72,6 +73,27 @@ void appendMediaIntoPlaylist(vlc_medialibrary_t* ml, int64_t playlistId, const s
     }
 }
 
+// Playlist title search must also include playlists with no members. Fetch
+// the unfiltered, sorted engine list and filter before applying pagination:
+// libmedialibrary 0.13.2 Playlist::search adds a nb_present_* > 0
+// condition even for type All, unlike listAll. The VLC query API exposes
+// no includeMissing switch to bypass it. Keep this workaround Qt-local.
+ml_unique_ptr<vlc_ml_playlist_list_t> playlistsForTitleSearch(
+        vlc_medialibrary_t* ml, const vlc_ml_query_params_t* params,
+        vlc_ml_playlist_type_t type)
+{
+    auto all = *params;
+    all.psz_pattern = nullptr;
+    all.i_offset = 0;
+    all.i_nbResults = 0;
+    return ml_unique_ptr<vlc_ml_playlist_list_t>(vlc_ml_list_playlists(ml, &all, type));
+}
+
+bool playlistTitleMatches(const vlc_ml_playlist_t& playlist, const char* pattern)
+{
+    return qfu(playlist.psz_name).contains(qfu(pattern), Qt::CaseInsensitive);
+}
+
 } //anonymous namespace
 
 //=================================================================================================
@@ -84,7 +106,7 @@ void appendMediaIntoPlaylist(vlc_medialibrary_t* ml, int64_t playlistId, const s
 
 //-------------------------------------------------------------------------------------------------
 
-/* Q_INVOKABLE */ void MLPlaylistListModel::create(const QString & name, const QVariantList& initialItems)
+/* Q_INVOKABLE */ void MLPlaylistListModel::create(const QString & name, const QVariantList& initialItems, const QUrl & artwork)
 {
     assert(m_mediaLib);
 
@@ -92,7 +114,11 @@ void appendMediaIntoPlaylist(vlc_medialibrary_t* ml, int64_t playlistId, const s
         MLItemId createdPlaylistId;
     };
 
-    setTransactionPending(true);
+    if (name.trimmed().isEmpty() || !setTransactionPending(true))
+    {
+        emit playlistCreationFailed();
+        return;
+    }
 
     m_mediaLib->runOnMLThread<Ctx>(this,
     //ML thread
@@ -105,13 +131,18 @@ void appendMediaIntoPlaylist(vlc_medialibrary_t* ml, int64_t playlistId, const s
             vlc_ml_playlist_release(playlist);
         }
     },
-    [this, initialItems](quint64, const Ctx& ctx) {
+    [this, initialItems, artwork](quint64, const Ctx& ctx) {
         endTransaction(); // this is intentionally called here and not after `append()`
 
         if (ctx.createdPlaylistId.id)
         {
-            append(ctx.createdPlaylistId, initialItems);
+            PlaylistArt::save(*m_mediaLib->settings(), ctx.createdPlaylistId.id, artwork);
+            if (!initialItems.isEmpty())
+                append(ctx.createdPlaylistId, initialItems);
+            emit playlistCreated(MLItemId(ctx.createdPlaylistId.id, VLC_ML_PARENT_PLAYLIST));
         }
+        else
+            emit playlistCreationFailed();
     });
 }
 
@@ -368,6 +399,9 @@ bool MLPlaylistListModel::setTransactionPending(const bool value)
 
 QString MLPlaylistListModel::getCover(const MLPlaylist * playlist) const
 {
+    const auto custom = PlaylistArt::load(*m_mediaLib->settings(), playlist->getId().id);
+    if (!custom.isEmpty())
+        return custom;
     return MLCustomCover::url(playlist->getId()
                             , m_coverSize
                             , m_coverDefault
@@ -380,6 +414,10 @@ QString MLPlaylistListModel::getCover(const MLPlaylist * playlist) const
 
 void MLPlaylistListModel::onVlcMlEvent(const MLEvent & event) /* override */
 {
+    if (event.i_type == VLC_ML_EVENT_PLAYLIST_DELETED)
+    {
+        PlaylistArt::save(*m_mediaLib->settings(), event.deletion.i_entity_id, QUrl());
+    }
     if (m_transactionPending
         && (event.i_type == VLC_ML_EVENT_PLAYLIST_UPDATED
             || event.i_type == VLC_ML_EVENT_PLAYLIST_DELETED
@@ -510,7 +548,17 @@ size_t MLPlaylistListModel::Loader::count(vlc_medialibrary_t* ml, const vlc_ml_q
 {
     vlc_ml_playlist_type_t mlPlaylistType = qmlToMLPlaylistType(m_playlistType);
 
-    return vlc_ml_count_playlists(ml, queryParams, mlPlaylistType);
+    if (!queryParams->psz_pattern || !*queryParams->psz_pattern)
+        return vlc_ml_count_playlists(ml, queryParams, mlPlaylistType);
+
+    const auto list = playlistsForTitleSearch(ml, queryParams, mlPlaylistType);
+    if (!list)
+        return 0;
+    size_t count = 0;
+    for (const auto& playlist : ml_range_iterate<vlc_ml_playlist_t>(list))
+        if (playlistTitleMatches(playlist, queryParams->psz_pattern))
+            ++count;
+    return count;
 }
 
 std::vector<std::unique_ptr<MLItem>>
@@ -518,15 +566,27 @@ MLPlaylistListModel::Loader::load(vlc_medialibrary_t* ml, const vlc_ml_query_par
 {
     vlc_ml_playlist_type_t mlPlaylistType = qmlToMLPlaylistType(m_playlistType);
 
-    ml_unique_ptr<vlc_ml_playlist_list_t> list(vlc_ml_list_playlists(ml, queryParams, mlPlaylistType));
+    const bool titleSearch = queryParams->psz_pattern && *queryParams->psz_pattern;
+    auto list = titleSearch ? playlistsForTitleSearch(ml, queryParams, mlPlaylistType)
+                           : ml_unique_ptr<vlc_ml_playlist_list_t>(vlc_ml_list_playlists(ml, queryParams, mlPlaylistType));
 
     if (list == nullptr)
         return {};
 
     std::vector<std::unique_ptr<MLItem>> result;
 
+    size_t matched = 0;
     for (const vlc_ml_playlist_t & playlist : ml_range_iterate<vlc_ml_playlist_t>(list))
     {
+        if (titleSearch)
+        {
+            if (!playlistTitleMatches(playlist, queryParams->psz_pattern))
+                continue;
+            if (matched++ < queryParams->i_offset)
+                continue;
+            if (queryParams->i_nbResults && result.size() >= queryParams->i_nbResults)
+                break;
+        }
         result.emplace_back(std::make_unique<MLPlaylist>(&playlist));
     }
 

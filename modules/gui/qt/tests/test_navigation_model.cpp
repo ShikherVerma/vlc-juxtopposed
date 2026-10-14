@@ -59,7 +59,7 @@ private slots:
         initialize(model);
         QCOMPARE(model.rowCount(), 7);
         const QStringList titles{"Home", "Videos", "Music", "Network", "Playlists", "Recent", "Add item"};
-        const QList<QStringList> routes{{"home"}, {"video"}, {"music"}, {"network"}, {"video", "playlists"}, {"recent"}, {"library-add"}};
+        const QList<QStringList> routes{{"home"}, {"video"}, {"music"}, {"network"}, {"playlists"}, {"recent"}, {"library-add"}};
         for (int i = 0; i < titles.size(); ++i) {
             QCOMPARE(model.data(model.index(i), NavigationModel::TITLE).toString(), titles[i]);
             QCOMPARE(route(model, i), routes[i]);
@@ -120,8 +120,8 @@ private slots:
         const QList<QList<QStringList>> routes{
             {{"video", "all"}},
             {{"music", "tracks"}, {"music", "albums"}, {"music", "artists"}, {"music", "genres"}},
-            {{"network"}, {"discover", "url"}, {"discover", "services"}},
-            {{"video", "playlists"}, {"music", "playlists"}}
+            {{"network", "lan"}, {"discover", "url"}, {"discover", "services"}},
+            {{"playlists", "all"}, {"playlist-create"}}
         };
         for (int parent = 1; parent <= 4; ++parent) {
             const auto children = model.data(model.index(parent), NavigationModel::CHILDREN).value<QList<NavigationModelItem>>();
