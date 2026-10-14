@@ -16,7 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  *****************************************************************************/
 
+#if HAVE_CONFIG_H
+# include "config.h"
+#endif
+
 #include "mlthreadpool.hpp"
+
+#include <cassert>
 
 #include <QMutexLocker>
 #include <QThread>
@@ -40,6 +46,7 @@ ThreadRunner::~ThreadRunner()
 {
     assert(m_objectTasks.empty());
     assert(m_runningTasks.empty());
+    assert(m_pendingTasks.empty());
 }
 
 void ThreadRunner::setMaxThreadCount(size_t threadCount)
@@ -138,6 +145,7 @@ void ThreadRunner::processQueueLocked(const QString& queueName)
     connect(runnable, &RunOnThreadBaseRunner::done, this, &ThreadRunner::runOnThreadDone);
     m_runningTasks.insert(taskId, runnable);
     m_objectTasks.insert(this, taskId);
+    m_pendingTasks.insert(runnable);
 
     m_threadPool.start(runnable);
 }
@@ -152,8 +160,10 @@ void ThreadRunner::destroy()
         const QObject* object = taskIt.key();
         quint64 key = taskIt.value();
         auto task = m_runningTasks.value(key, nullptr);
+        assert(task);
         if (tryTake(task))
         {
+            m_pendingTasks.remove(task);
             delete task;
             m_runningTasks.remove(key);
             taskIt = m_objectTasks.erase(taskIt);
@@ -164,7 +174,7 @@ void ThreadRunner::destroy()
             ++taskIt;
     }
 
-    if (m_runningTasks.empty())
+    if (m_pendingTasks.empty())
     {
         deleteLater();
     }
@@ -175,28 +185,44 @@ void ThreadRunner::cancelTask(const QObject* object, quint64 taskId)
     assert(taskId != 0);
     QMutexLocker locker{&m_lock};
 
-    auto task = m_runningTasks.value(taskId, nullptr);
-    if (!task)
+    // The owner and ID form the cancellation key. Looking up only the ID
+    // could remove another object's running task while leaving its owner
+    // index behind, causing assert(task) when that object is destroyed.
+    if (!m_objectTasks.contains(object, taskId))
         return;
+    auto task = m_runningTasks.value(taskId, nullptr);
+    assert(task);
     task->cancel();
     bool removed = tryTake(task);
-    if (removed)
-        delete task;
     m_runningTasks.remove(taskId);
     m_objectTasks.remove(object, taskId);
     if (m_objectTasks.count(object) == 0)
         disconnect(object, &QObject::destroyed, this, &ThreadRunner::runOnThreadTargetDestroyed);
+    if (removed)
+    {
+        m_pendingTasks.remove(task);
+        delete task;
+    }
+    if (m_shuttingDown && m_pendingTasks.empty())
+        deleteLater();
 }
 
 void ThreadRunner::runOnThreadDone(RunOnThreadBaseRunner* runner, quint64 target, const QObject* object, int status)
 {
     QMutexLocker locker{&m_lock};
+    const bool pending = m_pendingTasks.remove(runner);
+    assert(pending);
+    (void)pending;
     if (!m_runningTasks.contains(target))
     {
         runner->deleteLater();
+        if (m_shuttingDown && m_pendingTasks.empty())
+            deleteLater();
         return;
     }
 
+    assert(m_runningTasks.value(target) == runner);
+    assert(m_objectTasks.contains(object, target));
     m_runningTasks.remove(target);
     m_objectTasks.remove(object, target);
     if (m_objectTasks.count(object) == 0)
@@ -204,7 +230,7 @@ void ThreadRunner::runOnThreadDone(RunOnThreadBaseRunner* runner, quint64 target
 
     if (m_shuttingDown)
     {
-        if (m_runningTasks.empty())
+        if (m_pendingTasks.empty())
             deleteLater();
         runner->deleteLater();
         return;
@@ -243,10 +269,17 @@ void ThreadRunner::runOnThreadTargetDestroyed(QObject * object)
             assert(task);
             bool removed = tryTake(task);
             if (removed)
+            {
+                m_pendingTasks.remove(task);
                 delete task;
+            }
             m_runningTasks.remove(taskId);
         }
         m_objectTasks.remove(object);
         //no need to disconnect QObject::destroyed, as object is currently being destroyed
     }
+    // Taken tasks have no done signal; tasks already running remain pending
+    // even though they no longer have a live callback target.
+    if (m_shuttingDown && m_pendingTasks.empty())
+        deleteLater();
 }

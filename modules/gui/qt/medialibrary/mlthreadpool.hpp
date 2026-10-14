@@ -23,6 +23,7 @@
 #include <QRunnable>
 #include <QQueue>
 #include <QMap>
+#include <QSet>
 #include <QThreadPool>
 #include <QMutex>
 
@@ -87,6 +88,9 @@ private:
     quint64 m_taskId = 1;
     QMap<quint64, RunOnThreadBaseRunner*> m_runningTasks;
     QMultiMap<const QObject*, quint64> m_objectTasks;
+    // Cancellation/target destruction removes callback ownership, but a
+    // runnable that could not be taken must live until its done signal.
+    QSet<RunOnThreadBaseRunner*> m_pendingTasks;
     QMutex m_lock;
 };
 
@@ -166,6 +170,7 @@ quint64 ThreadRunner::runOnThread(const QObject* obj,
     connect(obj, &QObject::destroyed, this, &ThreadRunner::runOnThreadTargetDestroyed, Qt::DirectConnection);
     m_runningTasks.insert(taskId, runnable);
     m_objectTasks.insert(obj, taskId);
+    m_pendingTasks.insert(runnable);
     start(runnable, queue);
     return taskId;
 }

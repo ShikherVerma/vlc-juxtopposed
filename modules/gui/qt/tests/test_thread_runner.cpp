@@ -20,6 +20,8 @@
 #include <QSignalSpy>
 #include <QWaitCondition>
 #include <QElapsedTimer>
+#include <QSemaphore>
+#include <QEvent>
 #include "../medialibrary/mlthreadpool.hpp"
 #include "qtestcase.h"
 #include <thread>
@@ -756,6 +758,120 @@ private slots:
             QCoreApplication::processEvents(QEventLoop::AllEvents, 1);
         producer.join();
         QCOMPARE(completed.load(), count);
+    }
+
+    void testCancelWrongTargetThenDestroy_data()
+    {
+        QTest::addColumn<bool>("queued");
+        QTest::newRow("parallel") << false;
+        QTest::newRow("serial") << true;
+    }
+
+    void testCancelWrongTargetThenDestroy()
+    {
+        QFETCH(bool, queued);
+        auto runner = getRunner();
+        auto owner = std::make_unique<Dummy>();
+        Dummy other;
+        auto started = std::make_shared<QSemaphore>();
+        auto release = std::make_shared<QSemaphore>();
+        bool called = false;
+        const auto id = runner->runOnThread<Ctx>(owner.get(),
+            [started, release](Ctx&) {
+                started->release();
+                release->tryAcquire(1, 5000);
+            }, [&called](quint64, Ctx&) { called = true; },
+            queued ? "wrong-target" : nullptr);
+        QVERIFY(started->tryAcquire(1, 5000));
+        // A task ID is not sufficient to cancel another object's work. The
+        // old code removed only the running-task entry, orphaning the owner
+        // index; destroying the actual owner then hit assert(task).
+        runner->cancelTask(&other, id);
+        owner.reset();
+        release->release();
+        QTest::qWait(50);
+        QVERIFY(!called);
+    }
+
+    void testFinishedBeforeTargetDestroyed()
+    {
+        // Intercept the queued done event before its slot executes: the ML
+        // function has finished and completion is posted, but UI work has
+        // not run. No scheduler timing or sleeps choose this boundary.
+        auto runner = m_runner.get();
+        auto owner = std::make_unique<Dummy>();
+        struct DestroyOnDone : QObject {
+            std::function<void()> destroyTarget;
+            bool eventFilter(QObject*, QEvent* event) override
+            {
+                if (event->type() == QEvent::MetaCall)
+                    destroyTarget();
+                return false;
+            }
+        } filter;
+        filter.destroyTarget = [&owner] { owner.reset(); };
+        runner->installEventFilter(&filter);
+        bool called = false;
+        runner->runOnThread<Ctx>(owner.get(), [](Ctx&) {},
+            [&called](quint64, Ctx&) { called = true; });
+        QTRY_VERIFY_WITH_TIMEOUT(!owner, 5000);
+        QVERIFY(!called);
+    }
+
+    void testCancelThenTargetDestroyed()
+    {
+        auto runner = getRunner();
+        auto owner = std::make_unique<Dummy>();
+        auto started = std::make_shared<QSemaphore>();
+        auto release = std::make_shared<QSemaphore>();
+        bool called = false;
+        const auto id = runner->runOnThread<Ctx>(owner.get(),
+            [started, release](Ctx&) {
+                started->release();
+                release->tryAcquire(1, 5000);
+            }, [&called](quint64, Ctx&) { called = true; });
+        QVERIFY(started->tryAcquire(1, 5000));
+        runner->cancelTask(owner.get(), id);
+        owner.reset();
+        release->release();
+        QTest::qWait(50);
+        QVERIFY(!called);
+    }
+
+    void testTargetDestroyedDuringDrain_data()
+    {
+        QTest::addColumn<bool>("cancel");
+        QTest::newRow("destroy-target") << false;
+        QTest::newRow("cancel-then-destroy-target") << true;
+    }
+
+    void testTargetDestroyedDuringDrain()
+    {
+        QFETCH(bool, cancel);
+        // Use the main-thread runner so DeferredDelete cannot execute until
+        // the blocked worker has been released below.
+        auto runner = m_runner.get();
+        auto owner = std::make_unique<Dummy>();
+        auto started = std::make_shared<QSemaphore>();
+        auto release = std::make_shared<QSemaphore>();
+        bool called = false;
+        const auto id = runner->runOnThread<Ctx>(owner.get(),
+            [started, release](Ctx&) {
+                started->release();
+                release->tryAcquire(1, 5000);
+            }, [&called](quint64, Ctx&) { called = true; });
+        QVERIFY(started->tryAcquire(1, 5000));
+        runner->destroy();
+        if (cancel)
+            runner->cancelTask(owner.get(), id);
+        owner.reset();
+        const std::weak_ptr<QSemaphore> workerContext = release;
+        release->release();
+        release.reset();
+        QTRY_VERIFY_WITH_TIMEOUT(m_runner.isNull(), 5000);
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        QVERIFY(workerContext.expired());
+        QVERIFY(!called);
     }
 
     void testNestedTask()
