@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-MINIMAL_OSX_VERSION="10.13"
+MINIMAL_OSX_VERSION="${VLC_MACOSX_DEPLOYMENT_TARGET:-10.13}"
 
 get_actual_arch() {
     if [ "$1" = "aarch64" ]; then
@@ -204,6 +204,16 @@ vlcSetLibVLCEnvironment() {
     export OBJCFLAGS="-g -arch $ACTUAL_HOST_ARCH -Werror=incompatible-function-pointer-types"
     export OBJCXXFLAGS="-g -arch $ACTUAL_HOST_ARCH -Werror=incompatible-function-pointer-types"
     export LDFLAGS="-arch $ACTUAL_HOST_ARCH"
+    # Opt-in deployment floor for builders using newer SDKs. This function
+    # resets incoming flags, so the Objective-C floor must be added here.
+    if [ -n "${VLC_MACOSX_DEPLOYMENT_TARGET:-}" ]; then
+        export SDKROOT="${SDKROOT:-$(xcrun --sdk macosx --show-sdk-path)}"
+        export MACOSX_DEPLOYMENT_TARGET="$VLC_MACOSX_DEPLOYMENT_TARGET"
+        local deployment_flags="-isysroot $SDKROOT -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
+        export OBJCFLAGS="$OBJCFLAGS $deployment_flags -Werror=unguarded-availability-new"
+        export OBJCXXFLAGS="$OBJCXXFLAGS $deployment_flags -Werror=unguarded-availability-new"
+        export LDFLAGS="$LDFLAGS $deployment_flags"
+    fi
 }
 
 vlcUnsetLibVLCEnvironment() {
