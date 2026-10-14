@@ -103,24 +103,21 @@ package-macosx-sdk: macos-install
 
 package-macosx: VLC.app
 	rm -f "$(top_builddir)/vlc-$(VERSION).dmg"
+	## Use a distinct drag-copy name in both DMG routes, not official VLC.app.
+	mkdir -p "$(top_builddir)/vlc-$(VERSION)"
+	cp -Rp "$(top_builddir)/VLC.app" "$(top_builddir)/vlc-$(VERSION)/VLC (Juxtopposed).app"
+	$(LN_S) -f /Applications "$(top_builddir)/vlc-$(VERSION)/"
 if HAVE_DMGBUILD
 	@echo "Packaging fancy DMG using dmgbuild"
 	cd "$(top_srcdir)/extras/package/macosx/dmg" && dmgbuild -s "dmg_settings.py" \
-		-D app="$(abs_top_builddir)/VLC.app" "VLC Media Player" "$(abs_top_builddir)/vlc-$(VERSION).dmg"
+		-D app="$(abs_top_builddir)/vlc-$(VERSION)/VLC (Juxtopposed).app" "VLC (Juxtopposed)" "$(abs_top_builddir)/vlc-$(VERSION).dmg"
 else !HAVE_DMGBUILD
 	@echo "Packaging non-fancy DMG"
-	## Create directory for DMG contents
-	mkdir -p "$(top_builddir)/vlc-$(VERSION)"
-	## Copy contents
-	cp -Rp "$(top_builddir)/VLC.app" "$(top_builddir)/vlc-$(VERSION)/VLC.app"
-	## Symlink to Applications so users can easily drag-and-drop the App to it
-	$(LN_S) -f /Applications "$(top_builddir)/vlc-$(VERSION)/"
-	## Create DMG
-	hdiutil create -srcfolder "$(top_builddir)/vlc-$(VERSION)" -volname "VLC Media Player" \
+	hdiutil create -srcfolder "$(top_builddir)/vlc-$(VERSION)" -volname "VLC (Juxtopposed)" \
 		-format UDBZ -fs HFS+ -o "$(top_builddir)/vlc-$(VERSION).dmg"
+endif
 	## Cleanup
 	rm -rf "$(top_builddir)/vlc-$(VERSION)"
-endif
 
 package-macosx-zip: VLC.app
 	rm -f "$(top_builddir)/vlc-$(VERSION).zip"

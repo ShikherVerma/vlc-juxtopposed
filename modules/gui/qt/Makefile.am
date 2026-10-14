@@ -314,6 +314,7 @@ libqt_plugin_la_SOURCES = \
 	playlist/playlist_model.hpp \
 	playlist/playlist_model_p.hpp \
 	util/asynctask.hpp \
+	util/settings.hpp \
 	util/accessible_compat_attached.cpp util/accessible_compat_attached.hpp \
 	util/audio_device_model.cpp  \
 	util/audio_device_model.hpp \

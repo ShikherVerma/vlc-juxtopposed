@@ -83,6 +83,7 @@ extern "C" char **environ;
 #endif
 
 #include "qt.hpp"
+#include "util/settings.hpp"
 #include "style/vlcfonts.hpp"
 
 #include "player/player_controller.hpp"    /* THEMIM destruction */
@@ -1009,7 +1010,7 @@ static void *Thread( void *obj )
 #else
             QSettings::NativeFormat,
 #endif
-            QSettings::UserScope, "vlc", "vlc-qt-interface" );
+            QSettings::UserScope, vlcQtSettingsOrganization(), "vlc-qt-interface" );
 
     // It is guaranteed that the returned format is supported, if a format is returned.
     static const auto createCompatibleOpenGLFormat = []() -> std::optional<QSurfaceFormat> {
