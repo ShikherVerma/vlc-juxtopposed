@@ -120,6 +120,7 @@ public:
     static void setWindowTransientParent(QWidget* widget, QWindow* parent, qt_intf_t* p_intf);
 
 protected:
+    void keyPressEvent(QKeyEvent *event) override;
     qt_intf_t *p_intf;
 };
 

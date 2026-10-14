@@ -856,27 +856,13 @@ VideoSurfaceProvider* MainCtx::getVideoSurfaceProvider() const
 
 void MainCtx::onWindowClose( QWindow* )
 {
-    PlaylistController* playlistController = p_intf->p_mainPlaylistController;
-    PlayerController* playerController = p_intf->p_mainPlayerController;
-
-    if (m_videoSurfaceProvider)
-        m_videoSurfaceProvider->onWindowClosed();
-    //We need to make sure that noting is playing anymore otherwise the vout will be closed
-    //after the main interface, and it requires (at least with OpenGL) that the OpenGL context
-    //from the main window is still valid.
-    //vlc_window_ReportClose is currently stubbed
-    if (playerController && playerController->hasVideoOutput()) {
-        connect(playerController, &PlayerController::playingStateChanged, [this](PlayerController::PlayingState state){
-            if (state == PlayerController::PLAYING_STATE_STOPPED) {
-                emit askToQuit();
-            }
-        });
-        playlistController->stop();
-    }
-    else
-    {
-        emit askToQuit(); /* ask THEDP to quit, so we have a unique method */
-    }
+    // Use the same core shutdown as Quit VLC, including when the player is
+    // already stopped but still owns its cached vout. Waiting for a future
+    // STOPPED notification can leave a hidden application alive indefinitely.
+    // Qt's window-provider reference keeps the compositor and event loop alive
+    // until the vout has released its native window (see Close/WindowCloseCb).
+    // Do not exit Qt or destroy the video window here.
+    emit askToQuit();
 }
 
 void MainCtx::toggleToolbarMenu()

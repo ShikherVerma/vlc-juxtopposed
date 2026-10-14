@@ -1539,6 +1539,14 @@ static void *ThreadCleanup( qt_intf_t *p_intf, CleanupReason cleanupReason )
     DialogErrorModel::killInstance();
     MediaSourceCache::killInstance();
 
+    // QQmlEngine teardown can defer destruction of JavaScript-owned models.
+    // Dispose of those models (and their queued cache invalidations) while
+    // MainCtx/MediaLib and the controllers are still alive. Otherwise a late
+    // model callback can use a freed ML runner and block this event loop,
+    // which the vout still needs for its BlockingQueued windowDisableCb.
+    // Drain only deferred deletions, not arbitrary callbacks during teardown.
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+
     //destroy MainCtx, Compositor shouldn't not use MainCtx after `unloadGUI`
     if (p_intf->p_mi) {
         delete p_intf->p_mi;

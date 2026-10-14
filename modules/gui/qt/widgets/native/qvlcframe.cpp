@@ -25,7 +25,9 @@
 #include <QApplication>
 #include <QKeyEvent>
 #include <QStyle>
+#include <QKeySequence>
 
+#include "dialogs/dialogs_provider.hpp"
 #include "qvlcframe.hpp"
 #include "maininterface/compositor.hpp"
 
@@ -248,4 +250,20 @@ QVLCDialog::QVLCDialog(QWindow *parent, qt_intf_t *_p_intf)
                     Qt::WindowSystemMenuHint|Qt::WindowCloseButtonHint );
 
     setWindowTransientParent(this, parent, p_intf);
+}
+
+void QVLCDialog::keyPressEvent(QKeyEvent *event)
+{
+    // The QML Quit shortcut is scoped to the interface window, not native
+    // dialogs. Handle the native key event here without registering another
+    // application shortcut or depending on Qt Quick's shortcut matcher.
+    if (event->matches(QKeySequence::Quit) ||
+        (event->key() == Qt::Key_Q && event->modifiers() == Qt::ControlModifier))
+    {
+        if (!event->isAutoRepeat())
+            DialogsProvider::getInstance(p_intf)->quit();
+        event->accept();
+        return;
+    }
+    QDialog::keyPressEvent(event);
 }

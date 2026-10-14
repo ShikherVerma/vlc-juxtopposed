@@ -107,6 +107,11 @@ DialogsProvider::DialogsProvider( qt_intf_t *_p_intf )
 
 DialogsProvider::~DialogsProvider()
 {
+    // Preferences is parentless and QPointer is not an owner. Destroy it while
+    // MainCtx/MediaLib still exist, not in QApplication's final window cleanup.
+    // In particular the legacy folder models unregister ML callbacks here.
+    closePrefsDialog();
+
     /* free parentless menus  */
     VLCMenuBar::freeRendererMenu();
 }

@@ -29,6 +29,7 @@
 #include "dialogs/dialogs/dialogmodel.hpp"
 #include <QScreen>
 #include <QQmlProperty>
+#include <QKeySequence>
 #include <cmath>
 
 namespace
@@ -250,6 +251,17 @@ bool InterfaceWindowHandler::eventFilter(QObject*, QEvent* event)
     {
         QKeyEvent * keyEvent = static_cast<QKeyEvent *> (event);
 
+#ifdef Q_OS_MACOS
+        // A custom QWindow has no native Close menu action for Cmd+W. Route
+        // it through the CSD/native Close path, not directly out of Qt's loop.
+        if (keyEvent->matches(QKeySequence::Close))
+        {
+            if (!keyEvent->isAutoRepeat())
+                m_window->close();
+            return true;
+        }
+#endif
+
         // About has no default engine conflict. Preserve any user assignment
         // instead of stealing it when the video has hotkey priority.
         if (keyEvent->key() == Qt::Key_F1 && keyEvent->modifiers() == Qt::ShiftModifier &&
@@ -315,29 +327,15 @@ bool InterfaceWindowHandler::eventFilter(QObject*, QEvent* event)
     }
     case QEvent::Close:
     {
-#if QT_VERSION < QT_VERSION_CHECK(6, 9, 0)
-        // Before Qt 6.9.0, `QWindow`'s `wl_surface` gets deleted when `QWindow::hide()` is called.
-        static bool platformIsWayland = []() {
-            assert(qGuiApp);
-            return qGuiApp->platformName().startsWith(QLatin1String("wayland"));
-        }();
-
-        if (!platformIsWayland)
-            setInterfaceHiden();
-#else
-        setInterfaceHiden();
-#endif
-
+        // Keep the native video surface visible/alive until core shutdown has
+        // released the vout. Hiding is only a close-to-tray action, not quit.
         if (var_InheritBool(p_intf, "qt-close-to-system-tray"))
         {
             if (const QSystemTrayIcon* const sysTrayIcon = m_mainCtx->getSysTray())
             {
                 if (sysTrayIcon->isSystemTrayAvailable() && sysTrayIcon->isVisible())
                 {
-#if QT_VERSION < QT_VERSION_CHECK(6, 9, 0)
-                    if (platformIsWayland)
-                        setInterfaceHiden();
-#endif
+                    setInterfaceHiden();
                     event->ignore();
                     return true;
                 }

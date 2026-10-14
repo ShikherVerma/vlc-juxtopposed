@@ -33,6 +33,14 @@ Item {
     ShortcutExt{ sequence:"Ctrl+R"; onActivated: DialogsProvider.openAndTranscodingDialogs(); }
     ShortcutExt{ sequence:"Ctrl+S"; onActivated: DialogsProvider.openAndStreamingDialogs(); }
     ShortcutExt{ sequence:"Ctrl+Q"; onActivated: DialogsProvider.quit(); }
+    // The platform compositor's focused Quick child also needs Cmd+W. This
+    // native window command must remain available while a text field edits.
+    Shortcut {
+        context: Qt.WindowShortcut
+        enabled: Qt.platform.os === "osx"
+        sequences: [StandardKey.Close]
+        onActivated: MainCtx.intfMainWindow.close()
+    }
     ShortcutExt{ sequence:"Ctrl+E"; onActivated: DialogsProvider.extendedDialog(); }
     ShortcutExt{ sequence:"Ctrl+I"; onActivated: DialogsProvider.mediaInfoDialog(); }
     ShortcutExt{ sequence:"Ctrl+J"; onActivated: DialogsProvider.mediaCodecDialog(); }
