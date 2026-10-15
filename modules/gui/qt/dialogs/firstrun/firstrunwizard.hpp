@@ -41,6 +41,9 @@ public:
     int nextId() const;
     void initializePage( int id );
     void reject();
+#ifdef Q_OS_MACOS
+    void setVisible(bool visible) override;
+#endif
 
 private:
     Ui::firstrun ui;

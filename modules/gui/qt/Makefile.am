@@ -581,6 +581,11 @@ nodist_libqt_plugin_la_SOURCES += \
 	dialogs/vlm/ui_vlm.h
 
 
+if HAVE_OSX
+libqt_plugin_la_OBJCXXFLAGS = $(libqt_plugin_la_CXXFLAGS)
+libqt_plugin_la_SOURCES += dialogs/firstrun/firstrunwizard_macos.mm
+endif
+
 # windows compositor
 
 if HAVE_WIN32
