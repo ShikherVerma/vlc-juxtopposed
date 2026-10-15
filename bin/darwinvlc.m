@@ -271,6 +271,15 @@ int main(int i_argc, const char *ppsz_argv[])
         vlc_terminate(&context);
     });
 
+    /* Qt's interface/checker initializes asynchronously while this main
+     * CFRunLoop already services launch events. Create AppKit first only for
+     * the explicitly marked Qt bundle; Cocoa and command-line launchers keep
+     * their existing initialization path. */
+    @autoreleasepool {
+        if ([[[NSBundle mainBundle] objectForInfoDictionaryKey:@"VLCQtInterface"] boolValue])
+            [NSApplication sharedApplication];
+    }
+
     __block bool intf_started = true;
     __block libvlc_instance_t *vlc = NULL;
     int ret = 1;

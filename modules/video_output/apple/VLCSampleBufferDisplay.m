@@ -563,9 +563,18 @@ static void DeletePipController( pip_controller_t * pipcontroller );
 
 @interface VLCSampleBufferDisplayView: VLCView <CALayerDelegate>
 - (AVSampleBufferDisplayLayer *)displayLayer;
+#if TARGET_OS_OSX
+- (void)setVideoRect:(CGRect)rect;
+#endif
 @end
 
 @implementation VLCSampleBufferDisplayView
+#if TARGET_OS_OSX
+{
+    AVSampleBufferDisplayLayer *_videoLayer;
+    CGRect _videoRect;
+}
+#endif
 
 - (instancetype)init {
     self = [super init];
@@ -573,6 +582,7 @@ static void DeletePipController( pip_controller_t * pipcontroller );
         return nil;
 #if TARGET_OS_OSX
     self.autoresizingMask = NSViewNotSizable;
+    _videoRect = CGRectMake(0, 0, 1, 1);
     self.wantsLayer = YES;
 #else
     self.autoresizingMask = UIViewAutoresizingNone;
@@ -592,7 +602,41 @@ static void DeletePipController( pip_controller_t * pipcontroller );
     layer.opaque = 1.0;
     layer.hidden = NO;
     [CATransaction unlock];
-    return layer;
+    /* AppKit's backing layer is the visible viewport. Keep decoder padding
+     * outside it instead of letting AVSampleBufferDisplayLayer aspect-fit the
+     * coded buffer a second time inside VLC's already aspect-fitted place. */
+    _videoLayer = layer;
+    CALayer *viewport = [CALayer layer];
+    viewport.delegate = self;
+    viewport.masksToBounds = YES;
+    [viewport addSublayer:layer];
+    return viewport;
+}
+
+- (void)layoutVideo {
+    if (_videoLayer == nil)
+        return;
+    CGRect bounds = self.bounds;
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
+    /* AppKit may reset the backing-layer mask when attaching/resizing a view. */
+    self.layer.masksToBounds = YES;
+    self.displayLayer.frame = CGRectMake(
+        -_videoRect.origin.x * bounds.size.width / _videoRect.size.width,
+        -_videoRect.origin.y * bounds.size.height / _videoRect.size.height,
+        bounds.size.width / _videoRect.size.width,
+        bounds.size.height / _videoRect.size.height);
+    [CATransaction commit];
+}
+
+- (void)setVideoRect:(CGRect)rect {
+    _videoRect = rect;
+    [self layoutVideo];
+}
+
+- (void)setFrameSize:(NSSize)size {
+    [super setFrameSize:size];
+    [self layoutVideo];
 }
 #else
 + (Class)layerClass {
@@ -601,7 +645,11 @@ static void DeletePipController( pip_controller_t * pipcontroller );
 #endif
 
 - (AVSampleBufferDisplayLayer *)displayLayer {
+#if TARGET_OS_OSX
+    return _videoLayer;
+#else
     return (AVSampleBufferDisplayLayer *)self.layer;
+#endif
 }
 
 #if TARGET_OS_OSX
@@ -852,6 +900,9 @@ API_AVAILABLE(tvos(17.0), visionos(1.0))
     @property (nonatomic, readonly) vout_display_t *vd;
     @property (nonatomic) VLCSampleBufferDisplayView *displayView;
     @property (nonatomic) AVSampleBufferDisplayLayer *displayLayer;
+#if TARGET_OS_OSX
+    @property (nonatomic) CGRect videoRect;
+#endif
     @property (nonatomic) VLCSampleBufferSubpictureView *spuView;
     @property (nonatomic) VLCSampleBufferSubpicture *subpicture;
     @property (nonatomic) id<VLCPixelBufferRotationContext> rotationContext;
@@ -1113,19 +1164,47 @@ static void RenderPicture(vout_display_t *vd, picture_t *pic, vlc_tick_t date) {
         return;
     }
 
+#if TARGET_OS_OSX
+    video_format_t imageFormat = *vd->source;
+    imageFormat.i_width = CVPixelBufferGetWidth(pixelBuffer);
+    imageFormat.i_height = CVPixelBufferGetHeight(pixelBuffer);
+#endif
     if (vd->fmt->orientation != ORIENT_NORMAL) {
         CVPixelBufferRef rotated = [sys.rotationContext rotate:pixelBuffer];
         if (rotated) {
             CVPixelBufferRelease(pixelBuffer);
             pixelBuffer = rotated;
+#if TARGET_OS_OSX
+            video_format_TransformTo(&imageFormat, ORIENT_NORMAL);
+#endif
         }
     }
 
+#if TARGET_OS_OSX
+    /* Normalized visible rectangle, with CALayer's bottom-left origin. The
+     * child layer maps the coded buffer; only this rectangle is displayed. */
+    CGRect videoRect = CGRectMake(
+        (double)imageFormat.i_x_offset / imageFormat.i_width,
+        1.0 - (double)(imageFormat.i_y_offset + imageFormat.i_visible_height) / imageFormat.i_height,
+        (double)imageFormat.i_visible_width / imageFormat.i_width,
+        (double)imageFormat.i_visible_height / imageFormat.i_height);
+    if (!CGRectEqualToRect(videoRect, sys.videoRect)) {
+        sys.videoRect = videoRect;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [sys.displayView setVideoRect:videoRect];
+        });
+    }
+#endif
+
+    const video_format_t *aspectFormat = vd->source;
+#if TARGET_OS_OSX
+    aspectFormat = &imageFormat;
+#endif
     id aspectRatio = @{
         (__bridge NSString*)kCVImageBufferPixelAspectRatioHorizontalSpacingKey:
-            @(vd->source->i_sar_num),
+            @(aspectFormat->i_sar_num),
         (__bridge NSString*)kCVImageBufferPixelAspectRatioVerticalSpacingKey:
-            @(vd->source->i_sar_den)
+            @(aspectFormat->i_sar_den)
     };
 
     CVBufferSetAttachment(

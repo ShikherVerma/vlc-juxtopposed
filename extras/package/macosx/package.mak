@@ -24,19 +24,29 @@ macos-install:
 # use package-macosx to get a nice dmg
 VLC.app: macos-install
 	rm -Rf $@
-	## Copy Contents
+if ENABLE_QT
+	## Only app/document icons are shared with the Cocoa interface.
+	mkdir -p $@/Contents/Resources
+	find "$(macos_destdir)$(datadir)/macosx/Contents/Resources" -maxdepth 1 -name '*.icns' -exec cp -a {} $@/Contents/Resources/ \;
+else
+	## Copy the Cocoa interface's resources only into a Cocoa bundle.
 	cp -R "$(macos_destdir)$(datadir)/macosx/" $@
-	## Copy .strings file and .nib files
 	cp -R "$(srcdir)/modules/gui/macosx/Resources/"*.lproj $@/Contents/Resources/
 	cp -R "$(top_builddir)/modules/gui/macosx/UI/." $@/Contents/Resources/Base.lproj/
-	## Copy Asset catalog
 	cp "$(top_builddir)/modules/gui/macosx/Resources/Assets.car" $@/Contents/Resources/Assets.car
 if ENABLE_MACOSX_UI_SHADERS
-	## Copy Shaders metal library
 	cp "$(top_builddir)/modules/gui/macosx/Resources/Shaders.metallib" $@/Contents/Resources/Shaders.metallib
+endif
 endif
 	## Copy Info.plist and convert to binary
 	cp -R "$(top_builddir)/share/macosx/Info.plist" $@/Contents/
+if ENABLE_QT
+	## Qt supplies NSApplication, its delegate, native menus and file-open events.
+	xcrun plutil -remove NSMainNibFile $@/Contents/Info.plist
+	xcrun plutil -remove NSAppleScriptEnabled $@/Contents/Info.plist
+	xcrun plutil -replace NSPrincipalClass -string NSApplication $@/Contents/Info.plist
+	xcrun plutil -insert VLCQtInterface -bool true $@/Contents/Info.plist
+endif
 	xcrun plutil -convert binary1 $@/Contents/Info.plist
 	## Create Frameworks dir and copy required ones
 	mkdir -p $@/Contents/Frameworks
@@ -73,7 +83,13 @@ endif
 	cp -a "$(macos_destdir)$(libdir)"/libvlc*.dylib $@/Contents/Frameworks/
 	## Copy plugins
 	mkdir -p $@/Contents/Frameworks/plugins
-	find "$(macos_destdir)$(pkglibdir)/plugins" -name 'lib*_plugin.dylib' -maxdepth 3 -exec cp -a {} $@/Contents/Frameworks/plugins \;
+if ENABLE_QT
+	## macosx has interface priority200, Qt151. Do not ship the competing UI;
+	## normal Finder/Dock launches must select the redesign without --intf=qt.
+	find "$(macos_destdir)$(pkglibdir)/plugins" -maxdepth 3 -name 'lib*_plugin.dylib' ! -name 'libmacosx_plugin.dylib' -exec cp -a {} $@/Contents/Frameworks/plugins \;
+else
+	find "$(macos_destdir)$(pkglibdir)/plugins" -maxdepth 3 -name 'lib*_plugin.dylib' -exec cp -a {} $@/Contents/Frameworks/plugins \;
+endif
 	## Copy libbluray jar
 	-cp -a "$(CONTRIB_DIR)"/share/java/libbluray*.jar $@/Contents/Frameworks/plugins/
 	## Install binary

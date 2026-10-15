@@ -47,5 +47,11 @@ QT_END_NAMESPACE
 int main(int argc, char *argv[])
 {
     qInstallMessageHandler(messageOutput);
+#ifdef Q_OS_MACOS
+    // A bundled sanity-check child must not take the parent's Cocoa delegate,
+    // launch-document events or native menu ownership. Still construct the real
+    // QApplication/platform plugin and preserve its ordinary failure status.
+    QCoreApplication::setAttribute(Qt::AA_PluginApplication);
+#endif
     QApplication app(argc, argv);
 }

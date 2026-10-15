@@ -61,6 +61,12 @@ extern "C" char **environ;
 #include <QQmlError>
 #include <QList>
 #include <QTranslator>
+#ifdef Q_OS_MACOS
+#include <QFileOpenEvent>
+#include <QMenuBar>
+#include <utility>
+#include "menus/menus.hpp"
+#endif
 
 #if __has_include(<rhi/qrhi.h>) // Qt 6.6
 #define RHI_HEADER_AVAILABLE
@@ -568,6 +574,48 @@ public:
     }
 };
 
+#ifdef Q_OS_MACOS
+// Launch Services supplies file/URL events, including before GUI readiness.
+class MacFileOpenHandler : public QObject
+{
+    QVariantList m_pendingFiles;
+    qt_intf_t *m_intf = nullptr;
+
+    void openPendingFiles()
+    {
+        if (!m_intf || m_pendingFiles.isEmpty())
+            return;
+        const auto files = std::exchange(m_pendingFiles, {});
+        m_intf->p_mainPlaylistController->append(files, true);
+        m_intf->p_mi->setPlayerView(true);
+    }
+public:
+    explicit MacFileOpenHandler(QObject *app) : QObject(app)
+    {
+        app->installEventFilter(this);
+    }
+    bool eventFilter(QObject *, QEvent *event) override
+    {
+        if (event->type() != QEvent::FileOpen)
+            return false;
+        const auto url = static_cast<QFileOpenEvent *>(event)->url();
+        if (!url.isValid() || url.isEmpty())
+            return false;
+        m_pendingFiles.append(url);
+        QMetaObject::invokeMethod(this, [this] { openPendingFiles(); }, Qt::QueuedConnection);
+        event->accept();
+        return true;
+    }
+    void setReady(qt_intf_t *intf)
+    {
+        m_intf = intf;
+        openPendingFiles();
+    }
+};
+static QPointer<MacFileOpenHandler> macFileOpenHandler;
+static QPointer<QMenuBar> macNativeMenuBar;
+#endif
+
 /*****************************************************************************
  * Module callbacks
  *****************************************************************************/
@@ -942,11 +990,12 @@ static void *Thread( void *obj )
 
     /* Start the QApplication here */
     QApplication app( argc, argv );
+#ifdef Q_OS_MACOS
+    macFileOpenHandler = new MacFileOpenHandler(&app);
+#endif
     initializeVLCFonts();
     app.setProperty("initialStyle", app.style()->name());
-
     {
-        // Install custom translator:
         const auto translator = new Translator(&app);
         const auto ret = QCoreApplication::installTranslator(translator);
         assert(ret);
@@ -1090,6 +1139,16 @@ static void *Thread( void *obj )
     //       api (Direct3D 11.2) may not be supported.
     static const auto probeRhi = []() -> QPair<QSGRendererInterface::GraphicsApi,
                                                bool /* software through rhi, such as d3d warp */> {
+#if defined(Q_OS_MACOS) && QT_CONFIG(metal)
+        // Cocoa's native RHI backend must be probed before the generic OpenGL
+        // fallback. Otherwise a fresh Mac profile can cache Software despite
+        // working Metal (old development launches masked this with an env var).
+        {
+            QRhiMetalInitParams params;
+            if (QRhi::probe(QRhi::Metal, &params))
+                return {QSGRendererInterface::Metal, false};
+        }
+#endif
 #if defined(_WIN32)
         // TODO: Investigate if we should use D3D12. Currently it is not the default by
         //       Qt (as of Qt 6.8), and is not as battle tested as the default D3D11.
@@ -1501,6 +1560,44 @@ static void *Thread( void *obj )
     }
 #undef QTSTYLE_KEY
 
+#ifdef Q_OS_MACOS
+    // Parentless QMenuBar is Qt's native application-wide macOS menu bar.
+    // Reuse VLC's real command/model builders; do not load the Cocoa MainMenu
+    // nib or its delegate alongside Qt. Destroy menus before their controllers.
+    if (!p_intf->b_isDialogProvider)
+    {
+        macNativeMenuBar = new QMenuBar;
+        const auto addMenu = [&](const QString &title, auto populate) {
+            auto menu = macNativeMenuBar->addMenu(title);
+            populate(p_intf, menu);
+        };
+        addMenu(qtr("File"), VLCMenuBar::FileMenu);
+        addMenu(qtr("Playback"), VLCMenuBar::NavigMenu);
+        addMenu(qtr("Audio"), VLCMenuBar::AudioMenu);
+        addMenu(qtr("Video"), VLCMenuBar::VideoMenu);
+        addMenu(qtr("Subtitle"), [](qt_intf_t *intf, QMenu *menu) { VLCMenuBar::SubtitleMenu(intf, menu); });
+        addMenu(qtr("Tools"), VLCMenuBar::ToolsMenu);
+        addMenu(qtr("View"), VLCMenuBar::ViewMenu);
+        addMenu(qtr("Help"), VLCMenuBar::HelpMenu);
+
+        // Qt's Cocoa delegate propagates ApplicationActive on each Dock reopen,
+        // even when already active. Restore the one existing main window rather
+        // than starting a second interface; never disturb a fullscreen window.
+        QObject::connect(&app, &QGuiApplication::applicationStateChanged, p_intf->p_mi,
+                         [p_intf](Qt::ApplicationState state) {
+            if (state != Qt::ApplicationActive || qEnvironmentVariableIsSet("VLC_QT_NO_ACTIVATE"))
+                return;
+            auto window = p_intf->p_compositor->interfaceMainWindow();
+            if (window->visibility() == QWindow::Minimized)
+                window->showNormal();
+            else if (!window->isVisible())
+                window->show();
+        });
+        assert(macFileOpenHandler);
+        macFileOpenHandler->setReady(p_intf);
+    }
+#endif
+
     /* Launch */
     {
         vlc::qt::ShutdownTraceScope trace("interface-event-loop-core-shutdown", p_intf, true);
@@ -1530,6 +1627,11 @@ static void *Thread( void *obj )
 
 static void *ThreadCleanup( qt_intf_t *p_intf, CleanupReason cleanupReason )
 {
+#ifdef Q_OS_MACOS
+    if (macFileOpenHandler)
+        macFileOpenHandler->setReady(nullptr);
+    delete macNativeMenuBar.data();
+#endif
     vlc::qt::ShutdownTraceScope trace("ThreadCleanup", p_intf);
     {
         vlc::threads::mutex_locker locker (lock);
