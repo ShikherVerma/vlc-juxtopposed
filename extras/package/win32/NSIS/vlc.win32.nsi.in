@@ -55,6 +55,8 @@ SetCompressor /SOLID lzma
 !endif
 
 SetOverwrite ifdiff
+; plugins.dat validates DLL mtimes; retain the post-strip staging timestamps.
+SetDateSave on
 CRCCheck on
 BrandingText "${PRODUCT_GROUP} ${PRODUCT_NAME}"
 
@@ -316,17 +318,19 @@ skip_uninstall32_cleanup:
   !insertmacro InstallFile *.txt
 
   ; Subfolders
+  ; Cache staging normalizes DLL dates. Always replace plugins on upgrade,
+  ; even when a changed DLL has the same normalized date as the old one.
+  SetOverwrite on
   !insertmacro InstallFolder plugins
+  SetOverwrite ifdiff
 @HAVE_NLS_TRUE@ !insertmacro InstallFolderOptional locale
   !insertmacro InstallFolder hrtfs
 @BUILD_SKINS_TRUE@   !insertmacro InstallFolder skins
 @BUILD_LUA_TRUE@     !insertmacro InstallFolder lua
 
-  ; Generate the cache and add it to uninstall.log
-  nsExec::ExecToStack '"$INSTDIR\vlc-cache-gen.exe" "$INSTDIR\plugins"'
-  FindFirst $0 $1 "$INSTDIR\plugins\*.dat"
-  FileWrite $UninstallLog "plugins\$1$\r$\n"
-  FindClose $0
+  ; plugins.dat is shipped and logged by InstallFolder above. Never wait for
+  ; a full DLL scan in the installer. If the cache is absent/stale, VLC's
+  ; normal plugins-scan path validates entries and rescans on first launch.
 
 
   ; URLs

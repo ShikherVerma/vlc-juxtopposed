@@ -148,6 +148,11 @@ endif
 
 if HAVE_MAKENSIS
 package-win32-exe: package-win32-src $(win32_destdir)/NSIS/nsProcess.dll extras/package/win32/NSIS/vlc.win32.nsi
+# Optional post-strip hook: generate/validate the cache from this exact tree.
+# No later recipe may alter plugin contents or timestamps before archiving.
+	if test -n "$(WIN32_CACHE_GEN)"; then \
+		$(WIN32_CACHE_GEN) "$(win32_destdir)"; \
+	fi
 # Create package
 	$(MAKENSIS) "$(win32_destdir)/spad.nsi"
 	$(MAKENSIS) "$(win32_destdir)/vlc.win32.nsi"
