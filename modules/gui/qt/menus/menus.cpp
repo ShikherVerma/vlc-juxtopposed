@@ -639,6 +639,12 @@ void VLCMenuBar::ViewMenu(qt_intf_t *p_intf, QMenu *menu)
         action->setCheckable( true );
         action->setChecked( isPlayerVisible );
         connect( action, &QAction::triggered, mi, &MainCtx::setPlayerView);
+        // The macOS application menu outlives file opens and QML view switches.
+        // Keep its toggle aligned with the actual view, not its startup state.
+        connect(mi, &MainCtx::mainInterfaceModesChanged, action,
+                [action](MainCtx::MainInterfaceModes modes) {
+                    action->setChecked(modes.testFlag(MainCtx::MAININTERFACE_MODE_PLAYER));
+                });
     }
 
     /* FullScreen View */

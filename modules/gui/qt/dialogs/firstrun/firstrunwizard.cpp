@@ -65,6 +65,9 @@ FirstRunWizard::FirstRunWizard( qt_intf_t *_p_intf, QWidget *parent)
     ui.verticalLayout->setSpacing(16);
     ui.verticalLayout_3->setSpacing(12);
     ui.policy->setFrameShape(QFrame::NoFrame);
+    ui.addButton->setFixedSize(24, 24);
+    ui.addButton->setAccessibleName(qtr("Add folder"));
+    ui.addButton->setToolTip(qtr("Add folder"));
 
     // Match the shared redesign palette, including System and custom accents.
     m_palette = new SystemPalette(this);
@@ -168,7 +171,6 @@ void FirstRunWizard::applyTheme()
     const QString panel = light ? "#d5d5d5" : "#191919";
     const QString fg = light ? "#2e2e2e" : "#c6c6c6";
     const QString muted = light ? "#6b6b6b" : "#8f8f8f";
-    const QString divider = light ? "#acacac" : "#373737";
     const QString accent = m_palette->get_accentMain().name();
     const QString ink = m_palette->getColor(ColorContext::ButtonAccent, ColorContext::Fg,
                                             ColorContext::Primary, ColorContext::Normal).name();
@@ -177,24 +179,30 @@ void FirstRunWizard::applyTheme()
         "QLabel { background:transparent; }"
         "QLabel#privacy { font-size:20px; font-weight:500; }"
         "QLabel#pref, QLabel#folderLabel, QLabel#colorLabel, QLabel#layoutLabel { font-size:16px; font-weight:500; }"
-        "QTextEdit, QAbstractItemView { background:%2; border:0; border-radius:6px; padding:12px; selection-background-color:%6; }"
-        "QHeaderView::section { background:%2; color:%3; border:0; padding:8px; }"
+        "QTextEdit, QAbstractItemView { background:%2; border:0; border-radius:6px; padding:12px; selection-background-color:%5; }"
+        "QHeaderView { background:%2; padding:0; border-radius:0; }"
+        "QHeaderView::section { background:%2; color:%3; border:0; padding:2px 4px; }"
+        "MLFoldersEditor QWidget { background:%2; }"
         "QPushButton { background:%2; border:1px solid transparent; border-radius:4px; padding:8px 16px; }"
-        "QPushButton:hover { border-color:%6; }"
-        "QPushButton[primary=true] { background:%6; color:%7; }"
+        "QPushButton:hover { border-color:%5; }"
+        "QPushButton[primary=true] { background:%5; color:%6; }"
         "QPushButton:disabled { background:%2; color:%4; }"
-        "QPushButton:focus, QCheckBox:focus, QRadioButton:focus { border:1px solid %6; }"
+        // These compact buttons cannot accommodate the wizard navigation padding.
+        "QPushButton#addButton, MLFoldersEditor QPushButton { padding:0; border:1px solid %4; border-radius:3px; }"
+        "QPushButton#addButton:hover, MLFoldersEditor QPushButton:hover { border-color:%5; }"
+        "QPushButton:focus, QCheckBox:focus, QRadioButton:focus { border:1px solid %5; }"
         "QCheckBox, QRadioButton { background:transparent; spacing:8px; border:1px solid transparent; padding:4px 0; }"
-        "QCheckBox::indicator, QRadioButton::indicator { width:18px; height:18px; border:1px solid %5; border-radius:4px; background:%2; }"
+        "QCheckBox::indicator, QRadioButton::indicator, QAbstractItemView::indicator { width:18px; height:18px; border:1px solid %4; border-radius:4px; background:%2; }"
         "QRadioButton::indicator { border-radius:9px; }"
-        "QCheckBox::indicator:checked { background:%6; border-color:%6; image:url(:/icons/check.svg); }"
-        "QRadioButton::indicator:checked { background:%6; border:4px solid %2; }"
+        "QCheckBox::indicator:checked, QAbstractItemView::indicator:checked { background:%5; border-color:%5; image:url(:/icons/check.svg); }"
+        "QCheckBox::indicator:disabled, QAbstractItemView::indicator:disabled { border-color:%4; }"
+        "QRadioButton::indicator:checked { background:%5; border:4px solid %2; }"
         "QCheckBox:disabled, QRadioButton:disabled { color:%4; }"
         "QScrollBar:vertical { background:%2; width:6px; margin:0; }"
         "QScrollBar::handle:vertical { background:%4; min-height:32px; border-radius:3px; }"
         "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height:0; }"
         "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background:transparent; }"
-    ).arg(canvas, panel, fg, muted, divider, accent, ink));
+    ).arg(canvas, panel, fg, muted, accent, ink));
 }
 
 /**

@@ -40,6 +40,10 @@ T.Pane {
 
     property bool delegateShowText: true
 
+    // The icon rail should not retain the expanded navigation's large gaps.
+    readonly property real navigationRowHeight: VLCStyle.dp(delegateShowText ? 32 : 28, VLCStyle.scale)
+    readonly property real navigationSpacing: VLCStyle.dp(delegateShowText ? 14 : 4, VLCStyle.scale)
+
     property alias model: navigationModel
 
     readonly property int minimumWidth: VLCStyle.dp(217, VLCStyle.scale) + safeAreaLeftMargin + safeAreaRightMargin
@@ -51,7 +55,7 @@ T.Pane {
 
     padding: 0
     topPadding: VLCStyle.dp(delegateShowText ? 20 : 8, VLCStyle.scale)
-    bottomPadding: VLCStyle.dp(20, VLCStyle.scale)
+    bottomPadding: VLCStyle.dp(delegateShowText ? 20 : 8, VLCStyle.scale)
     leftPadding: VLCStyle.dp(delegateShowText ? 24 : 10, VLCStyle.scale)
     rightPadding: VLCStyle.dp(delegateShowText ? 24 : 10, VLCStyle.scale)
 
@@ -139,30 +143,53 @@ T.Pane {
         //would be parented (and layouted) to the Layout
         ColumnLayout {
             anchors.fill: parent
-            spacing: VLCStyle.dp(14, VLCStyle.scale)
+            spacing: root.navigationSpacing
 
             Widgets.ListViewExt {
                 id: listView
 
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                Layout.minimumHeight: 0
 
                 clip: !fadingEdge.implicitClipping && (height < contentHeight)
                 focus: true
 
                 model: navigationModel
-                spacing: VLCStyle.dp(14, VLCStyle.scale)
+                spacing: root.navigationSpacing
                 onActionAtIndex: (index) => {
                     const item = itemAtIndex(index)
                     if (item && item.visible && item.enabled)
                         item.clicked()
                 }
 
-                Binding {
-                    target: listView.T.ScrollBar.vertical
-                    property: "policy"
-                    when: listView.T.ScrollBar.vertical?.size > (1.0 - Number.EPSILON)
-                    value: T.ScrollBar.AlwaysOff
+                defaultScrollBar: Component {
+                    Widgets.ScrollBarExt {
+                        id: navigationScrollBar
+
+                        // Keep the affordance in the pane's padding, not over
+                        // the 30px icon content. Do not inherit a platform's
+                        // persistent-scrollbar policy when there is no overflow.
+                        parent: root
+                        x: root.mirrored ? VLCStyle.dp(2, VLCStyle.scale)
+                                         : root.width - width - VLCStyle.dp(2, VLCStyle.scale)
+                        y: root.topPadding + listView.y
+                        height: listView.height
+                        implicitWidth: VLCStyle.dp(interacting ? 6 : 5, VLCStyle.scale)
+                        padding: VLCStyle.dp(1, VLCStyle.scale)
+                        policy: listView.contentHeight > listView.height + 0.5
+                                ? T.ScrollBar.AsNeeded : T.ScrollBar.AlwaysOff
+
+                        contentItem: Rectangle {
+                            implicitWidth: VLCStyle.dp(navigationScrollBar.interacting ? 4 : 3, VLCStyle.scale)
+                            implicitHeight: implicitWidth
+                            radius: width / 2
+                            color: navigationScrollBar.pressed ? navigationScrollBar.colorContext.accent
+                                   : navigationScrollBar.hovered ? navigationScrollBar.colorContext.fg.primary
+                                   : navigationScrollBar.colorContext.fg.secondary
+                            visible: navigationScrollBar._shown
+                        }
+                    }
                 }
 
                 colorContext.colorSet: ColorContext.Window
@@ -199,7 +226,7 @@ T.Pane {
                     width: ListView.view.contentWidth
                     height: preferredHeight
 
-                    property real preferredHeight: shouldShow ? VLCStyle.dp(32, VLCStyle.scale) : 0.0
+                    property real preferredHeight: shouldShow ? root.navigationRowHeight : 0.0
 
                     leftPadding: root.safeAreaLeftMargin + (depth > 0 ? VLCStyle.dp(38, VLCStyle.scale) : 0)
                     rightPadding: root.safeAreaRightMargin
@@ -312,7 +339,7 @@ T.Pane {
                 AccessibleCompat.id: "preferencesButton"
 
                 Layout.fillWidth: true
-                Layout.preferredHeight: VLCStyle.dp(32, VLCStyle.scale)
+                Layout.preferredHeight: root.navigationRowHeight
 
                 leftPadding: root.safeAreaLeftMargin
                 rightPadding: root.safeAreaRightMargin

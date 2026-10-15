@@ -41,6 +41,7 @@ MLFoldersEditor::MLFoldersEditor(QWidget *parent)
     horizontalHeader()->setMinimumSectionSize( 100 );
     horizontalHeader()->setSectionResizeMode( 0 , QHeaderView::Stretch );
     horizontalHeader()->setFixedHeight( 24 );
+    verticalHeader()->setDefaultSectionSize(qMax(verticalHeader()->defaultSectionSize(), 28));
 }
 
 void MLFoldersEditor::setMLFoldersModel(MLFoldersBaseModel *foldersModel)
@@ -151,12 +152,14 @@ void MLFoldersEditor::newRow(const QUrl &mrl)
     {
         QWidget *wid = new QWidget( this );
         QBoxLayout* layout = new QBoxLayout( QBoxLayout::LeftToRight , wid );
+        layout->setContentsMargins(0, 0, 0, 0);
 
         QPushButton *pb = new QPushButton( icon , wid );
-        pb->setFixedSize( 18 , 18 );
+        pb->setFixedSize( 24 , 24 );
         pb->setAccessibleName(accessibleName);
+        pb->setToolTip(accessibleName);
 
-        layout->addWidget( pb , Qt::AlignCenter );
+        layout->addWidget( pb, 0, Qt::AlignCenter );
         wid->setLayout( layout );
         connect( pb, &QPushButton::clicked, this, [this, col1, action]()
         {
