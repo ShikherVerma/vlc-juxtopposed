@@ -48,6 +48,11 @@ FocusScope {
     property bool showNavigationToggle: showLocation
     property bool playlistVisible: false
 
+    readonly property bool macCSD: Qt.platform.os === "osx" && root.showCSD
+                                   && MainCtx.intfMainWindow.visibility !== Window.FullScreen
+    // Keep the authored content to the right of the macOS traffic lights.
+    readonly property int contentInset: macCSD ? VLCStyle.dp(78, VLCStyle.scale) : 0
+
     signal togglePlaylistVisibility()
     signal requestLockUnlockAutoHide(bool lock)
     signal backRequested()
@@ -83,8 +88,58 @@ FocusScope {
         }
     }
 
+    // CSD counterpart of the native macOS close/minimize/fullscreen group.
+    // The titlebar drag handler below retains double-click zoom/restore.
+    Row {
+        id: trafficLights
+        visible: root.macCSD
+        x: VLCStyle.dp(10, VLCStyle.scale)
+        y: (VLCStyle.dp(40, VLCStyle.scale) - height) / 2
+        height: VLCStyle.dp(24, VLCStyle.scale)
+        Repeater {
+            model: [qsTr("Close"), qsTr("Minimize"), qsTr("Fullscreen")]
+            T.Button {
+                id: trafficButton
+                required property int index
+                required property string modelData
+                width: VLCStyle.dp(20, VLCStyle.scale)
+                height: trafficLights.height
+                padding: 0
+                hoverEnabled: true
+                focusPolicy: Qt.TabFocus
+                Accessible.name: modelData
+                background: Rectangle {
+                    anchors.centerIn: parent
+                    width: VLCStyle.dp(12, VLCStyle.scale)
+                    height: width
+                    radius: width / 2
+                    color: trafficButton.down ? Qt.darker(["#ff5f57", "#febc2e", "#28c840"][trafficButton.index], 1.2)
+                                              : ["#ff5f57", "#febc2e", "#28c840"][trafficButton.index]
+                    border.width: trafficButton.visualFocus ? VLCStyle.dp(2, VLCStyle.scale) : 0
+                    border.color: theme.fg.primary
+                }
+                contentItem: Widgets.IconLabel {
+                    text: [VLCIcons.window_close, VLCIcons.window_minimize, VLCIcons.fullscreen][trafficButton.index]
+                    font.pixelSize: VLCStyle.dp(12, VLCStyle.scale)
+                    color: "#161616"
+                    opacity: trafficButton.hovered || trafficButton.visualFocus ? 1 : 0
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                onClicked: {
+                    if (index === 0)
+                        MainCtx.intfMainWindow.close()
+                    else if (index === 1)
+                        MainCtx.requestInterfaceMinimized()
+                    else
+                        MainCtx.toggleInterfaceFullScreen()
+                }
+            }
+        }
+    }
+
     Widgets.BannerCone {
-        x: VLCStyle.dp(13, VLCStyle.scale)
+        x: root.contentInset + VLCStyle.dp(13, VLCStyle.scale)
         y: (VLCStyle.dp(40, VLCStyle.scale) - height) / 2
         width: VLCStyle.dp(24, VLCStyle.scale)
         height: width
@@ -94,7 +149,7 @@ FocusScope {
 
     Widgets.IconToolButton {
         id: menuSelector
-        x: VLCStyle.dp(51, VLCStyle.scale)
+        x: root.contentInset + VLCStyle.dp(51, VLCStyle.scale)
         y: (VLCStyle.dp(40, VLCStyle.scale) - height) / 2
         width: VLCStyle.dp(28, VLCStyle.scale)
         height: width
@@ -122,7 +177,7 @@ FocusScope {
 
     Widgets.IconToolButton {
         id: sidebarButton
-        x: VLCStyle.dp(89, VLCStyle.scale)
+        x: root.contentInset + VLCStyle.dp(89, VLCStyle.scale)
         y: (VLCStyle.dp(40, VLCStyle.scale) - height) / 2
         width: VLCStyle.dp(28, VLCStyle.scale)
         height: width
@@ -154,7 +209,7 @@ FocusScope {
     }
 
     Widgets.IconLabel {
-        x: VLCStyle.dp(117, VLCStyle.scale)
+        x: root.contentInset + VLCStyle.dp(117, VLCStyle.scale)
         y: (VLCStyle.dp(40, VLCStyle.scale) - height) / 2
         width: VLCStyle.dp(24, VLCStyle.scale)
         height: width
@@ -166,7 +221,7 @@ FocusScope {
 
     Widgets.TextToolButton {
         id: locationButton
-        x: VLCStyle.dp(141, VLCStyle.scale)
+        x: root.contentInset + VLCStyle.dp(141, VLCStyle.scale)
         y: (VLCStyle.dp(40, VLCStyle.scale) - height) / 2
         height: VLCStyle.dp(28, VLCStyle.scale)
         width: Math.min(implicitWidth, Math.max(0, root.width / 2 - x - VLCStyle.dp(80, VLCStyle.scale)))
@@ -218,7 +273,14 @@ FocusScope {
     T.Label {
         anchors.horizontalCenter: parent.horizontalCenter
         y: (VLCStyle.dp(40, VLCStyle.scale) - height) / 2
-        width: Math.max(0, Math.min(implicitWidth, root.width - 2 * Math.max(locationButton.visible ? locationButton.x + locationButton.width : menuSelector.x + menuSelector.width, csdDecorations.width + VLCStyle.dp(6, VLCStyle.scale))))
+        // Reserve the furthest visible control on each side, symmetrically,
+        // so the title stays window-centered even when it has to disappear.
+        readonly property real leftContentRight: Math.max(menuSelector.x + menuSelector.width,
+                                                         sidebarButton.visible ? sidebarButton.x + sidebarButton.width : 0,
+                                                         locationButton.visible ? locationButton.x + locationButton.width : 0)
+        readonly property real rightContentWidth: csdDecorations.active ? csdDecorations.width + csdDecorations.anchors.rightMargin : 0
+        width: Math.max(0, Math.min(implicitWidth, root.width - 2 * (Math.max(leftContentRight, rightContentWidth) + VLCStyle.dp(8, VLCStyle.scale))))
+        clip: true // A zero-width elided title must not paint over controls.
         text: root.title || qsTr("VLC Media Player")
         font.family: VLCStyle.fontFamily
         font.pixelSize: VLCStyle.fontSize_normal
@@ -234,7 +296,7 @@ FocusScope {
         anchors.rightMargin: VLCStyle.dp(6, VLCStyle.scale)
         y: (VLCStyle.dp(40, VLCStyle.scale) - height) / 2
         height: VLCStyle.dp(24, VLCStyle.scale)
-        active: root.showCSD
+        active: root.showCSD && Qt.platform.os !== "osx"
         sourceComponent: Widgets.CSDWindowButtonSet {
             playerStyle: true
         }

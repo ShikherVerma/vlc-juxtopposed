@@ -25,6 +25,7 @@
 
 class MLFoldersEditor;
 class MLFoldersModel;
+class SystemPalette;
 
 class FirstRunWizard : public QWizard
 {
@@ -48,6 +49,7 @@ private:
     MLFoldersModel *mlFoldersModel = nullptr;
 
     qt_intf_t* p_intf;
+    SystemPalette* m_palette = nullptr;
     bool mlDefaults = false;
 
     QButtonGroup* colorSchemeGroup = nullptr;
@@ -55,6 +57,7 @@ private:
     QButtonGroup* layoutImages = nullptr;
 
 private slots:
+    void applyTheme();
     void finish();
     void MLaddNewFolder();
     void updateColorLabel( QAbstractButton* );

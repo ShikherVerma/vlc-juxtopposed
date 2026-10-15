@@ -16,8 +16,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  *****************************************************************************/
 
-//CSD is only supported on Qt 5.15
 import QtQuick
+import QtQuick.Window
 
 import VLC.MainInterface
 

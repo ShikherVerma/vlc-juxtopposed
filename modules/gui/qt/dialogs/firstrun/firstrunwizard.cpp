@@ -21,6 +21,7 @@
 #include "maininterface/mainctx.hpp"
 #include "dialogs/toolbar/controlbar_profile_model.hpp"
 #include "medialibrary/medialib.hpp"
+#include "style/systempalette.hpp"
 
 #include <QPushButton>
 #include <QButtonGroup>
@@ -39,6 +40,15 @@ FirstRunWizard::FirstRunWizard( qt_intf_t *_p_intf, QWidget *parent)
     /* Set windown properties */
     setWindowTitle( qtr( "Welcome" ) );
     setWindowModality( Qt::WindowModal );
+#ifdef Q_OS_MAC
+    // Honor the same opt-in background-probe guard as the main Qt window.
+    // A separate QWidget wizard must not activate the user's working desktop.
+    if (qEnvironmentVariableIsSet("VLC_QT_NO_ACTIVATE"))
+    {
+        setAttribute(Qt::WA_ShowWithoutActivating);
+        setWindowFlag(Qt::WindowDoesNotAcceptFocus);
+    }
+#endif
 
     // NOTE: Aero style seems to be incompatible with
     //       Qt Modern Windows Style dark mode
@@ -46,6 +56,25 @@ FirstRunWizard::FirstRunWizard( qt_intf_t *_p_intf, QWidget *parent)
 
     /* Build the Ui */
     ui.setupUi( this );
+    ui.gridLayout->setContentsMargins(24, 24, 24, 24);
+    ui.gridLayout->setVerticalSpacing(16);
+    ui.policy->setMinimumHeight(180);
+    resize(800, 560);
+    button(QWizard::NextButton)->setProperty("primary", true);
+    button(QWizard::FinishButton)->setProperty("primary", true);
+    ui.verticalLayout->setSpacing(16);
+    ui.verticalLayout_3->setSpacing(12);
+    ui.policy->setFrameShape(QFrame::NoFrame);
+
+    // Match the shared redesign palette, including System and custom accents.
+    m_palette = new SystemPalette(this);
+    m_palette->setCtx(p_intf->p_mi);
+    m_palette->setSource(p_intf->p_mi->getColorScheme()->currentScheme());
+    connect(m_palette, &SystemPalette::paletteChanged, this, &FirstRunWizard::applyTheme);
+    connect(p_intf->p_mi->getColorScheme(), &ColorSchemeModel::currentChanged, this, [this] {
+        m_palette->setSource(p_intf->p_mi->getColorScheme()->currentScheme());
+    });
+    applyTheme();
 
     /* Set the privacy and network policy */
     ui.policy->setHtml( qtr( "<p>In order to protect your privacy, <i>VLC media player</i> "
@@ -116,8 +145,12 @@ FirstRunWizard::FirstRunWizard( qt_intf_t *_p_intf, QWidget *parent)
         ui.enableMl->setChecked( false );
     }
 
-    /* Disable the ML button as toggling doesn't actually do anything */
-    ui.enableMl->setEnabled(false);
+    // The service is created at startup. Persist the choice for the next launch
+    // and do not commit folders/indexing on this launch when it is unchecked.
+    ui.enableMl->setChecked(vlc_ml_instance_get(p_intf) && var_InheritBool(p_intf, "media-library"));
+    ui.enableMl->setEnabled(vlc_ml_instance_get(p_intf) != nullptr);
+    ui.enableMl->setText(qtr("Enable the Media Library (restart required)"));
+    ui.enableMl->setToolTip(qtr("Changes to the Media Library take effect after restarting VLC."));
 
     /* Slots and Signals */
     connect( ui.addButton, &QPushButton::clicked, this, &FirstRunWizard::MLaddNewFolder );
@@ -126,6 +159,42 @@ FirstRunWizard::FirstRunWizard( qt_intf_t *_p_intf, QWidget *parent)
     connect( ui.layoutGroup, qOverload<QAbstractButton*>( &QButtonGroup::buttonClicked ), this, &FirstRunWizard::updateLayoutLabel );
     connect( layoutImages, qOverload<QAbstractButton*>( &QButtonGroup::buttonClicked ), this, &FirstRunWizard::imageLayoutClick );
     connect( this->button(QWizard::FinishButton), &QPushButton::clicked, this, &FirstRunWizard::finish );
+}
+
+void FirstRunWizard::applyTheme()
+{
+    const bool light = !m_palette->isDark();
+    const QString canvas = light ? "#e7e7e7" : "#0e0e0e";
+    const QString panel = light ? "#d5d5d5" : "#191919";
+    const QString fg = light ? "#2e2e2e" : "#c6c6c6";
+    const QString muted = light ? "#6b6b6b" : "#8f8f8f";
+    const QString divider = light ? "#acacac" : "#373737";
+    const QString accent = m_palette->get_accentMain().name();
+    const QString ink = m_palette->getColor(ColorContext::ButtonAccent, ColorContext::Fg,
+                                            ColorContext::Primary, ColorContext::Normal).name();
+    setStyleSheet(QStringLiteral(
+        "QWidget { background:%1; color:%3; font-family:Inter; font-size:14px; font-weight:400; }"
+        "QLabel { background:transparent; }"
+        "QLabel#privacy { font-size:20px; font-weight:500; }"
+        "QLabel#pref, QLabel#folderLabel, QLabel#colorLabel, QLabel#layoutLabel { font-size:16px; font-weight:500; }"
+        "QTextEdit, QAbstractItemView { background:%2; border:0; border-radius:6px; padding:12px; selection-background-color:%6; }"
+        "QHeaderView::section { background:%2; color:%3; border:0; padding:8px; }"
+        "QPushButton { background:%2; border:1px solid transparent; border-radius:4px; padding:8px 16px; }"
+        "QPushButton:hover { border-color:%6; }"
+        "QPushButton[primary=true] { background:%6; color:%7; }"
+        "QPushButton:disabled { background:%2; color:%4; }"
+        "QPushButton:focus, QCheckBox:focus, QRadioButton:focus { border:1px solid %6; }"
+        "QCheckBox, QRadioButton { background:transparent; spacing:8px; border:1px solid transparent; padding:4px 0; }"
+        "QCheckBox::indicator, QRadioButton::indicator { width:18px; height:18px; border:1px solid %5; border-radius:4px; background:%2; }"
+        "QRadioButton::indicator { border-radius:9px; }"
+        "QCheckBox::indicator:checked { background:%6; border-color:%6; image:url(:/icons/check.svg); }"
+        "QRadioButton::indicator:checked { background:%6; border:4px solid %2; }"
+        "QCheckBox:disabled, QRadioButton:disabled { color:%4; }"
+        "QScrollBar:vertical { background:%2; width:6px; margin:0; }"
+        "QScrollBar::handle:vertical { background:%4; min-height:32px; border-radius:3px; }"
+        "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height:0; }"
+        "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background:transparent; }"
+    ).arg(canvas, panel, fg, muted, divider, accent, ink));
 }
 
 /**
@@ -137,6 +206,7 @@ void FirstRunWizard::finish()
     /* Welcome Page settings  */
     config_PutInt( "metadata-network-access", ui.privacyCheckbox->isChecked() );
     config_PutInt( "qt-privacy-ask", 0 );
+    config_PutInt( "media-library", ui.enableMl->isChecked() );
 
     /* Colour Page settings */
     p_intf->p_mi->getColorScheme()->setCurrentIndex( colorSchemeGroup->checkedId() );
@@ -167,11 +237,11 @@ void FirstRunWizard::finish()
     }
 
     /* Commit changes to the scanned folders for the Media Library */
-    if( vlc_ml_instance_get( p_intf ) && mlFoldersEditor )
+    if( ui.enableMl->isChecked() && vlc_ml_instance_get( p_intf ) && mlFoldersEditor )
         mlFoldersEditor->commit();
 
     /* Reload the indexing service for the media library */
-    if( p_intf->p_mi->getMediaLibrary() )
+    if( ui.enableMl->isChecked() && p_intf->p_mi->getMediaLibrary() )
         p_intf->p_mi->getMediaLibrary()->reload();
 
     p_intf->p_mi->reloadPrefs();

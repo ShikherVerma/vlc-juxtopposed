@@ -556,6 +556,11 @@ void MainCtx::sendVLCHotkey(int vlcHotkey)
 void MainCtx::updateIntfScaleFactor()
 {
     auto newValue = m_intfUserScaleFactor;
+    // Cocoa already exposes device-independent points. Its logical DPI is 72,
+    // not the 96 used by the desktop dp baseline; applying 72/96 shrinks every
+    // QML dimension to 75%. Qt handles the backing/device pixel ratio itself.
+    // Keep the user's scale multiplier, without another DPI conversion on Mac.
+#ifndef Q_OS_MAC
     if (QWindow* window = p_intf->p_compositor ? p_intf->p_compositor->interfaceMainWindow() : nullptr)
     {
         QScreen* screen = window->screen();
@@ -565,6 +570,7 @@ void MainCtx::updateIntfScaleFactor()
             newValue = m_intfUserScaleFactor * dpi / VLC_REFERENCE_SCALE_FACTOR;
         }
     }
+#endif
 
     const int FACTOR_RESOLUTION = 100;
     if ( static_cast<int>(m_intfScaleFactor * FACTOR_RESOLUTION)

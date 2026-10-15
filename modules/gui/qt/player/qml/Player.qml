@@ -349,9 +349,11 @@ FocusScope {
                     opacity: controlBar.opacity
 
                     gradient: Gradient {
+                        // A video scrim is neutral, not a themed UI surface.
+                        // Light's Window background produces a white fog here.
                         GradientStop { position: 0; color: "transparent" }
-                        GradientStop { position: .64; color: Qt.alpha(windowTheme.bg.primary, .8) }
-                        GradientStop { position: 1; color: windowTheme.bg.primary }
+                        GradientStop { position: .64; color: Qt.alpha("#0e0e0e", .8) }
+                        GradientStop { position: 1; color: "#0e0e0e" }
                     }
 
                     visible: rootPlayer.displayFadeRectangles && !(controlBar.background && controlBar.background.visible)
@@ -1276,6 +1278,11 @@ FocusScope {
 
     ControlBar {
         id: controlBar
+
+        // Floating controls sit on the neutral video scrim, not a light UI
+        // surface. Keep their inherited ink legible when Light is selected.
+        colorContext.palette: MainCtx.hasEmbededVideo && rootPlayer.displayFadeRectangles && !MainCtx.pinVideoControls
+                              ? VLCStyle.darkPalette : VLCStyle.palette
 
         anchors {
             bottom: parent.bottom
