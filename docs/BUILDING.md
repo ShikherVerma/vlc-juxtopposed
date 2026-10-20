@@ -5,7 +5,7 @@ This repository contains the full modified VLC source. The interface lives in [`
 ```sh
 git clone https://github.com/ShikherVerma/vlc-juxtopposed.git
 cd vlc-juxtopposed
-git checkout v0.1
+git checkout v1
 ```
 
 VLC has substantial native dependencies. Follow the included [upstream build notes](../INSTALL) and platform recipes for toolchain setup. First tools/contrib builds can take hours. Use a dedicated build directory and retain contrib checksums and configuration logs.

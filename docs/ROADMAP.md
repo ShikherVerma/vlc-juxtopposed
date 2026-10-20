@@ -1,6 +1,6 @@
 # What's next
 
-## v0.1: the core desktop experience
+## v1: the core desktop experience
 
 - Redesigned player, dark/light themes and accents.
 - Queue, bookmarks, chapters and quick adjustments.
@@ -9,13 +9,13 @@
 - Five settings pages with 101 controls.
 - Shared Qt/QML source for macOS, Linux and Windows.
 
-## v0.1 follow-ups
+## v1 follow-ups
 
 - Resolve Windows fresh-start delay and intermittent quit hang.
 - Complete platform interaction testing and matched installer builds.
 - Finish download packaging, source bundles and asset notices.
 
-## v0.2: more control
+## v1.1: more control
 
 - Equalizer, compressor and deeper audio/video panels.
 - Redesigned Privacy, Controls, Video, Library, Network, Performance, Recording/Casting/Streaming and Extensions settings.

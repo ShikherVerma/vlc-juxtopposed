@@ -40,5 +40,19 @@
     "capturePlatform": "macOS",
     "description": "Actual application capture with generated test media. Resized only; no interface or media replacement.",
     "sha256": "b8cd122110481d1617632057e8ba7c5f77f40a601532a849c90e53da471fd8c7"
+  },
+  {
+    "file": "player-dark-v1.png",
+    "capturePlatform": "macOS",
+    "sourceCapture": "file-marketing-v1-dark/player-dark.png",
+    "description": "Actual signed Mac app,900x600-point window. Local What We Do in the Shadows excerpt; screenshot only, no movie distribution.",
+    "sha256": "8d60c063a54f97f78fffae2d2254387dee8f37d7e451c0d30c6848e281770bed"
+  },
+  {
+    "file": "settings-v1.png",
+    "capturePlatform": "macOS",
+    "sourceCapture": "file-r622-parent-foreground-dark/preferences.png",
+    "description": "Actual signed Mac Preferences dialog from foreground Cmd+P test.",
+    "sha256": "c513d976ee190b17911b08870f6e4492631a421f078a877c95697217017c2f61"
   }
 ]

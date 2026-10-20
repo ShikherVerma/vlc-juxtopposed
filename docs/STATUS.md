@@ -1,6 +1,6 @@
 # Platform testing
 
-## v0.1 snapshot
+## v1 snapshot
 
 The tag contains the redesigned VLC source, screenshots and project documentation. Installers are not attached to this source preview.
 
@@ -26,6 +26,6 @@ Five full-trace Windows diagnostic quit routes exited naturally. They do not est
 
 ## Screenshots
 
-README images are real Linux application captures with generated test media. `docs/screenshots/mac-light.png` is from the updated signed Mac candidate. The README hero adds a surrounding presentation frame; it does not replace the captured interface. Screenshots span implementation milestones and are not a claim that every capture came from one final installer.
+The README now uses individual full-width macOS captures. The player was sized to900x600 points for readability and shows the maintainer's local copy of *What We Do in the Shadows* (2014). The settings capture is the actual redesigned dialog. Neither is an interface mockup; movie files are not included. Earlier Linux/generated-media screenshots remain in the gallery history.
 
 Raw logs, local profiles, credentials and private machine state are not part of this public repository.

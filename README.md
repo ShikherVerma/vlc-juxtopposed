@@ -2,69 +2,73 @@
 
 # VLC, reimagined.
 
-**Juxtopposed's redesign. A real desktop player.**
+**Juxtopposed's redesign. Brought to life.**
 
-Built on VLC 4. Made for macOS, Linux and Windows.
+A cleaner player. A proper media library. Your favorite VLC, with a fresh face.
 
-[v0.1](https://github.com/ShikherVerma/vlc-juxtopposed/releases/tag/v0.1) · [The design](https://www.figma.com/community/file/1691465999134370980/vlc-redesign) · [Build it](docs/BUILDING.md) · [Follow along](https://x.com/shikheronline/status/2110155866196631936)
+**macOS · Linux · Windows**
 
-![The redesigned media library in dark mode](docs/screenshots/hero.png)
+[v1](https://github.com/ShikherVerma/vlc-juxtopposed/releases/tag/v1) · [Install](#install) · [Original design](https://www.figma.com/community/file/1691465999134370980/vlc-redesign)
 
 </div>
 
-## Your player. Less clutter.
+![VLC playing What We Do in the Shadows in dark mode](docs/screenshots/player-dark-v1.png)
 
-A cleaner player. A library worth browsing. Settings you can actually find.
+## Install
 
-| Watch | Browse |
-| :---: | :---: |
-| ![Dark player](docs/screenshots/player-dark.png) | ![Light library with docked playback](docs/screenshots/library-light.png) |
-| **More screen. Less chrome.** | **Keep watching while you browse.** |
-| ![Searchable settings](docs/screenshots/settings-dark.png) | ![Dark library and mini-player](docs/screenshots/mini-player.png) |
-| **Your settings, organized.** | **One library. Your next watch.** |
+**From source:** [macOS](docs/BUILDING.md#macos-apple-silicon) · [Linux](docs/BUILDING.md#linux) · [Windows](docs/BUILDING.md#windows-x64)
 
-## In v0.1
+```sh
+git clone https://github.com/ShikherVerma/vlc-juxtopposed.git
+cd vlc-juxtopposed
+git checkout v1
+```
 
-The first desktop preview brings the core redesign to all three platforms.
+Follow your platform's build steps above. Packaged downloads are being prepared.
+
+## Settings that make sense.
+
+Five redesigned pages. 101 controls. Search, change, save.
+
+![The redesigned settings window](docs/screenshots/settings-v1.png)
+
+## In v1
 
 | Feature | macOS | Linux | Windows |
 | :--- | :---: | :---: | :---: |
-| Dark and light themes, accent colors | Built | Built | Built |
-| Redesigned player and volume controls | Built | Built | Built |
-| Hide UI and fullscreen controls | Built | Built | Built |
+| Dark/light themes and accent colors | Built | Built | Built |
+| Redesigned player, volume and fullscreen controls | Built | Built | Built |
 | Continue watching | Built | Built | Built |
 | Main menu and right-click menu | Built | Built | Built |
 | Queue, bookmarks and chapters | Built | Built | Built |
 | Playback, audio and subtitle adjustments | Core | Core | Core |
-| Home, video folders and search | Built | Built | Built |
-| Music, playlists, network and recent files | Built | Built | Built |
+| Home, video folders, music and search | Built | Built | Built |
+| Playlists, network streams and recent files | Built | Built | Built |
 | Grid, list, sorting and navigation | Built | Built | Built |
 | Compact library and docked mini-player | Built | Built | Built |
 | Five settings pages, 101 controls | Built | Built | Built |
 
-*Built = implemented. Core = the main controls, with deeper tools still coming.*
+*Built = implemented. Core = main controls, with deeper tools coming next.*
 [Full feature list](docs/FEATURES.md) · [Platform testing](docs/STATUS.md)
 
-## The inspiration
+## The video that started it.
 
-[![Watch Juxtopposed redesign VLC on YouTube](https://img.youtube.com/vi/ERFeOgqk324/hqdefault.jpg)](https://www.youtube.com/watch?v=ERFeOgqk324)
+[![Watch Juxtopposed redesign VLC](https://img.youtube.com/vi/ERFeOgqk324/hqdefault.jpg)](https://www.youtube.com/watch?v=ERFeOgqk324)
 
-**[Watch Juxtopposed's original video](https://www.youtube.com/watch?v=ERFeOgqk324)**
+**[Watch Juxtopposed's original redesign](https://www.youtube.com/watch?v=ERFeOgqk324)**
 
-## Up next
+## Next up
 
-**v0.2:** deeper audio/video tools, more settings pages, a redesigned shortcut editor.
+**Next:** deeper audio/video tools, more settings pages and a redesigned shortcut editor.
 
-**Beyond:** drag-and-drop layouts, profiles, smarter subtitles, seek previews, floating picture-in-picture and a sleep timer.
+**Further ahead:** drag-and-drop layouts, profiles, smarter subtitles, seek previews, floating PiP and a sleep timer.
 
-[See the roadmap](docs/ROADMAP.md)
-
-## From a tweet to a player
+[Roadmap](docs/ROADMAP.md)
 
 > “Absolutely loved this. I'm coding this up. Already burned through $2380 Claude tokens and $895 Codex tokens. Will be on github soon. Forked over VLC v4 branch.”
 >
 > [Shikher Verma (@shikheronline), October 13, 2026](https://x.com/shikheronline/status/2110155866196631936)
 
-Built by [Shikher Verma](https://github.com/ShikherVerma). Design by **[Juxtopposed](https://www.youtube.com/@juxtopposed)**. Powered by **[VideoLAN](https://www.videolan.org/) and the VLC contributors**.
+Built by **[Shikher Verma](https://github.com/ShikherVerma)**. Design by **[Juxtopposed](https://www.youtube.com/@juxtopposed)**. Powered by **VideoLAN and the VLC contributors**.
 
-<sub>Independent community project. [Source and credits](docs/CREDITS.md).</sub>
+<sub>Independent community project. [Credits](docs/CREDITS.md).</sub>
