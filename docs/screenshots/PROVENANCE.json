@@ -1,0 +1,44 @@
+[
+  {
+    "file": "library-dark.png",
+    "sourceCapture": "build/verify-combined-1/indexed4-dark/dark-indexed-expanded-home.png",
+    "capturePlatform": "Linux",
+    "description": "Actual application capture with generated test media. Resized only; no interface or media replacement.",
+    "sha256": "c2cf58bacf6723ebaf45870d9c8b204bd2914e4ec9aa9274d333931533c76c3f"
+  },
+  {
+    "file": "player-dark.png",
+    "sourceCapture": "build/verify-combined-5/extras-dark/dark-player-initial.png",
+    "capturePlatform": "Linux",
+    "description": "Actual application capture with generated test media. Resized only; no interface or media replacement.",
+    "sha256": "734538b87f3fb671c20475190e6771624bb64e3ec9694d8932f977f5e8d1aa60"
+  },
+  {
+    "file": "library-light.png",
+    "sourceCapture": "build/verify-combined-4/light-ui-movie-to-library.png",
+    "capturePlatform": "Linux",
+    "description": "Actual application capture with generated test media. Resized only; no interface or media replacement.",
+    "sha256": "694681bd22a34bad8c54ee5c559aea299b4444e2e2b6cf14db8787edd98f99e3"
+  },
+  {
+    "file": "settings-dark.png",
+    "sourceCapture": "build/verify-combined-5/settings-dark-large/dark-large-general-simple.png",
+    "capturePlatform": "Linux",
+    "description": "Actual application capture with generated test media. Resized only; no interface or media replacement.",
+    "sha256": "a3e3069881591309953ce262357646d4420d2d13d53f36be3260805bce79030c"
+  },
+  {
+    "file": "mini-player.png",
+    "sourceCapture": "build/verify-combined-5/library-dark/dark-docked-home.png",
+    "capturePlatform": "Linux",
+    "description": "Actual application capture with generated test media. Resized only; no interface or media replacement.",
+    "sha256": "eb7113bca081d59a015d1862e6c46a2276c045ef09a1647da6203adce8d698cb"
+  },
+  {
+    "file": "mac-light.png",
+    "sourceCapture": "build/mac621-runtime/file-r621-parent-light/cold-frame-a.png",
+    "capturePlatform": "macOS",
+    "description": "Actual application capture with generated test media. Resized only; no interface or media replacement.",
+    "sha256": "b8cd122110481d1617632057e8ba7c5f77f40a601532a849c90e53da471fd8c7"
+  }
+]
