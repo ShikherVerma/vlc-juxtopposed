@@ -7,7 +7,7 @@
 | Upstream | https://code.videolan.org/videolan/vlc |
 | Public project | https://github.com/ShikherVerma/vlc-juxtopposed |
 
-The first public source commit imports a clean snapshot of the modified VLC tree, retaining its per-file notices. It starts a fresh public history; internal worktree history, private testing profiles and raw machine logs are not imported. Presentation changes add the project README, public docs and screenshots. `docs/UPSTREAM-README.md` preserves VLC's original README.
+This repository is a GitHub fork of `videolan/vlc`. The main branch preserves the original VLC ancestry and all 41 project implementation commits after the pinned upstream base. Presentation commits add the project README, public docs and screenshots. `docs/UPSTREAM-README.md` preserves VLC's original README. Private orchestration history, testing profiles and raw machine logs are not imported.
 
 The redesign primarily changes `modules/gui/qt/`. Additional changes support platform packaging, macOS startup/deployment and embedded-video geometry, an associated-subtitle-FPS symbol export, and native Windows plugin-cache packaging. Temporary Windows core shutdown instrumentation remains an unmerged diagnostic lane and is not included in this public snapshot.
 
